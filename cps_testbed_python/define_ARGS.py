@@ -1,0 +1,288 @@
+import argparse
+import sys
+
+import useful_scripts.cuboid as cuboid
+import useful_scripts.initializer as initializer
+import numpy as np
+import pickle as p
+
+
+def define_ARGS():
+    parser = argparse.ArgumentParser(
+        description='ARGS for the ET-DMPC')
+    parser.add_argument('--num_drones', default=3, type=int,
+                        help='List of number of drones to iterate over', metavar='')
+    parser.add_argument('--drone_ids', default=[1, 2, 3], type=list,
+                        help='List of drone IDs', metavar='')
+    parser.add_argument('--num_targets_per_drone', default=3, type=int,
+                        help='Number of targets', metavar='')
+    parser.add_argument('--num_computing_agents', default=2, type=int, help='Number of computing agents for the '
+                                                                            'DMPC Algorithm')
+    parser.add_argument('--computing_agent_ids', default=[20, 21], type=list, help='List of Computing Agent IDs')
+
+    parser.add_argument('--log_planned_trajectory', default=True, type=bool,
+                        help='Select, whether the planned trajectories should be logged')
+    parser.add_argument('--plot_planned_trajectory', default=True, type=bool,
+                        help='Select, whether the planned trajectories should be plotted')
+
+    parser.add_argument('--control_freq_hz', default=60, type=int, help='Control frequency in Hz (default: 48)',
+                        metavar='')
+    parser.add_argument('--communication_freq_hz', default=5, type=int,
+                        help='Communication frequency in Hz (default: 10)')
+    parser.add_argument('--drone_position_initialization_method', default='random', type=str,
+                        help='Method to initialize drone and target position')
+
+    parser.add_argument('--prediction_horizon', default=15, type=int, help='Prediction Horizon for DMPC')
+
+    parser.add_argument('--r_min', default=0.4, type=float, help='minimum distance to each Drone')
+    parser.add_argument('--r_min_crit', default=0.2, type=float, help='minimum distance to each Drone')
+
+    parser.add_argument('--use_soft_constraints', default=False, type=bool, help='')
+    parser.add_argument('--guarantee_anti_collision', default=True, type=bool, help='')
+    parser.add_argument('--soft_constraint_max', default=0.2, type=float, help='')
+    parser.add_argument('--weight_soft_constraint', default=0.01, type=float, help='')
+
+    parser.add_argument('--sim_id', default=0, type=int, help='ID of simulation, used for random generator seed')
+    parser.add_argument('--INIT_XYZS', default={}, type=dict, help='Initial drone positions')
+    parser.add_argument('--INIT_TARGETS', default={}, type=dict, help='Initial target positions')
+    parser.add_argument('--testbed_size', default=[3.7, 3.7, 3.7], type=list, help='Size of the testbed')
+
+    parser.add_argument('--skewed_plane_BVC', default=False, type=bool,
+                        help='Select, whether the BVC planes should be skewed')
+    parser.add_argument('--event_trigger', default=True, type=bool,
+                        help='Select, whether the event trigger should be used for scheduling')
+    parser.add_argument('--downwash_scaling_factor', default=4, type=int,
+                        help='Scaling factor to account for the downwash')
+    parser.add_argument('--downwash_scaling_factor_crit', default=3, type=int,
+                        help='Scaling factor to account for the downwash')
+    parser.add_argument('--use_qpsolvers', default=True, type=bool,
+                        help='Select, whether qpsolver is used for data planning')
+
+    parser.add_argument('--alpha_1', default=100.0*0, type=bool,
+                        help='Weight in event-trigger')
+    parser.add_argument('--alpha_2', default=10.0, type=bool,
+                        help='Weight in event-trigger')
+    parser.add_argument('--alpha_3', default=0.0, type=bool,
+                        help='Weight in event-trigger')
+    parser.add_argument('--alpha_4', default=10.0*0, type=bool,
+                        help='Weight in event-trigger')
+
+    parser.add_argument('--remove_redundant_constraints', default=True, type=bool,
+                        help='Select, whether a video should be saved')
+    parser.add_argument('--min_distance_cooperative', default=0.1, type=float,
+                        help='Select, whether a video should be saved')
+    parser.add_argument('--weight_cooperative', default=0.0, type=float,
+                        help='Select, whether a video should be saved')
+    parser.add_argument('--ignore_message_loss', default=False, type=bool,
+                        help='')
+    parser.add_argument('--use_high_level_planner', default=True, type=bool)
+
+    parser.add_argument('--dynamic_swarm', default=True, type=bool)   # if drones should be added dynamically or not.
+    ARGS = parser.parse_args()
+
+
+    assert ARGS.num_drones == len(ARGS.drone_ids), "Wrong number of Drone Agent IDs"
+    assert ARGS.num_computing_agents == len(ARGS.computing_agent_ids), "Wrong number of Computation Agent IDs"
+
+    """
+    testbed = cuboid.Cuboid(np.array([0.4, 0.4, 0.3]), np.array([ARGS.testbed_size[0], 0, 0]),
+                            np.array([0, ARGS.testbed_size[1], 0]),
+                            np.array([0, 0, ARGS.testbed_size[2]]))
+
+    ARGS.testbed = testbed
+
+
+    initializer = initializer.Initializer(testbed, rng_seed=2)
+
+
+    INIT_XYZS, INIT_TARGETS = initializer.initialize(
+        ARGS.drone_position_initialization_method, dist_to_wall=0.25,
+        num_points=ARGS.num_drones,
+        min_dist=ARGS.r_min, scaling_factor=ARGS.downwash_scaling_factor,
+        num_targets=ARGS.num_targets_per_drone * ARGS.num_drones)
+    """
+
+    INIT_XYZS = np.array([[-1.0, 1.0, 1.2], [0.0, 0.0, 1.2], [1.0, 0.0, 1.2], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5]])
+    INIT_TARGETS = np.array([[1.0, -1.0, 2.5], [-1.1, -1.1, 2.5], [1.1, 1.1, 0.8], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5],
+                             [1.0, -1.0, 2.5], [1.1, 1.1, 0.8], [-1.1, -1.1, 2.5], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5],
+                             [0.0, -1.0, 1.2], [1.0, -0.05, 1.2], [0.0, 0.05, 1.2], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5]])
+
+    INIT_TARGETS = np.array([[0.0, -1.2, 1.0], [-0.4, 0.0, 1.0], [0.4, 0.0, 1.0], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5],
+                             [0.0, 1.2, 1.0], [-0.4, 0, 1.0], [0.4, 0, 1.0], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5],
+                             [0.0, -1.2, 1.0], [0.4, 0.1, 1.0], [-0.4, -0.1, 1.0], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5],
+                             # [0.0, 1.2, 1.0], [-0.3, 0.1, 1.0], [0.3, -0.1, 1.0],
+                             [0.0, -1.2, 1.0], [-0.4, 0.0, 1.0], [0.4, 0.0, 1.0], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5]])
+
+
+    COOP = 0
+    FORWARD = 1
+    CIRCLE3 = 2
+    COMP_SIM = 3
+    TEST = 4
+    DEMO = 5
+    LIGHTHOUSE = 6
+
+    formation = LIGHTHOUSE
+
+    if formation == COOP:
+        # cooperative movement
+        INIT_XYZS = np.array([
+            [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [1.0, 0.0, 1.0], [-1.0, -1.0, 1.0],
+            [1.0, -1.0, 1.0]])
+        INIT_TARGETS = np.array(
+            [  # [-0.6, 1.0, 1.0], [0.0, 1.0, 1.0], [0.6, 1.0, 1.0], [-0.6, -1.0, 1.0], [0.0, -1.0, 1.0], [0.6, -1.0, 1.0],
+                # [-0.6, -1.0, 1.0], [0.0, -1.0, 1.0], [0.6, -1.0, 1.0], [-0.6, 1.0, 1.0], [0.0, 1.0, 1.0], [0.6, 1.0, 1.0],
+                [-1.0, 0.0, 1.0], [0.0, 1.0, 1.0], [0.4, 0.0, 1.0], [1.0, 0.0, 1.0], [-0.4, 0.0, 1.0], [0.0, -1.0, 1.0],
+                [-1.0, 0.0, 1.0], [0.0, -1.0, 1.0], [0.4, 0.0, 1.0], [1.0, 0.0, 1.0], [-0.4, 0.0, 1.0], [0.0, 1.0, 1.0],
+                [-0.6, 1.0, 1.0], [0.0, 1.0, 1.0], [0.6, 1.0, 1.0], [-0.6, -1.0, 1.0], [0.0, -1.0, 1.0], [0.6, -1.0, 1.0],
+                [-0.6, -1.0, 1.0], [0.0, -1.0, 1.0], [0.6, -1.0, 1.0], [-0.6, 1.0, 1.0], [0.0, 1.0, 1.0], [0.6, 1.0, 1.0]
+            ])
+    elif formation == DEMO:
+        # cooperative movement
+        INIT_XYZS = np.array([
+            [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [1.0, 0.0, 1.0], [-1.0, -1.0, 1.0],
+            [1.0, -1.0, 1.0]])
+        INIT_TARGETS = np.array(
+            [  # [-0.6, 1.0, 1.0], [0.0, 1.0, 1.0], [0.6, 1.0, 1.0], [-0.6, -1.0, 1.0], [0.0, -1.0, 1.0], [0.6, -1.0, 1.0],
+                # [-0.6, -1.0, 1.0], [0.0, -1.0, 1.0], [0.6, -1.0, 1.0], [-0.6, 1.0, 1.0], [0.0, 1.0, 1.0], [0.6, 1.0, 1.0],
+                #[-1.0, 0.0, 1.0], [0.0, -1.0, 1.0], [0.4, 0.0, 1.0], [1.0, 0.0, 1.0], [-0.4, 0.0, 1.0], [0.0, 1.0, 1.0],
+                [-0.65, 1.0, 1.0], [0.05, 1.0, 1.0], [0.65, 1.0, 1.0], [-0.6, -1.0, 1.0], [0.0, -1.0, 1.0], [0.6, -1.0, 1.0],
+                [-0.6, -1.0, 1.0], [0.0, -1.0, 1.0], [0.6, -1.0, 1.0], [-0.6, 1.0, 1.0], [0.0, 1.0, 1.0], [0.6, 1.0, 1.0],
+                #[-1.0, 0.0, 1.0], [0.0, -1.0, 1.0], [0.4, 0.0, 1.0], [1.0, 0.0, 1.0], [-0.4, 0.0, 1.0], [0.0, 1.0, 1.0]
+            ])
+
+    elif formation == FORWARD:
+        # forward flight
+        INIT_XYZS = np.array([
+            [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [1.0, 0.0, 1.0], [-1.0, -1.0, 1.0],
+            [1.0, -1.0, 1.0]])
+        INIT_TARGETS = np.array(
+            [[0.0, 1.8, 1.0], [-0.3, 1.2, 1.0], [0.3, 1.2, 1.0], [0.0, 0.6, 1.0], [-0.6, 0.6, 1.0],
+            [0.6, 0.6, 1.0],
+            [0.0, -0.3, 1.0], [-0.3, -0.9, 1.0], [0.3, -0.9, 1.0], [0.0, -1.5, 1.0], [-0.6, -1.5, 1.0],
+             [0.6, -1.5, 1.0],
+             [0.0, 1.8, 1.0], [-0.3, 1.2, 1.0], [0.3, 1.2, 1.0], [0.0, 0.6, 1.0], [-0.6, 0.6, 1.0],
+             [0.6, 0.6, 1.0]])
+
+    elif formation == CIRCLE3:
+        # 3 drones fly in a circle
+        INIT_XYZS = np.array([
+            [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [1.0, 0.0, 1.0], [-1.0, -1.0, 1.0],
+            [1.0, -1.0, 1.0]])
+
+        b_temp = 0.7
+        INIT_TARGETS = np.array(
+            [[0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [0.0, -0.6, 1.0], [-1.0, -1.0, 1.0],
+             [1.0, -1.0, 1.0],
+             [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [1.0, 0.0, 1.0], [-1.0, -1.0, 1.0], [1.0, -1.0, 1.0]
+             ])
+
+    elif formation == COMP_SIM:
+        # forward flight
+        INIT_XYZS = np.array([
+            [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [1.0, 0.0, 1.0], [-1.0, -1.0, 1.0],
+            [1.0, -1.0, 1.0]])
+        INIT_TARGETS = np.array([[1.0, 1.0, 1.0], [-1.0, 1.05, 1.0], [1.0, 0.0, 1.0], [-1.0, 0.05, 1.0], [1.0, -1.0, 1.0],
+         [-1.0, -1.05, 1.0]
+         ])
+    elif formation == TEST:
+        # forward flight
+        INIT_XYZS = np.array([
+            [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [1.0, 0.0, 1.0], [-1.0, -1.0, 1.0],
+            [1.0, -1.0, 1.0]])
+        INIT_TARGETS = np.array(
+            [
+             [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [1.0, 0.0, 1.0], [-1.0, -1.0, 1.0], [1.0, -1.0, 1.0]
+             ])
+    elif formation == LIGHTHOUSE:
+        INIT_XYZS = np.array([
+            [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0]])
+
+        b_temp = 0.7
+        INIT_TARGETS = np.array(
+            [[0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0],
+             [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0],
+             [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0],
+             [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0],
+             [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0]
+            ])
+
+
+    ARGS.num_targets_per_drone = len(INIT_TARGETS) // ARGS.num_drones
+
+    ARGS.INIT_TARGETS = {ARGS.drone_ids[i]: INIT_TARGETS[i] for i in range(ARGS.num_drones)}
+
+    for i in range(ARGS.num_drones, ARGS.num_drones * ARGS.num_targets_per_drone):
+        id = ARGS.drone_ids[i % ARGS.num_drones]
+        ARGS.INIT_TARGETS[id] = np.vstack((ARGS.INIT_TARGETS[id], INIT_TARGETS[i]))
+
+    for i in range(ARGS.num_drones):
+        id = ARGS.drone_ids[i]
+        ARGS.INIT_XYZS[id] = INIT_XYZS[i]
+        ARGS.INIT_TARGETS[id] = np.vstack((ARGS.INIT_TARGETS[id], INIT_XYZS[i]))  # append initial positions to targets
+
+    if ARGS.dynamic_swarm:
+        ARGS.num_drones = 0
+        ARGS.drone_ids = []
+
+    path = ""
+    with open(path + "ARGS_for_testbed.pkl", 'wb') as out_file:
+        p.dump(ARGS, out_file)

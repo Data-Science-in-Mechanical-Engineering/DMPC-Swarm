@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "controller.h": "c",
+        "_dsme_emergencystop.h": "c",
+        "string.h": "c",
+        "system.h": "c",
+        "stdbool.h": "c",
+        "functional": "cpp",
+        "_dsme_trajectory_interpolation.h": "c",
+        "freertos.h": "c",
+        "static_mem.h": "c",
+        "watchdog.h": "c",
+        "_dsme_spi_slave.h": "c",
+        "internal_messages.h": "c"
+    }
+}
