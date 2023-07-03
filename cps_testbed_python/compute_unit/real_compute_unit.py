@@ -1068,6 +1068,7 @@ class ComputingUnit:
         collision_constraint_sample_points = np.linspace(0, self.__ARGS.prediction_horizon * delta_t,
                                                          int((self.__ARGS.prediction_horizon * 2 + 1)))
         collision_constraint_sample_points = collision_constraint_sample_points[1:]
+
         trajectory_generator_options = tg.TrajectoryGeneratorOptions(
             # different amount of sample point to increase resolution
             objective_function_sample_points=np.linspace(delta_t, self.__ARGS.prediction_horizon * delta_t,
@@ -1081,11 +1082,11 @@ class ComputingUnit:
             weight_state_derivative_2_difference=np.eye(3) * 0.05,
             weight_state_derivative_3_difference=np.eye(3) * 0.01,
             max_speed=np.array([2.0, 2.0, 2.0]),  # np.array([1.5, 1.5, 1.5])
-            max_position=np.array([1.9, 1.9, 3.0]),
+            max_position=self.__ARGS.max_positions,  # =np.array([1.5, 1.5, 3])
             # np.array(self.__ARGS.testbed.edges()[1]),  # np.array([10.0, 10.0, 100.0]),
             max_acceleration=np.array([5.0, 5.0, 5.0]),  # np.array([5, 5, 5])
             max_jerk=np.array([5.0, 5.0, 5.0]),
-            min_position=np.array([-1.9, -1.9, 0.4]),
+            min_position=self.__ARGS.min_positions,  # =np.array([-1.5, -1.5, 0.1])
             # np.array(self.__ARGS.testbed.edges()[0]),  # np.array([-10.0, -10.0, 0.5]),
             r_min=self.__ARGS.r_min,
             optimization_variable_sample_time=delta_t / 1.0,  # can be tuned
@@ -1110,6 +1111,7 @@ class ComputingUnit:
                                                      target_positions=self.__ARGS.INIT_TARGETS,
                                                      agents_ids=self.__ARGS.drone_ids, communication_delta_t=delta_t,
                                                      trajectory_generator_options=trajectory_generator_options,
+                                                     pos_offset=self.__ARGS.pos_offset,
                                                      prediction_horizon=self.__ARGS.prediction_horizon,
                                                      num_computing_agents=self.__ARGS.num_computing_agents,
                                                      comp_agent_prio=sorted(self.__ARGS.computing_agent_ids).index(

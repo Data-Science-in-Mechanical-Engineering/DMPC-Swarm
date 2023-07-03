@@ -16,7 +16,7 @@ import scipy.optimize as opt
 
 @dataclass
 class TrajectoryGeneratorOptions:
-    """this class represents tjhe options for the data generator
+    """this class represents the options for the data generator
 
     Parameters
     ---------
@@ -28,7 +28,7 @@ class TrajectoryGeneratorOptions:
         collision_constraint_sample_points: np.array
             collision constraint is evaluated at this points
         state_constraint_sample_points: np.array
-            position/speed/acc/jerk constrint is evaluated at this points
+            position/speed/acc/jerk constraint is evaluated at this points
         prediction_horizon: int
             how many time intervals to calculate (i.e. data will be delta_t_statespace*prediction_horizon long)
         weight_state_difference: np.array, shape(3, 3)
@@ -318,7 +318,8 @@ class TrajectoryGenerator:
             self.__b_uneq[offset:offset + self.__num_anti_collision_constraints] = \
                 np.ones((self.__num_anti_collision_constraints,))*self.__options.weight_soft_constraint
 
-    def calculate_trajectory(self, current_state,
+    def calculate_trajectory(self, current_id,
+                             current_state,
                              target_position,
                              index,
                              dynamic_trajectories,
@@ -374,18 +375,26 @@ class TrajectoryGenerator:
         for i in range(0, 3):
             future_state = self.state_to_trajectory_vector_matrix_state_wrapper(derivative=i) @ current_state
 
-            ub = np.tile(self.__upper_boundaries[i], self.__num_state_constraint_sample_points) - future_state
-            self.__b_uneq_part[
-            i * 2 * self.__dim * self.__num_state_constraint_sample_points:
-            i * 2 * self.__dim * self.__num_state_constraint_sample_points +
-            self.__dim * self.__num_state_constraint_sample_points] = ub
+            if i == 0:
+                print("??????????????????????????????????????")
+                print(self.__upper_boundaries[i][current_id])
+                print(self.__lower_boundaries[i][current_id])
+                ub = np.tile(self.__upper_boundaries[i][current_id], self.__num_state_constraint_sample_points) - future_state
+                lb = -np.tile(self.__lower_boundaries[i][current_id], self.__num_state_constraint_sample_points) + future_state
 
-            lb = -np.tile(self.__lower_boundaries[i], self.__num_state_constraint_sample_points) + future_state
+            else:
+               ub = np.tile(self.__upper_boundaries[i], self.__num_state_constraint_sample_points) - future_state
+               lb = -np.tile(self.__lower_boundaries[i], self.__num_state_constraint_sample_points) + future_state
+            self.__b_uneq_part[
+                i * 2 * self.__dim * self.__num_state_constraint_sample_points:
+                i * 2 * self.__dim * self.__num_state_constraint_sample_points +
+                self.__dim * self.__num_state_constraint_sample_points] = ub
+
             self.__b_uneq_part[i * 2 * self.__dim *
-                          self.__num_state_constraint_sample_points + self.__dim *
-                          self.__num_state_constraint_sample_points:
-                          (i + 1) * 2 * self.__dim *
-                          self.__num_state_constraint_sample_points] = lb
+                self.__num_state_constraint_sample_points + self.__dim *
+                self.__num_state_constraint_sample_points:
+                (i + 1) * 2 * self.__dim *
+                self.__num_state_constraint_sample_points] = lb
 
         b = 3 * self.__dim * 2 * self.__num_state_constraint_sample_points + \
             2 * self.__trajectory_interpolation.num_optimization_variables

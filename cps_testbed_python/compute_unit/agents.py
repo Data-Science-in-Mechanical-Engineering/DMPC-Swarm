@@ -96,7 +96,7 @@ class ComputationAgent(net.Agent):
     def __init__(self, ID, slot_group_planned_trajectory_id, slot_group_trajectory_initial_state,
                  slot_group_drone_state, init_positions, target_positions, agents_ids,
                  communication_delta_t,
-                 trajectory_generator_options, prediction_horizon, num_computing_agents, comp_agent_prio,
+                 trajectory_generator_options, pos_offset, prediction_horizon, num_computing_agents, comp_agent_prio,
                  computing_agents_ids, offset=0, use_event_trigger=False,
                  alpha_1=10, alpha_2=1000, alpha_3=1*0, alpha_4=0, remove_redundant_constraints=False,
                  slot_group_state_id=None,
@@ -142,6 +142,7 @@ class ComputationAgent(net.Agent):
         self.__ignore_message_loss = ignore_message_loss
         self.__state_feedback_trigger_dist = state_feedback_trigger_dist
         self.__trajectory_generator_options = trajectory_generator_options
+        self.__pos_offset = pos_offset
         self.__use_optimized_constraints = use_optimized_constraints
         self.__current_target_positions = {}
         self.__use_high_level_planner = use_high_level_planner
@@ -389,7 +390,10 @@ class ComputationAgent(net.Agent):
             # value will be transmitted
             if len(self.__last_received_messages) == 0:
                 return None
-            return net.Message(self.ID, slot_group_id, copy.deepcopy(self.__last_received_messages[self.ID]))
+            copy_message = copy.deepcopy(self.__last_received_messages[self.ID])
+            if isinstance(copy_message, TrajectoryMessageContent):
+                copy_message.init_state[0:3] -= self.__pos_offset[copy_message.id]
+            return net.Message(self.ID, slot_group_id, copy_message)
 
         elif slot_group_id == self.__slot_group_state_id:
             pass
@@ -452,6 +456,9 @@ class ComputationAgent(net.Agent):
             self.__agent_state[message.content.id] = np.copy(message.content.coefficients)"""
 
         if message.slot_group_id == self.__slot_group_drone_state:
+            message.content.state[0:3] += self.__pos_offset[message.ID]
+            print(f"Received pos drone {message.ID}: {message.content.state[0:3]}")
+            message.content.target_position += self.__pos_offset[message.ID]
             self.__received_drone_state_messages.append(message)
             # The state is measured at the beginning of the round and extrapolated by drone
             # init drone state if it has to be init. (The state is measured at the beginning of the last round.)
@@ -884,6 +891,7 @@ class ComputationAgent(net.Agent):
                  for i in range(len(self.__breakpoints) - 1)])
 
         return self.__trajectory_generator.calculate_trajectory(
+            current_id=current_id,
             current_state=self.__agent_state[current_id],
             target_position=self.__current_target_positions[current_id],
             index=index,
@@ -982,13 +990,13 @@ class ComputationAgent(net.Agent):
         state_feeback_triggered_prio = 10000
         quantization_bit_number = 8
         max_time = self.__prediction_horizon * self.__communication_delta_t
-        max_dist = np.linalg.norm(self.__options.max_position - self.__options.min_position)
+
         cone_angle = 60.0 * math.pi / 180
 
         prios = np.zeros((self.__num_agents,))
         for i in range(0, self.__num_agents):
             own_id = self.__agents_ids[i]
-
+            max_dist = np.linalg.norm(self.__options.max_position[own_id] - self.__options.min_position[own_id])
             d_target = 0
             #if self.__agent_state[own_id] is None:
                 #prios[i] = -1e8
@@ -1374,10 +1382,9 @@ class ComputationAgent(net.Agent):
                 else:
                     self.__high_level_setpoint_trajectory = \
                         hlp.calculate_setpoints(current_pos, self.__current_target_positions,
-                                                horizon=horizon,
-                                                step_size=step_size, downwash_scaling_factor=self.__options.downwash_scaling_factor,
                                                 max_position=self.__options.max_position,
-                                                min_position=self.__options.min_position
+                                                min_position=self.__options.min_position,
+                                                horizon=horizon, step_size=step_size, downwash_scaling_factor=self.__options.downwash_scaling_factor,
                                                 )
         if self.__high_level_setpoint_trajectory is not None:
             if not self.__simulated:

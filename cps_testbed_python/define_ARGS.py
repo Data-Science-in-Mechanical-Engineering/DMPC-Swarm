@@ -10,14 +10,10 @@ import pickle as p
 def define_ARGS():
     parser = argparse.ArgumentParser(
         description='ARGS for the ET-DMPC')
-    parser.add_argument('--num_drones', default=3, type=int,
-                        help='List of number of drones to iterate over', metavar='')
-    parser.add_argument('--drone_ids', default=[1, 2, 3], type=list,
-                        help='List of drone IDs', metavar='')
+    parser.add_argument('--drones', default={1: "Mobile", 2: "Vicon", 3: "Vicon", 4: "Vicon", 9: "Mobile", 10: "Mobile"}, type=dict,
+                        help='drone IDs with name of the testbed', metavar='')
     parser.add_argument('--num_targets_per_drone', default=3, type=int,
                         help='Number of targets', metavar='')
-    parser.add_argument('--num_computing_agents', default=2, type=int, help='Number of computing agents for the '
-                                                                            'DMPC Algorithm')
     parser.add_argument('--computing_agent_ids', default=[20, 21], type=list, help='List of Computing Agent IDs')
 
     parser.add_argument('--log_planned_trajectory', default=True, type=bool,
@@ -45,6 +41,10 @@ def define_ARGS():
     parser.add_argument('--sim_id', default=0, type=int, help='ID of simulation, used for random generator seed')
     parser.add_argument('--INIT_XYZS', default={}, type=dict, help='Initial drone positions')
     parser.add_argument('--INIT_TARGETS', default={}, type=dict, help='Initial target positions')
+    parser.add_argument('--testbeds', default={"Vicon": ([-1.7, -1.7, 0.3], [1.7, 1.7, 3.0], [0, 0, 0]),
+                                               "Mobile": ([-1, -1, 0.3], [1, 0.5, 2], [100, 100, 0])},
+                        type=dict, help='Testbeds of the system. Format: name: (min, max, offset)')
+    parser.add_argument('--pos_offset', default={}, type=dict, help='Corresponding spatial offsets for drones')
     parser.add_argument('--testbed_size', default=[3.7, 3.7, 3.7], type=list, help='Size of the testbed')
 
     parser.add_argument('--skewed_plane_BVC', default=False, type=bool,
@@ -80,9 +80,25 @@ def define_ARGS():
     parser.add_argument('--dynamic_swarm', default=True, type=bool)   # if drones should be added dynamically or not.
     ARGS = parser.parse_args()
 
+    ARGS.drone_ids = list(ARGS.drones.keys())
+    ARGS.num_drones = len(ARGS.drones)
+    ARGS.num_computing_agents = len(ARGS.computing_agent_ids)
 
     assert ARGS.num_drones == len(ARGS.drone_ids), "Wrong number of Drone Agent IDs"
     assert ARGS.num_computing_agents == len(ARGS.computing_agent_ids), "Wrong number of Computation Agent IDs"
+
+    ARGS.max_positions = {}
+    ARGS.min_positions = {}
+    ARGS.pos_offset = {}
+
+    print("Initializing drones:")
+    for key in ARGS.drones:
+        testbed = ARGS.drones[key]
+        offset = np.array(ARGS.testbeds[testbed][2])
+        ARGS.pos_offset[key] = offset
+        ARGS.min_positions[key] = np.array(ARGS.testbeds[testbed][0]) + offset
+        ARGS.max_positions[key] = np.array(ARGS.testbeds[testbed][1]) + offset
+        print(f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
 
     """
     testbed = cuboid.Cuboid(np.array([0.4, 0.4, 0.3]), np.array([ARGS.testbed_size[0], 0, 0]),
@@ -113,6 +129,10 @@ def define_ARGS():
                              # [0.0, 1.2, 1.0], [-0.3, 0.1, 1.0], [0.3, -0.1, 1.0],
                              [0.0, -1.2, 1.0], [-0.4, 0.0, 1.0], [0.4, 0.0, 1.0], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5]])
 
+    """Old max/min position"""
+    max_pos_old = np.array([1.5, 1.5, 3])
+    min_pos_old = np.array([-1.5, -1.5, 0.1])
+    old_limits = [max_pos_old, min_pos_old]
 
     COOP = 0
     FORWARD = 1
@@ -254,30 +274,44 @@ def define_ARGS():
              ])
     elif formation == LIGHTHOUSE:
         INIT_XYZS = np.array([
-            [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0]])
+            [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [-1.0, 1.0, 1.0],  [-1.0, 1.0, 1.0],  [-1.0, 1.0, 1.0]])
 
         b_temp = 0.7
         INIT_TARGETS = np.array(
-            [[0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0],
-             [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0],
-             [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0],
-             [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0],
-             [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0]
+            [[0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0],  [-1.0, 1.0, 1.0],
+             [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [-b_temp, 0.0, 1.0],  [-1.0, 1.0, 1.0],
+             [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0],  [-1.0, 1.0, 1.0],
+             [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0],  [-1.0, 1.0, 1.0],
+             [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [-b_temp, 0.0, 1.0],  [-1.0, 1.0, 1.0]
             ])
-
 
     ARGS.num_targets_per_drone = len(INIT_TARGETS) // ARGS.num_drones
 
     ARGS.INIT_TARGETS = {ARGS.drone_ids[i]: INIT_TARGETS[i] for i in range(ARGS.num_drones)}
 
+    """ARGS.INIT_TARGETS = {
+        ARGS.drone_ids[i]: zone_transform(old_limits, [max_poss[ARGS.drone_ids[i]], min_poss[ARGS.drone_ids[i]]],
+                                          INIT_TARGETS[i]) for i in range(ARGS.num_drones)}"""
+
     for i in range(ARGS.num_drones, ARGS.num_drones * ARGS.num_targets_per_drone):
         id = ARGS.drone_ids[i % ARGS.num_drones]
+
         ARGS.INIT_TARGETS[id] = np.vstack((ARGS.INIT_TARGETS[id], INIT_TARGETS[i]))
+
+        #ARGS.INIT_TARGETS[id] = np.vstack((ARGS.INIT_TARGETS[id], zone_transform(old_limits,
+        #                                                                         [max_poss[id],
+        #                                                                          min_poss[id]],
+        #                                                                         INIT_TARGETS[i])))
+
 
     for i in range(ARGS.num_drones):
         id = ARGS.drone_ids[i]
+
         ARGS.INIT_XYZS[id] = INIT_XYZS[i]
         ARGS.INIT_TARGETS[id] = np.vstack((ARGS.INIT_TARGETS[id], INIT_XYZS[i]))  # append initial positions to targets
+
+        #ARGS.INIT_XYZS[id] = zone_transform(old_limits, [max_poss[id], min_poss[id]], INIT_XYZS[i]) # INIT_XYZS[i]
+        ARGS.INIT_TARGETS[id] = np.vstack((ARGS.INIT_TARGETS[id], ARGS.INIT_XYZS[id]))  # append initial pos to targets
 
     if ARGS.dynamic_swarm:
         ARGS.num_drones = 0
@@ -286,3 +320,21 @@ def define_ARGS():
     path = ""
     with open(path + "ARGS_for_testbed.pkl", 'wb') as out_file:
         p.dump(ARGS, out_file)
+
+
+def zone_transform(old_zone, new_zone, point):
+    """
+    Transforms a point from old zone coordinates to new zone coordinates
+    old_zone = [max_pos_old, min_pos_old]
+    new_zone = [max_pos_new, min_pos_new]
+    point = [x1, y1, z1]
+    return [x2, y2, z2]
+    """
+    d_1 = old_zone[0] - old_zone[1]
+    d_2 = new_zone[0] - new_zone[1]
+    c_1 = old_zone[1] + d_1 / 2
+    c_2 = new_zone[1] + d_2 / 2
+    ref_1 = point - c_1
+    ref_2 = ref_1 * d_2/d_1
+    return c_2 + ref_2
+
