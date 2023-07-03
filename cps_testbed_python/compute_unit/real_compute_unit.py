@@ -1127,7 +1127,9 @@ class ComputingUnit:
                                                      simulated=False,
                                                      ignore_message_loss=self.__ARGS.ignore_message_loss,
                                                      use_high_level_planner=self.__ARGS.use_high_level_planner,
-                                                     use_own_targets=not self.__ARGS.dynamic_swarm)
+                                                     use_own_targets=True, #not self.__ARGS.dynamic_swarm,
+                                                     #use_optimized_constraints=self.__ARGS.use_optimized_constraints,
+                                                     setpoint_creator=self.__ARGS.setpoint_creator)
 
     def send_socket(self, message: message.MixerMessage):
         if self.socket is None:

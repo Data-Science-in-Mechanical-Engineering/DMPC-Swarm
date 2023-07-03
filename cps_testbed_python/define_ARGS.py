@@ -5,12 +5,13 @@ import useful_scripts.cuboid as cuboid
 import useful_scripts.initializer as initializer
 import numpy as np
 import pickle as p
+import compute_unit.setpoint_creator as sc
 
 
 def define_ARGS():
     parser = argparse.ArgumentParser(
         description='ARGS for the ET-DMPC')
-    parser.add_argument('--drones', default={1: "Mobile", 2: "Vicon", 3: "Vicon", 4: "Vicon", 9: "Mobile", 10: "Mobile"}, type=dict,
+    parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 4: "Vicon", 9: "Mobile", 10: "Mobile"}, type=dict,
                         help='drone IDs with name of the testbed', metavar='')
     parser.add_argument('--num_targets_per_drone', default=3, type=int,
                         help='Number of targets', metavar='')
@@ -99,7 +100,7 @@ def define_ARGS():
         ARGS.min_positions[key] = np.array(ARGS.testbeds[testbed][0]) + offset
         ARGS.max_positions[key] = np.array(ARGS.testbeds[testbed][1]) + offset
         print(f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
-
+    ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds)
     """
     testbed = cuboid.Cuboid(np.array([0.4, 0.4, 0.3]), np.array([ARGS.testbed_size[0], 0, 0]),
                             np.array([0, ARGS.testbed_size[1], 0]),
@@ -129,10 +130,6 @@ def define_ARGS():
                              # [0.0, 1.2, 1.0], [-0.3, 0.1, 1.0], [0.3, -0.1, 1.0],
                              [0.0, -1.2, 1.0], [-0.4, 0.0, 1.0], [0.4, 0.0, 1.0], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5]])
 
-    """Old max/min position"""
-    max_pos_old = np.array([1.5, 1.5, 3])
-    min_pos_old = np.array([-1.5, -1.5, 0.1])
-    old_limits = [max_pos_old, min_pos_old]
 
     COOP = 0
     FORWARD = 1
@@ -320,6 +317,8 @@ def define_ARGS():
     path = ""
     with open(path + "ARGS_for_testbed.pkl", 'wb') as out_file:
         p.dump(ARGS, out_file)
+
+    np.random.seed(1)
 
 
 def zone_transform(old_zone, new_zone, point):

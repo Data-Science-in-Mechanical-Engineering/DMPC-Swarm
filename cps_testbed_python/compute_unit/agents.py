@@ -97,7 +97,7 @@ class ComputationAgent(net.Agent):
                  slot_group_drone_state, init_positions, target_positions, agents_ids,
                  communication_delta_t,
                  trajectory_generator_options, pos_offset, prediction_horizon, num_computing_agents, comp_agent_prio,
-                 computing_agents_ids, offset=0, use_event_trigger=False,
+                 computing_agents_ids, setpoint_creator, offset=0, use_event_trigger=False,
                  alpha_1=10, alpha_2=1000, alpha_3=1*0, alpha_4=0, remove_redundant_constraints=False,
                  slot_group_state_id=None,
                  slot_group_ack_id=100000, ignore_message_loss=False, use_own_targets=False,
@@ -326,6 +326,8 @@ class ComputationAgent(net.Agent):
         # field for event trigger, all agents generate a consensus of prios.
         self.__prio_consensus = []
 
+        self.__setpoint_creator = setpoint_creator
+
     def add_new_agent(self, m_id):
         last_trajectory = None
 
@@ -345,6 +347,9 @@ class ComputationAgent(net.Agent):
         self.__agents_ids.append(m_id)
         self.__num_agents = len(self.__agents_ids)
         self.__agents_prios[m_id] = m_id
+
+        # first every agent should fly to the origin.
+        self.__setpoint_creator.add_drone(m_id, np.array([0.0, 0.0, 1.0]))
 
     def add_new_computation_agent(self, m_id):
         self.__computing_agents_ids.append(m_id)
@@ -717,6 +722,8 @@ class ComputationAgent(net.Agent):
             if self.__use_own_targets:
                 self.update_target_ids()
                 self.__current_target_positions = self.get_targets()
+                print("77777777777777777")
+                print(self.__current_target_positions)
             if len(self.__agents_ids) <= self.__comp_agent_prio:
                 self.__last_received_messages = {self.ID: EmtpyContent(None)}
             else:
@@ -906,7 +913,7 @@ class ComputationAgent(net.Agent):
             dynamic_trajectory_age=dynamic_trajectory_age,
             static_trajectory_age=static_trajectory_age,
             use_nonlinear_mpc=False,
-            high_level_setpoints=None if self.__received_setpoints is None else self.__received_setpoints[current_id][-1] #None if self.__high_level_setpoints is None else self.__high_level_setpoints[current_id]
+            high_level_setpoints=None #  if self.__received_setpoints is None else self.__received_setpoints[current_id][-1] #None if self.__high_level_setpoints is None else self.__high_level_setpoints[current_id]
         )
 
     def get_targets(self):
@@ -923,11 +930,14 @@ class ComputationAgent(net.Agent):
                 priority based order of ondexes. The first M agents will be scheduled
         """
         if self.__use_own_targets:
+            return self.__setpoint_creator.next_setpoints(self.__agent_state)
+            """
             targets = {}
             for id in self.__agents_ids:
                 targets[id] = self.__target_positions[id][self.__agent_target_id[id]]
                 # self.print("AGENT NO: " + str(id) + " TARGET NO: " + str(self.__agent_target_id[id]))
             return targets
+            """
         else:
             return self.__current_target_positions
 
@@ -956,6 +966,7 @@ class ComputationAgent(net.Agent):
     def update_target_ids(self):
         """ updates the target IDs of the drones. If a drone has multiple targets it should fly to, the next target
         is selected, if the previous one is reached """
+        return
         threshold_dist = 0.001  # m
         targets = self.get_targets()
         all_drones_reached_target = True
