@@ -425,6 +425,8 @@ class ComputationAgent(net.Agent):
         # if the message is from leader agent set new reference point
         if message.slot_group_id == self.__slot_group_planned_trajectory_id:
             self.__num_trajectory_messages_received += 1
+            if isinstance(message.content, TrajectoryMessageContent):
+                message.content.init_state[0:3] += self.__pos_offset[message.content.id]
             #if isinstance(message.content, TrajectoryMessageContent):
             #    self.print(f"{self.__current_time} {message.content.id}: {message.content.init_state}")
             #self.print(f"{message.content.id}: hello there-----------------------------------")
@@ -493,10 +495,10 @@ class ComputationAgent(net.Agent):
             #        self.__trajectory_tracker.get_information(message.ID).is_deprecated:
             for trajectory in self.__trajectory_tracker.get_information(message.ID).content:
                 #trajectory = self.__trajectory_tracker.get_information(message.ID).content[0]
-                if np.linalg.norm(trajectory.current_state[0:3] - message.content.state[0:3]) > self.__state_feedback_trigger_dist:
+                if np.linalg.norm(trajectory.current_state[0:3] - message.content.state[0:3]) > self.__state_feedback_trigger_dist and False:
                     print(f"{message.ID}: {trajectory.current_state} {message.content.state[0:3]}")
                     self.__state_feedback_triggered.append(message.ID)
-                    trajectory.current_state = np.zeros(trajectory.current_state.shape)
+                    # trajectory.current_state = np.zeros(trajectory.current_state.shape)
                     trajectory.current_state[0:3] = copy.deepcopy(message.content.state[0:3])
 
                     self.__agent_state[message.ID] = copy.deepcopy(message.content.state)
@@ -758,6 +760,7 @@ class ComputationAgent(net.Agent):
                                                           id=current_id, prios=prios)}
                     self.print('Distance to target for Agent ' + str(current_id) + ': ' + str(np.linalg.norm(
                         self.__agent_state[current_id][0:3] - self.__current_target_positions[current_id])) + " m.")
+                    self.print(f"agent_state: {self.__agent_state[current_id][0:3]}, setpoint: {self.__current_target_positions[current_id]}")
                     self.print(
                         'Optimization for Agent ' + str(current_id) + ' took ' + str(time.time() - start_time) + ' s.')
 

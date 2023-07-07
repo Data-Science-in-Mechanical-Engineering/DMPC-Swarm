@@ -11,11 +11,11 @@ import compute_unit.setpoint_creator as sc
 def define_ARGS():
     parser = argparse.ArgumentParser(
         description='ARGS for the ET-DMPC')
-    parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 4: "Vicon", 9: "Mobile", 10: "Mobile"}, type=dict,
+    parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 7: "Mobile", 9: "Mobile", 10: "Mobile"}, type=dict,
                         help='drone IDs with name of the testbed', metavar='')
     parser.add_argument('--num_targets_per_drone', default=3, type=int,
                         help='Number of targets', metavar='')
-    parser.add_argument('--computing_agent_ids', default=[20, 21], type=list, help='List of Computing Agent IDs')
+    parser.add_argument('--computing_agent_ids', default=[20], type=list, help='List of Computing Agent IDs')
 
     parser.add_argument('--log_planned_trajectory', default=True, type=bool,
                         help='Select, whether the planned trajectories should be logged')
@@ -43,7 +43,7 @@ def define_ARGS():
     parser.add_argument('--INIT_XYZS', default={}, type=dict, help='Initial drone positions')
     parser.add_argument('--INIT_TARGETS', default={}, type=dict, help='Initial target positions')
     parser.add_argument('--testbeds', default={"Vicon": ([-1.7, -1.7, 0.3], [1.7, 1.7, 3.0], [0, 0, 0]),
-                                               "Mobile": ([-1, -1, 0.3], [1, 0.5, 2], [100, 100, 0])},
+                                               "Mobile": ([-0.7, -0.7, 0.7], [0.7, 0.7, 1.1], [100*0, 100*0, 0])},
                         type=dict, help='Testbeds of the system. Format: name: (min, max, offset)')
     parser.add_argument('--pos_offset', default={}, type=dict, help='Corresponding spatial offsets for drones')
     parser.add_argument('--testbed_size', default=[3.7, 3.7, 3.7], type=list, help='Size of the testbed')

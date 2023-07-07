@@ -1,6 +1,7 @@
 import numpy as np
 from abc import ABC, abstractmethod
 import copy
+import math
 
 
 class SetpointCreator:
@@ -41,13 +42,15 @@ class SetpointCreator:
 
 		"""
 		for drone_id in self.__current_setpoints:
-			self.__current_setpoints_reached[drone_id] = False
+			# self.__current_setpoints_reached[drone_id] = False
 			# check if the crone is in the testbed and we know where it is
-			if drone_id in drones_states and self.__current_setpoints[drone_id] is not None:
+			if self.__current_setpoints_age[drone_id] > self.__max_setpoint_age:
+				self.__current_setpoints_reached[drone_id] = True
+			"""if drone_id in drones_states and self.__current_setpoints[drone_id] is not None:
 				if drones_states[drone_id] is not None:
 					# if np.linalg.norm(drones_states[drone_id][0:3] - self.__current_setpoints[drone_id]) < self.__target_reached_dist \
 					if self.__current_setpoints_age[drone_id] > self.__max_setpoint_age:
-						self.__current_setpoints_reached[drone_id] = True
+						self.__current_setpoints_reached[drone_id] = True"""
 
 	def next_setpoints(self, drones_states):
 		"""
@@ -67,11 +70,24 @@ class SetpointCreator:
 				self.__current_setpoints_age[drone_id] = 0
 				self.__current_setpoints_reached[drone_id] = False
 
+			if self.__drones[drone_id] == "Mobile":
+				self.__current_setpoints[drone_id] = self.generate_new_circle_setpoint(self.drones[drone_id], drone_id)
 			self.__current_setpoints_age[drone_id] += 1
+			print(f"{drone_id}: {self.__current_setpoints_age[drone_id]}, {self.__current_setpoints_reached[drone_id]}")
+
 
 		self.__round += 1
 
 		return self.__current_setpoints
+
+	def generate_new_circle_setpoint(self, name_testbed, drone_id):
+		min_pos = np.array(self.__testbeds[name_testbed][0])
+		max_pos = np.array(self.__testbeds[name_testbed][1])
+		dpos = (max_pos - min_pos) * 0.8
+		mean = (min_pos + max_pos) / 2
+		r = 0.5
+		angle = 2*math.pi * (self.__round + drone_id*5) / 100
+		return np.array([dpos[0]*math.cos(angle), dpos[1]*math.sin(angle), 0]) + mean
 
 	def generate_new_setpoint(self, name_testbed):
 		"""
@@ -85,7 +101,7 @@ class SetpointCreator:
 		min_pos = np.array(self.__testbeds[name_testbed][0])
 		max_pos = np.array(self.__testbeds[name_testbed][1])
 		#TODO, currently in the global coordinate system change in the future (we need this to send them)
-		return np.random.rand(3) * (max_pos - min_pos) + min_pos + np.array(self.__testbeds[name_testbed][2])
+		return np.random.rand(3) * (max_pos - min_pos - 0.2) + min_pos + 0.1 + np.array(self.__testbeds[name_testbed][2])
 
 	def add_drone(self, drone_id, state):
 		"""
@@ -97,8 +113,8 @@ class SetpointCreator:
 		Returns:
 
 		"""
-		assert drone_id in self.__drones, "Drone id not in the registered drones."
+		assert drone_id in self.__drones, f"Drone id {drone_id} not in the registered drones."
 
-		self.__current_setpoints[drone_id] = copy.deepcopy(state[0:3])
+		self.__current_setpoints[drone_id] = self.generate_new_setpoint(self.__drones[drone_id])
 
 
