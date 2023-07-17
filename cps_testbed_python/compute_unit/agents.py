@@ -464,7 +464,7 @@ class ComputationAgent(net.Agent):
 
         if message.slot_group_id == self.__slot_group_drone_state:
             message.content.state[0:3] += self.__pos_offset[message.ID]
-            print(f"Received pos drone {message.ID}: {message.content.state[0:3]}")
+            # print(f"Received pos drone {message.ID}: {message.content.state[0:3]}")
             message.content.target_position += self.__pos_offset[message.ID]
             self.__received_drone_state_messages.append(message)
             # The state is measured at the beginning of the round and extrapolated by drone

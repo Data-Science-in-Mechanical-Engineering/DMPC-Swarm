@@ -97,14 +97,11 @@ if __name__ == "__main__":
 		description='Helix flight script using CtrlAviary or VisionAviary and DSLPIDControl')
 	parser.add_argument('--drone', default="cf2x", type=DroneModel, help='Drone model (default: CF2X)', metavar='',
 						choices=DroneModel)
-
-	parser.add_argument('--num_drones', default=[10], type=list,
-						help='List of number of drones to iterate over', metavar='')
-	parser.add_argument('--drone_ids', default=[i for i in range(1, 11)], type=list,  # [3, 2, 1]
-						help='List of drone IDs', metavar='')
+	parser.add_argument('--drones', default={i: "Vicon" for i in range(1, 11)}, type=dict,
+						help='drone IDs with name of the testbed', metavar='')
 	parser.add_argument('--computing_agent_ids', default=[i for i in range(40, 42)], type=list, help='List of Computing Agent IDs')
-	parser.add_argument('--num_computing_agents', default=2, type=int, help='Number of computing agents for the '
-																			'DMPC Algorithm')
+	parser.add_argument('--testbeds', default={"Vicon": ([-1.7, -1.7, 0.3], [1.7, 1.7, 3.0], [0, 0, 0])},
+                        type=dict, help='Testbeds of the system. Format: name: (min, max, offset)')
 
 	parser.add_argument('--physics', default="pyb_drag", type=Physics, help='Physics updates (default: PYB)',
 						metavar='', choices=Physics)
@@ -236,6 +233,25 @@ if __name__ == "__main__":
 
 	ARGS = parser.parse_args()
 
+	ARGS.drone_ids = list(ARGS.drones.keys())
+	ARGS.num_drones = [len(ARGS.drones)]
+	ARGS.num_computing_agents = len(ARGS.computing_agent_ids)
+
+	ARGS.max_positions = {}
+	ARGS.min_positions = {}
+	ARGS.pos_offset = {}
+
+	print("Initializing drones:")
+	for key in ARGS.drones:
+		testbed = ARGS.drones[key]
+		offset = np.array(ARGS.testbeds[testbed][2])
+		ARGS.pos_offset[key] = offset
+		ARGS.min_positions[key] = np.array(ARGS.testbeds[testbed][0]) + offset
+		ARGS.max_positions[key] = np.array(ARGS.testbeds[testbed][1]) + offset
+		print(
+			f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
+	ARGS.setpoint_creator = None
+
 	if ARGS.hyperparameter_optimization:
 		ARGS.save_video = False
 
@@ -275,113 +291,22 @@ if __name__ == "__main__":
 	loaded_sims_per_drone_config = [0] * len(num_drones_in_ARGS)
 	num_sims_per_drone_config_in_ARGS = 1000
 
-	use_inits_const = False
+	use_inits_const = True
 
 	a = 2
-	INIT_XYZS = np.array([[-1.0, 1.0, 1.2], [0.0, 0.0, 1.2], [1.0, 0.0, 1.2]]) + np.array([a, a, 0])
-	INIT_TARGETS = np.array([[1.0, -1.0, 2.5], [-1.1, -1.1, 2.5], [1.1, 1.1, 0.8],
-							 [1.0, -1.0, 2.5], [1.1, 1.1, 0.8], [-1.1, -1.1, 2.5],
-							 [0.0, -1.0, 1.2], [1.0, -0.05, 1.2], [0.0, 0.05, 1.2]]) + np.array([a, a, 0])
-
-	INIT_TARGETS = np.array([[0.0, -1.2, 1.0], [-0.3, 0.0, 1.0], [0.3, 0.0, 1.0],
-							 [0.0, 1.2, 1.0], [-0.3, 0, 1.0], [0.3, 0, 1.0],
-							 [0.0, -1.2, 1.0], [0.3, 0.0, 1.0], [-0.3, -0.0, 1.0],
-							 # [0.0, 1.2, 1.0], [-0.3, 0.1, 1.0], [0.3, -0.1, 1.0],
-							 [0.0, -1.2, 1.0], [-0.3, 0.0, 1.0], [0.3, 0.0, 1.0]]) + np.array([a, a, 0])
-
-	INIT_XYZS = np.array([[0.0, -1.0, 1.0], [1.0, 0.0, 1.0], [0.0, 1.0, 1.0]]) + np.array([a, a, 0])
-	INIT_TARGETS = np.array([[0.0, 1.0, 1.0], [0.0, 0.0, 1.0], [0.0, -1.0, 1.0]]) + np.array([a, a, 0])
-
-	INIT_XYZS = np.array([
-		[-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [1.0, 0.0, 1.0], [-1.0, -1.0, 1.0], [1.0, -1.0, 1.0]]) + np.array([a, a, 0])
-	INIT_TARGETS = np.array([[-0.6, -1.0, 1.0], [0.0, -1.0, 1.0], [0.6, -1.0, 1.0], [-0.6, 1.0, 1.0], [0.0, 1.0, 1.0], [0.6, 1.0, 1.0],
-		[-0.6, 1.0, 1.0], [0.0, 1.0, 1.0], [0.6, 1.0, 1.0], [-0.6, -1.0, 1.0], [0.0, -1.0, 1.0], [0.6, -1.0, 1.0]]) + np.array([a, a, 0])
-
-	INIT_XYZS = np.array([
-		[-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [1.0, 0.0, 1.0], [-1.0, -1.0, 1.0],
-		[1.0, -1.0, 1.0]]) + np.array([a, a, 0])
-	INIT_TARGETS = np.array(
-		[#[-0.6, 1.0, 1.0], [0.0, 1.0, 1.0], [0.6, 1.0, 1.0], [-0.6, -1.0, 1.0], [0.0, -1.0, 1.0], [0.6, -1.0, 1.0],
-		 #[-0.6, -1.0, 1.0], [0.0, -1.0, 1.0], [0.6, -1.0, 1.0], [-0.6, 1.0, 1.0], [0.0, 1.0, 1.0], [0.6, 1.0, 1.0],
-		[-1.0, 0.0, 1.0], [0.0, 1.0, 1.0], [0.4, 0.0, 1.0], [1.0, 0.0, 1.0], [-0.4, 0.0, 1.0], [0.0, -1.0, 1.0],
-			#[-1.0, 0.0, 1.0], [0.0, -1.0, 1.0], [0.4, 0.0, 1.0], [1.0, 0.0, 1.0], [-0.4, 0.0, 1.0], [0.0, 1.0, 1.0],
-			#[-0.6, 1.0, 1.0], [0.0, 1.0, 1.0], [0.6, 1.0, 1.0], [-0.6, -1.0, 1.0], [0.0, -1.0, 1.0], [0.6, -1.0, 1.0],
-			#[-0.6, -1.0, 1.0], [0.0, -1.0, 1.0], [0.6, -1.0, 1.0], [-0.6, 1.0, 1.0], [0.0, 1.0, 1.0], [0.6, 1.0, 1.0]
-		 ]) + np.array([a, a, 0])
-
-	#INIT_XYZS = np.array([
-#		[-0.993931770324707, 0.9972025156021118, 1],
-#		[1.009037733078003, 1.009528636932373, 1],
-#		[-1.0084314346313477, 0.023368073627352715, 1],
-#		[0.9805540442466736, 0.02889278344810009, 1],
-#		[-1.015045166015625, -0.9801824688911438, 1],
-#		[0.9833678007125854, -1.007346510887146, 1]]) + np.array([a, a, 0])
-	INIT_TARGETS = np.array(
-		[#[1.0, 1.0, 1.0], [-1.0, 1.05, 1.0], [1.0, 0.0, 1.0], [-1.0, 0.05, 1.0], [1.0, -1.0, 1.0],
-         #[-1.0, -1.05, 1.0]
-			[-0.65, 1.0, 1.1], [0.05, 1.0, 0.9], [0.65, 1.0, 1.05], [-0.6, -1.0, 1.0], [0.0, -1.0, 1.2],
-			[0.6, -1.0, 1.1],
-			[-0.6, -1.0, 1.2], [0.0, -1.0, 1.5], [0.6, -1.0, 1.6], [-0.6, 1.0, 1.0], [0.0, 1.0, 1.0], [0.6, 1.0, 1.4],
-			[-1.0, 0.0, 1.0], [0.0, 1.0, 1.3], [0.4, 0.0, 1.0], [1.0, 0.0, 1.7], [-0.4, 0.0, 1.4], [0.0, -1.0, 1.0]
-		]) + np.array([a, a, 0])
-	"""# forward flight
-	INIT_XYZS = np.array([
-		[-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [1.0, 0.0, 1.0], [-1.0, -1.0, 1.0],
-		[1.0, -1.0, 1.0]]) + np.array([a, a, 0])
-	INIT_TARGETS = np.array(
-		[[0.0, 1.8, 1.0], [-0.3, 1.2, 1.0], [0.3, 1.2, 1.0], [0.0, 0.6, 1.0], [-0.6, 0.6, 1.0],
-		 [0.6, 0.6, 1.0],
-		 [0.0, -0.3, 1.0], [-0.3, -0.9, 1.0], [0.3, -0.9, 1.0], [0.0, -1.5, 1.0], [-0.6, -1.5, 1.0],
-		 [0.6, -1.5, 1.0],
-		 [0.0, 1.8, 1.0], [-0.3, 1.2, 1.0], [0.3, 1.2, 1.0], [0.0, 0.6, 1.0], [-0.6, 0.6, 1.0],
-		 [0.6, 0.6, 1.0]]) + np.array([a, a, 0])
-
-	# 3 drones fly in a circle
-	INIT_XYZS = np.array([
-		[-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [1.0, 0.0, 1.0], [-1.0, -1.0, 1.0],
-		[1.0, -1.0, 1.0]]) + np.array([a, a, 0])
-
-	b_temp = 1.0
-	INIT_TARGETS = np.array(
-		[[0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, -1.0, 1.0], [-1.0, -1.0, 1.0], [1.0, -1.0, 1.0],
-		 [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [0.0, -1.0, 1.0], [-1.0, -1.0, 1.0], [1.0, -1.0, 1.0],
-		 [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [0.0, -1.0, 1.0], [-1.0, -1.0, 1.0], [1.0, -1.0, 1.0],
-		 [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, -1.0, 1.0], [-1.0, -1.0, 1.0], [1.0, -1.0, 1.0],
-		 [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [0.0, -1.0, 1.0], [-1.0, -1.0, 1.0], [1.0, -1.0, 1.0],
-		 [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [0.0, -1.0, 1.0], [-1.0, -1.0, 1.0], [1.0, -1.0, 1.0],
-		 [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [1.0, 0.0, 1.0], [-1.0, -1.0, 1.0], [1.0, -1.0, 1.0]
-		 ]) + np.array([a, a, 0])"""
-
-	#INIT_TARGETS = np.array(
-#		[[0.0, 0.41, 0.8], [0.0, 0.31, 3.0], [0.0, -0.1, 0.8], [0.0, -0.2, 3.0], [0.0, -0.61, 0.8], [0.0, -0.71, 3.0],
-#		 [0.0, 0.41, 3.0], [0.0, 0.31, 0.8], [0.0, -0.1, 3.0], [0.0, -0.2, 0.8], [0.0, -0.61, 3.0], [0.0, -0.71, 0.8],
-#		 [0.0, 0.41, 0.8], [0.0, 0.31, 3.0], [0.0, -0.1, 0.8], [0.0, -0.2, 3.0], [0.0, -0.61, 0.8], [0.0, -0.71, 3.0]
-#		]) + np.array([a, a, 0])
-
-
-
-	"""r = 1.2
+	r = 1.2
 	INIT_XYZS = [None for i in range(ARGS.num_drones[0])]
 	INIT_TARGETS = [None for i in range(ARGS.num_drones[0])]
-	random.seed(1)
 	for i in range(0, ARGS.num_drones[0]):
-		INIT_XYZS[i] = [r * math.cos(2 * 3.141 / ARGS.num_drones[0] * i) + 2,
-						  r * math.sin(2 * 3.141 / ARGS.num_drones[0] * i) + 2, 1.0]
-		INIT_TARGETS[i] = [r * math.cos(2 * 3.141/ ARGS.num_drones[0] * i + math.pi * (1.0)) + 2,
-							r * math.sin(2 * 3.141 / ARGS.num_drones[0] * i + math.pi * (1.0)) + 2, 1.0+random.random()*0.0]
+		INIT_XYZS[i] = [r * math.cos(2 * 3.141 / ARGS.num_drones[0] * i),
+						  r * math.sin(2 * 3.141 / ARGS.num_drones[0] * i), 1.0]
+		INIT_TARGETS[i] = [r * math.cos(2 * 3.141/ ARGS.num_drones[0] * i + math.pi * (1.0)),
+							r * math.sin(2 * 3.141 / ARGS.num_drones[0] * i + math.pi * (1.0)), 1.0]
 
 	INIT_XYZS = np.array(INIT_XYZS)
-	INIT_TARGETS = np.array(INIT_TARGETS)"""
+	INIT_TARGETS = np.array(INIT_TARGETS)
 
-	"""INIT_XYZS = np.array([[0.0, -1.2, 1.0], [1.0, 0.0, 1.0], [1.0, 0.51, 1.0]]) + np.array([a, a, 0])
 
-	INIT_TARGETS = np.array([[1.0, -1.0, 2.5], [-1.1, -1.1, 2.5], [1.1, 1.1, 0.8],
-							 [1.0, -1.0, 2.5], [1.1, 1.1, 0.8], [-1.1, -1.1, 2.5],
-							 [0.0, -1.0, 1.2], [1.0, -0.05, 1.2], [0.0, 0.05, 1.2]]) + np.array([a, a, 0])
-
-	INIT_TARGETS = np.array([
-							 [0.0, 1.2, 1.0], [0.01, 0, 1.0], [0.01, 0.51, 1.0],
-							 ]) + np.array([a, a, 0])"""
 	# load_data_path = None
 	load_data_path = os.path.dirname(os.path.abspath(__file__)) + "/../../batch_simulation_results/dmpc/" \
 																  "ARGSZ.pkl"

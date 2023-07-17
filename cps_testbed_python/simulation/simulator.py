@@ -174,10 +174,10 @@ class Simulation:
             weight_state_derivative_2_difference=np.eye(3) * self.__ARGS.weight_acc,
             weight_state_derivative_3_difference=np.eye(3) * self.__ARGS.weight_jerk,
             max_speed=np.array([1.0, 1.0, 1.0]),  #np.array([1.5, 1.5, 1.5])
-            max_position=np.array(self.__testbed.edges()[1]) if not self.__ARGS.use_real_testbed_dim else np.array([1.9+2, 1.9+2, 3.0]),  # np.array([10.0, 10.0, 100.0]),
+            max_position=self.__ARGS.max_positions,
             max_acceleration=np.array([3.0, 3.0, 3.0]),  #np.array([5, 5, 5])
             max_jerk=np.array([3.0, 3.0, 3.0]),
-            min_position=np.array(self.__testbed.edges()[0]) if not self.__ARGS.use_real_testbed_dim else np.array([-1.9+2, -1.9+2, 0.8]),  # np.array([-10.0, -10.0, 0.5]),
+            min_position=self.__ARGS.min_positions,
             r_min=self.__ARGS.r_min,
             optimization_variable_sample_time=delta_t / 1.0,  # can be tuned
             num_drones=self.__ARGS.num_drones,
@@ -244,7 +244,9 @@ class Simulation:
                                                   use_own_targets=False,
                                                   slot_group_setpoints_id=slot_group_setpoints.id, send_setpoints=i==self.__ARGS.num_drones,
                                                   simulated=self.__ARGS.simulated,
-                                                  use_optimized_constraints=self.__ARGS.use_optimized_constraints)
+                                                  use_optimized_constraints=self.__ARGS.use_optimized_constraints,
+                                                  setpoint_creator=self.__ARGS.setpoint_creator,
+                                                  pos_offset=self.__ARGS.pos_offset)
             prio += 1
             self.__agents.append(computing_agent)
             self.__computing_agents.append(computing_agent)
@@ -292,8 +294,8 @@ class Simulation:
             cameraUpVector=[0, 0, 1])
 
         viewMatrix4 = p.computeViewMatrix(
-            cameraEyePosition=[2, 2, 8],
-            cameraTargetPosition=[2, 2, 0],
+            cameraEyePosition=[0, 0, 8],
+            cameraTargetPosition=[0, 0, 0],
             cameraUpVector=[1, 0, 0])
 
         """viewMatrix4 = p.computeViewMatrix(
@@ -403,9 +405,11 @@ class Simulation:
                         viewMatrix=viewMatrix4,
                         projectionMatrix=projectionMatrix_video)
 
-                    bgrImg = np.array(rgbImg[:, :, 0:3])
+                    rgbImg = np.copy(np.reshape(np.array(rgbImg), newshape=(height, width, 4)))
+                    bgrImg = np.reshape(np.array(rgbImg), newshape=(height, width, 4))[:, :, 0:3]
                     bgrImg[:, :, 0] = rgbImg[:, :, 2]
                     bgrImg[:, :, 2] = rgbImg[:, :, 0]
+                    bgrImg = np.copy(bgrImg)
                     color_ind = 0
                     #for drone_id in self.__logger.positions:
                     #    for pos in self.__logger.positions[drone_id]:
