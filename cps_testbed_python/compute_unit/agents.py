@@ -933,7 +933,7 @@ class ComputationAgent(net.Agent):
                 priority based order of ondexes. The first M agents will be scheduled
         """
         if self.__use_own_targets:
-            return self.__setpoint_creator.next_setpoints(self.__agent_state)
+            return self.__setpoint_creator.next_setpoints(self.__agent_state, round_nmbr=round(self.__current_time / self.__communication_delta_t))
             """
             targets = {}
             for id in self.__agents_ids:

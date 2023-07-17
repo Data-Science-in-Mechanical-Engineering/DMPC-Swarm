@@ -11,11 +11,11 @@ import compute_unit.setpoint_creator as sc
 def define_ARGS():
     parser = argparse.ArgumentParser(
         description='ARGS for the ET-DMPC')
-    parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 7: "Mobile", 9: "Mobile", 10: "Mobile"}, type=dict,
+    parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 5: "Vicon", 7: "Mobile", 9: "Mobile", 10: "Mobile"}, type=dict,
                         help='drone IDs with name of the testbed', metavar='')
     parser.add_argument('--num_targets_per_drone', default=3, type=int,
                         help='Number of targets', metavar='')
-    parser.add_argument('--computing_agent_ids', default=[20], type=list, help='List of Computing Agent IDs')
+    parser.add_argument('--computing_agent_ids', default=[20, 21], type=list, help='List of Computing Agent IDs')
 
     parser.add_argument('--log_planned_trajectory', default=True, type=bool,
                         help='Select, whether the planned trajectories should be logged')
@@ -271,15 +271,15 @@ def define_ARGS():
              ])
     elif formation == LIGHTHOUSE:
         INIT_XYZS = np.array([
-            [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [-1.0, 1.0, 1.0],  [-1.0, 1.0, 1.0],  [-1.0, 1.0, 1.0]])
+            [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [-1.0, 1.0, 1.0],  [-1.0, 1.0, 1.0],  [-1.0, 1.0, 1.0], [-1.0, 1.0, 1.0]])
 
         b_temp = 0.7
         INIT_TARGETS = np.array(
-            [[0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0],  [-1.0, 1.0, 1.0],
-             [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [-b_temp, 0.0, 1.0],  [-1.0, 1.0, 1.0],
-             [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0],  [-1.0, 1.0, 1.0],
-             [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0],  [-1.0, 1.0, 1.0],
-             [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [-b_temp, 0.0, 1.0],  [-1.0, 1.0, 1.0]
+            [[0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0],  [-1.0, 1.0, 1.0], [-1.0, 1.0, 1.0],
+             [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [-b_temp, 0.0, 1.0],  [-1.0, 1.0, 1.0], [-1.0, 1.0, 1.0],
+             [-b_temp, 0.0, 1.0], [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0],  [-1.0, 1.0, 1.0], [-1.0, 1.0, 1.0],
+             [0.0, b_temp, 1.0], [b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0], [-b_temp, 0.0, 1.0],  [-1.0, 1.0, 1.0], [-1.0, 1.0, 1.0],
+             [-1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, 0.0, 1.0], [-b_temp, 0.0, 1.0],  [-1.0, 1.0, 1.0], [-1.0, 1.0, 1.0]
             ])
 
     ARGS.num_targets_per_drone = len(INIT_TARGETS) // ARGS.num_drones

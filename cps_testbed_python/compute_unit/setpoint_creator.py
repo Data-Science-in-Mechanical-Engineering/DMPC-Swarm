@@ -52,7 +52,7 @@ class SetpointCreator:
 					if self.__current_setpoints_age[drone_id] > self.__max_setpoint_age:
 						self.__current_setpoints_reached[drone_id] = True"""
 
-	def next_setpoints(self, drones_states):
+	def next_setpoints(self, drones_states, round_nmbr):
 		"""
 
 		Args:
@@ -61,6 +61,7 @@ class SetpointCreator:
 		Returns:
 
 		"""
+		self.__round = round_nmbr
 		self.check_current_setpoints_reached(drones_states)
 
 		# for the drones that have reached their setpoint calculate a new one
@@ -70,13 +71,10 @@ class SetpointCreator:
 				self.__current_setpoints_age[drone_id] = 0
 				self.__current_setpoints_reached[drone_id] = False
 
-			if self.__drones[drone_id] == "Mobile":
+			if self.__drones[drone_id] == "Mobile" or True:
 				self.__current_setpoints[drone_id] = self.generate_new_circle_setpoint(self.drones[drone_id], drone_id)
 			self.__current_setpoints_age[drone_id] += 1
 			print(f"{drone_id}: {self.__current_setpoints_age[drone_id]}, {self.__current_setpoints_reached[drone_id]}")
-
-
-		self.__round += 1
 
 		return self.__current_setpoints
 
@@ -86,7 +84,7 @@ class SetpointCreator:
 		dpos = (max_pos - min_pos) * 0.8
 		mean = (min_pos + max_pos) / 2
 		r = 0.5
-		angle = 2*math.pi * (self.__round + drone_id*5) / 100
+		angle = 2*math.pi * (self.__round + drone_id*5) / 40
 		return np.array([dpos[0]*math.cos(angle), dpos[1]*math.sin(angle), 0]) + mean
 
 	def generate_new_setpoint(self, name_testbed):
