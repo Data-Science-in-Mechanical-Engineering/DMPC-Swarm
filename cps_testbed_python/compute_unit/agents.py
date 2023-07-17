@@ -76,6 +76,15 @@ def hash_trajectory(trajectory, init_state):
     return hash(str(coeff))
 
 
+def calculate_band_weight(p_target, p_self, p_other, weight=1.0, weight_angle=2):
+    dp_target = p_target - p_self
+    dp_other = p_other - p_self
+    dp_target /= np.linalg.norm(dp_target) + 1e-7
+    dp_other /= np.linalg.norm(dp_other) + 1e-7
+    angle = np.arccos(np.clip(np.dot(dp_target, dp_other), -1.0, 1.0))
+    return weight * math.exp(math.sin(angle)*weight_angle)
+
+
 class ComputationAgent(net.Agent):
     """this class represents a computation agent inside the network.
     Every agent is allowed to send in multiple slot groups. This is needed if e.g. the agent should send his sensor
@@ -817,9 +826,12 @@ class ComputationAgent(net.Agent):
             else:
                 num_static_trajectories += len(self.__trajectory_tracker.get_information(id).content)
 
+        band_weights = []
+        last_trajectory_current_agent = self.__trajectory_tracker.get_information(current_id).content[0].last_trajectory
+
         # if we ignore message loss, we can use the optimized version of DMPC. If not, we have to use more conservative
         # (dynamic) constraints?
-        if self.__use_optimized_constraints:
+        if self.__use_optimized_constraints or True:
             dynamic_trajectories = [None for i in range(num_dynamic_trajectories)]
             dynamic_target_points = [None for i in range(num_dynamic_trajectories)]
             dynamic_coop_prio = [0 for i in range(num_dynamic_trajectories)]
@@ -848,6 +860,8 @@ class ComputationAgent(net.Agent):
                         age_trajectory = int(
                             np.round(age_trajectory, 0))  # needs to be rounded because if of float inaccuracies
                         dynamic_trajectory_age[i] = age_trajectory
+
+                        band_weights.append(calculate_band_weight(p_target=self.__current_target_positions[current_id], p_self=last_trajectory_current_agent[-1], p_other=trajectory.last_trajectory[-1]))
                         i += 1
                 else:
                     for trajectory in self.__trajectory_tracker.get_information(id).content:
@@ -865,6 +879,9 @@ class ComputationAgent(net.Agent):
                             np.round(age_trajectory, 0))  # needs to be rounded because if of float inaccuracies
                         static_trajectory_age[i - num_dynamic_trajectories] = age_trajectory
 
+                        band_weights.append(calculate_band_weight(p_target=self.__current_target_positions[current_id],
+                                                                  p_self=last_trajectory_current_agent[-1],
+                                                                  p_other=trajectory.last_trajectory[-1]))
                         i += 1
 
         else:
@@ -913,10 +930,11 @@ class ComputationAgent(net.Agent):
             static_target_points=static_target_points,
             dynamic_coop_prio=dynamic_coop_prio,
             static_coop_prio=static_coop_prio,
+            band_weights=band_weights,
             dynamic_trajectory_age=dynamic_trajectory_age,
             static_trajectory_age=static_trajectory_age,
             use_nonlinear_mpc=False,
-            high_level_setpoints=None #  if self.__received_setpoints is None else self.__received_setpoints[current_id][-1] #None if self.__high_level_setpoints is None else self.__high_level_setpoints[current_id]
+            high_level_setpoints=None # if self.__received_setpoints is None else self.__received_setpoints[current_id][-1] #None if self.__high_level_setpoints is None else self.__high_level_setpoints[current_id]
         )
 
     def get_targets(self):

@@ -128,7 +128,7 @@ class TrajectoryGenerator:
 
         self.__num_anti_collision_constraints = (options.num_drones - 1) * self.__num_collision_constraint_sample_points
         self.__num_optimization_variables = trajectory_interpolation.num_optimization_variables + \
-            self.__use_soft_constraints*self.__num_anti_collision_constraints
+            self.__use_soft_constraints*self.__num_anti_collision_constraints * 0
         # initialize all matrixes with zeros (allocate their memory)
         # objective function = x' Q x + 2x' P
         self.__Q = np.zeros((self.__num_optimization_variables, self.__num_optimization_variables))
@@ -332,9 +332,11 @@ class TrajectoryGenerator:
                              static_coop_prio,
                              dynamic_trajectory_age,
                              static_trajectory_age,
+                             band_weights,
                              cooperative_objective_function=True,
                              use_nonlinear_mpc=False,
-                             high_level_setpoints=None
+                             high_level_setpoints=None,
+                             w_band=0.3,
                              ):
         """
         calculates data
@@ -415,6 +417,25 @@ class TrajectoryGenerator:
             A_uneq = self.__A_uneq_part
             b_uneq = self.__b_uneq_part
 
+        # add weak constraints variables constraints
+        num_weak_variables = len(dynamic_trajectories) + len(static_trajectories) - 1
+
+        A_uneq_weak = np.zeros((len(A_uneq), num_weak_variables))
+        A_uneq_weak[-num_weak_variables:, :] = np.eye(num_weak_variables)
+
+        A_uneq = np.concatenate((A_uneq, A_uneq_weak), axis=1)
+
+        A_eq = np.concatenate((self.__A_eq, np.zeros((len(self.__A_eq), num_weak_variables))), axis=1)
+
+        # now add constraints for weak constraint variables
+        A_uneq_weak = np.zeros((2*num_weak_variables, len(A_uneq[0])))
+        A_uneq_weak[-2*num_weak_variables:-num_weak_variables, -num_weak_variables:] = np.eye(num_weak_variables)
+        A_uneq_weak[-num_weak_variables:, -num_weak_variables:] = -np.eye(num_weak_variables)
+        A_uneq = np.concatenate((A_uneq, A_uneq_weak), axis=0)
+
+        b_uneq = np.concatenate(
+            (b_uneq, np.array([w_band for i in range(num_weak_variables)]), np.zeros((num_weak_variables,))), axis=0)
+
         # build nonlinear constraints
         nonlinear_constraints = []
         linear_constraints = []
@@ -470,8 +491,6 @@ class TrajectoryGenerator:
                     new_target += new_target_temp
                     num_targets += 1
                 q += temp
-        print("44444444444444")
-        print(q)
         real_target_position = target_position
         if target_changed:
             pass
@@ -485,6 +504,20 @@ class TrajectoryGenerator:
             else:
                 q += - (np.tile(target_position, self.__num_objective_function_sample_points_pos) - future_pos) @ self.__P
 
+        # now add weak constraints to objective function
+        num_variables = num_weak_variables + self.__num_optimization_variables
+        Q = np.zeros((num_variables, num_variables))
+        Q[0:self.__num_optimization_variables, 0:self.__num_optimization_variables] = self.__Q
+        # Q[self.__num_optimization_variables:, self.__num_optimization_variables:] = np.eye(num_weak_variables) * 0.1
+
+        q = np.concatenate((q, np.zeros((num_weak_variables,))), axis=0)
+
+        offset = 0
+        for i in range(num_weak_variables):
+            if i == index:
+                offset = 1
+            q[self.__num_optimization_variables+i] = -band_weights[i+offset] * w_band
+            Q[self.__num_optimization_variables+i, self.__num_optimization_variables+i] = band_weights[i+offset]
 
         # solve optimization problem
         optimal_coefficients = None
@@ -522,10 +555,10 @@ class TrajectoryGenerator:
                 print(self.__A_eq @ result.x - self.__b_eq)"""
         elif self.__options.use_qpsolvers:
             start = time.time()
-            optimal_coefficients = qp.solve_qp(P=self.__Q,
+            optimal_coefficients = qp.solve_qp(P=Q,
                                                q=q,
                                                G=A_uneq, h=b_uneq,
-                                               A=self.__A_eq, b=self.__b_eq, solver='quadprog')
+                                               A=A_eq, b=self.__b_eq, solver='quadprog')
             #print(time.time()-start)
             if optimal_coefficients is None:
                 print("No Solution Found")
@@ -553,6 +586,8 @@ class TrajectoryGenerator:
 
 
         # reshaped: optimale Koeffizienten auf die prediction horizons aufteilen
+        print("------------------")
+        print(optimal_coefficients[-num_weak_variables:])
         reshaped = np.reshape(optimal_coefficients[0:self.__trajectory_interpolation.num_optimization_variables],
                               (self.prediction_horizon, self.__dim))
 
@@ -732,6 +767,7 @@ class TrajectoryGenerator:
                 # -2, because the last point should alwas be vertical
                 dynamic_points_use_vertical_constraints = [i >= dynamic_trajectories.shape[1] - dynamic_trajectory_age[j] - 2 for j in range(dynamic_trajectories.shape[0])]
                 static_points_use_vertical_constraints = [i >= dynamic_trajectories.shape[1] - static_trajectory_age[j] - 2 for j in range(static_trajectories.shape[0])]if not len(static_trajectories) == 0 else None
+                assert not optimize_constraints
                 points_on_plane, normal_vectors = self.remove_redundant_planes_only_static(
                     index, dynamic_trajectories[:, i, :],
                     static_trajectories[:, i, :] if not len(static_trajectories) == 0 else None,
@@ -747,7 +783,8 @@ class TrajectoryGenerator:
                 A_list.append(- normal_vectors[j] @ self.__downwash_scaling @
                               self.__coefficients_to_trajectory_matrix_collision[i * self.__dim:(i + 1) * self.__dim, :])
                 b_list.append(-np.dot(normal_vectors[j],
-                                      points_on_plane[j] - self.__downwash_scaling @ future_pos_from_current_state[i] ))
+                                      points_on_plane[j] - self.__downwash_scaling @ future_pos_from_current_state[i]))
+
 
         self.__last_num_constraints = len(b_list)
         return np.array(A_list), np.array(b_list)

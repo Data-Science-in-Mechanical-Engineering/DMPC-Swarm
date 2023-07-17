@@ -97,7 +97,7 @@ if __name__ == "__main__":
 		description='Helix flight script using CtrlAviary or VisionAviary and DSLPIDControl')
 	parser.add_argument('--drone', default="cf2x", type=DroneModel, help='Drone model (default: CF2X)', metavar='',
 						choices=DroneModel)
-	parser.add_argument('--drones', default={i: "Vicon" for i in range(1, 11)}, type=dict,
+	parser.add_argument('--drones', default={i: "Vicon" for i in range(1, 8)}, type=dict,
 						help='drone IDs with name of the testbed', metavar='')
 	parser.add_argument('--computing_agent_ids', default=[i for i in range(40, 42)], type=list, help='List of Computing Agent IDs')
 	parser.add_argument('--testbeds', default={"Vicon": ([-1.7, -1.7, 0.3], [1.7, 1.7, 3.0], [0, 0, 0])},
@@ -132,7 +132,7 @@ if __name__ == "__main__":
 	parser.add_argument('--sim_steps_per_control', default=4, type=int, help='')
 	parser.add_argument('--control_steps_per_round', default=12, type=int, help='')
 	parser.add_argument('--use_constant_freq', default=True, type=bool, help='')
-	parser.add_argument('--duration_sec', default=80, type=int,
+	parser.add_argument('--duration_sec', default=50, type=int,
 						help='Duration of the simulation in seconds (default: 5)', metavar='')
 	parser.add_argument('--communication_freq_hz', default=5, type=int,
 						help='Communication frequency in Hz (default: 10)')
@@ -149,7 +149,7 @@ if __name__ == "__main__":
 	parser.add_argument('--total_simulations', default=1, type=int, help='Total number of simulations')
 	parser.add_argument('--network_message_loss', default=[0], type=list,
 						help='List of message loss values of the communication network')
-	parser.add_argument('--prediction_horizon', default=30, type=int, help='Prediction Horizon for DMPC')
+	parser.add_argument('--prediction_horizon', default=15, type=int, help='Prediction Horizon for DMPC')
 	parser.add_argument('--interpolation_order', default=5, type=int, help='Order of the Bernstein Interpolation')
 
 	parser.add_argument('--r_min', default=0.5, type=float, help='minimum distance to each Drone')
@@ -187,7 +187,7 @@ if __name__ == "__main__":
 						help='Weight in event-trigger')
 	parser.add_argument('--save_video', default=True, type=bool,
 						help='Select, whether a video should be saved')
-	parser.add_argument('--remove_redundant_constraints', default=True, type=bool,
+	parser.add_argument('--remove_redundant_constraints', default=False, type=bool,
 						help='Select, whether a video should be saved')
 	parser.add_argument('--min_distance_cooperative', default=0.1, type=float,
 						help='Select, whether a video should be saved')
@@ -294,7 +294,7 @@ if __name__ == "__main__":
 	use_inits_const = True
 
 	a = 2
-	r = 1.2
+	r = 1.5
 	INIT_XYZS = [None for i in range(ARGS.num_drones[0])]
 	INIT_TARGETS = [None for i in range(ARGS.num_drones[0])]
 	for i in range(0, ARGS.num_drones[0]):
