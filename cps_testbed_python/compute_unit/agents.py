@@ -78,11 +78,14 @@ def hash_trajectory(trajectory, init_state):
 
 def calculate_band_weight(p_target, p_self, p_other, weight=1.0, weight_angle=2):
     dp_target = p_target - p_self
+    weight_mult = 1
+    if np.linalg.norm(dp_target) < 0.5:
+        weight_mult = 1e-7
     dp_other = p_other - p_self
     dp_target /= np.linalg.norm(dp_target) + 1e-7
     dp_other /= np.linalg.norm(dp_other) + 1e-7
     angle = np.arccos(np.clip(np.dot(dp_target, dp_other), -1.0, 1.0))
-    return weight * math.exp(math.sin(angle)*weight_angle)
+    return weight_mult * weight * math.exp(math.sin(angle)*weight_angle)
 
 
 class ComputationAgent(net.Agent):
@@ -934,7 +937,7 @@ class ComputationAgent(net.Agent):
             dynamic_trajectory_age=dynamic_trajectory_age,
             static_trajectory_age=static_trajectory_age,
             use_nonlinear_mpc=False,
-            high_level_setpoints=None # if self.__received_setpoints is None else self.__received_setpoints[current_id][-1] #None if self.__high_level_setpoints is None else self.__high_level_setpoints[current_id]
+            high_level_setpoints=None if self.__received_setpoints is None else self.__received_setpoints[current_id][-1] #None if self.__high_level_setpoints is None else self.__high_level_setpoints[current_id]
         )
 
     def get_targets(self):
@@ -1070,7 +1073,7 @@ class ComputationAgent(net.Agent):
 
             prios[i] *= self.__alpha_3
             prios[i] += self.__alpha_2 * (self.__current_time - self.__trajectory_tracker.get_information(own_id).content[0].trajectory_start_time) / max_time #self.__agents_starting_times[own_id]) / max_time  # 0.1
-            prios[i] += self.__alpha_1 * dist_to_target / max_dist #* (self.__current_time - self.__trajectory_tracker.get_information(own_id).content[0].trajectory_start_time) / max_time
+            prios[i] += self.__alpha_1 * dist_to_target / max_dist * (self.__current_time - self.__trajectory_tracker.get_information(own_id).content[0].trajectory_start_time) / max_time
 
             if own_id in self.__state_feedback_triggered:
                 prios[i] += state_feeback_triggered_prio
@@ -1177,8 +1180,8 @@ class ComputationAgent(net.Agent):
                         self.__trajectory_tracker.get_information(other_agent_id).content[0].current_state[0:3],
                             current_pos[agent_id] - current_pos[other_agent_id]) > 0:
                         return True
-                    if np.dot(self.__current_target_positions[other_agent_id][0:2] - current_pos[other_agent_id][0:2],
-                              current_pos[agent_id][0:2] - current_pos[other_agent_id][0:2]) > 0:
+                    if np.dot(self.__current_target_positions[other_agent_id][0:3] - current_pos[other_agent_id][0:3],
+                              current_pos[agent_id][0:3] - current_pos[other_agent_id][0:3]) > 0:
                         return True
         return False
 
@@ -1349,7 +1352,7 @@ class ComputationAgent(net.Agent):
                             c = np.cross(current_pos[agent_id] - current_pos[closest_agent], closest_agent_speed)
                             dodge_direction = np.cross(closest_agent_speed, c)
                             dodge_direction = current_pos[agent_id] - current_pos[closest_agent]
-                            dodge_direction[2] = 0
+                            # dodge_direction[2] = 0
                             dodge_direction /= np.linalg.norm(dodge_direction)
                             self.__high_level_setpoint_trajectory[agent_id] = [current_pos[agent_id] + dodge_direction*self.__agent_dodge_distance + np.random.randn(3)*0.1]
                             use_hlp = False

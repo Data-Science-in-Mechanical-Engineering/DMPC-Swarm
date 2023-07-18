@@ -81,15 +81,12 @@ if __name__ == "__main__":
 		description='Helix flight script using CtrlAviary or VisionAviary and DSLPIDControl')
 	parser.add_argument('--drone', default="cf2x", type=DroneModel, help='Drone model (default: CF2X)', metavar='',
 						choices=DroneModel)
-
-	parser.add_argument('--num_drones', default=[15], type=list,
-						help='List of number of drones to iterate over', metavar='')
-	parser.add_argument('--drone_ids', default=[i for i in range(1, 16)], type=list,  # [3, 2, 1]
-						help='List of drone IDs', metavar='')
-	parser.add_argument('--computing_agent_ids', default=[i for i in range(40, 45)], type=list, help='List of Computing Agent IDs')
-	parser.add_argument('--num_computing_agents', default=5, type=int, help='Number of computing agents for the '
-																			'DMPC Algorithm')
-
+	parser.add_argument('--drones', default={i: "Vicon" for i in range(1, 11)}, type=dict,
+						help='drone IDs with name of the testbed', metavar='')
+	parser.add_argument('--computing_agent_ids', default=[i for i in range(40, 42)], type=list,
+						help='List of Computing Agent IDs')
+	parser.add_argument('--testbeds', default={"Vicon": ([-2.0, -2.0, 0.3], [2.0, 2.0, 3.0], [0, 0, 0])},
+						type=dict, help='Testbeds of the system. Format: name: (min, max, offset)')
 	parser.add_argument('--physics', default="pyb_drag", type=Physics, help='Physics updates (default: PYB)',
 						metavar='', choices=Physics)
 	parser.add_argument('--vision', default=False, type=str2bool, help='Whether to use VisionAviary (default: False)',
@@ -137,7 +134,7 @@ if __name__ == "__main__":
 
 	parser.add_argument('--abort_simulation', default=True, type=bool, help='Total number of simulations')
 
-	parser.add_argument('--total_simulations', default=1, type=int, help='Total number of simulations')
+	parser.add_argument('--total_simulations', default=1000, type=int, help='Total number of simulations')
 	parser.add_argument('--network_message_loss', default=[0], type=list,
 						help='List of message loss values of the communication network')
 	parser.add_argument('--prediction_horizon', default=15, type=int, help='Prediction Horizon for DMPC')
@@ -167,7 +164,7 @@ if __name__ == "__main__":
 						help='Scaling factor to account for the downwash')
 	parser.add_argument('--use_qpsolvers', default=True, type=bool,
 						help='Select, whether qpsolver is used for trajectory planning')
-	parser.add_argument('--alpha_1', default=100.0, type=bool,
+	parser.add_argument('--alpha_1', default=0, type=bool,
 						help='Weight in event-trigger')
 	parser.add_argument('--alpha_2', default=10.0, type=bool,
 						help='Weight in event-trigger')
@@ -178,7 +175,7 @@ if __name__ == "__main__":
 						help='Weight in event-trigger')
 	parser.add_argument('--save_video', default=False, type=bool,
 						help='Select, whether a video should be saved')
-	parser.add_argument('--remove_redundant_constraints', default=True, type=bool,
+	parser.add_argument('--remove_redundant_constraints', default=False, type=bool,
 						help='Select, whether a video should be saved')
 	parser.add_argument('--min_distance_cooperative', default=0.1, type=float,
 						help='Select, whether a video should be saved')
@@ -225,12 +222,33 @@ if __name__ == "__main__":
 
 	ARGS = parser.parse_args()
 
+	ARGS.drone_ids = list(ARGS.drones.keys())
+	ARGS.num_drones = [len(ARGS.drones)]
+	ARGS.num_computing_agents = len(ARGS.computing_agent_ids)
+
+	ARGS.max_positions = {}
+	ARGS.min_positions = {}
+	ARGS.pos_offset = {}
+
+	print("Initializing drones:")
+	for key in ARGS.drones:
+		testbed = ARGS.drones[key]
+		offset = np.array(ARGS.testbeds[testbed][2])
+		ARGS.pos_offset[key] = offset
+		ARGS.min_positions[key] = np.array(ARGS.testbeds[testbed][0]) + offset
+		ARGS.max_positions[key] = np.array(ARGS.testbeds[testbed][1]) + offset
+		print(
+			f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
+	ARGS.setpoint_creator = None
+
 	if ARGS.hyperparameter_optimization:
 		ARGS.save_video = False
 
-	testbed = cuboid.Cuboid(np.array([0.4, 0.4, 0.3]), np.array([ARGS.testbed_size[0], 0, 0]),
-							np.array([0, ARGS.testbed_size[1], 0]),
-							np.array([0, 0, ARGS.testbed_size[2]]))
+	origin = np.array(ARGS.testbeds["Vicon"][0]) + np.array(ARGS.testbeds["Vicon"][2])
+	testbed_size = np.array(ARGS.testbeds["Vicon"][1]) - np.array(ARGS.testbeds["Vicon"][0])
+	testbed = cuboid.Cuboid(origin, np.array([testbed_size[0], 0, 0]),
+							np.array([0, testbed_size[1], 0]),
+							np.array([0, 0, testbed_size[2]]))
 
 	ARGS.testbed = testbed
 
@@ -285,9 +303,9 @@ if __name__ == "__main__":
 	#call_batch_simulation(ARGS_array, name_files="dmpc_simulation_results_ignore_message_loss_005",
 	#					  message_loss_probability=0.05, ignore_message_loss=True)
 
-	for num_cus in [5]:
-		call_batch_simulation(ARGS_array, name_files=f"dmpc_simulation_results_ignore_message_loss_001_{num_cus}_cus5",
-							  message_loss_probability=0.01, ignore_message_loss=True, num_cus=num_cus)
+	for num_cus in [2]:
+		call_batch_simulation(ARGS_array, name_files=f"dmpc_simulation_results_ignore_message_loss_000_{num_cus}cus",
+							  message_loss_probability=0.00, ignore_message_loss=False, num_cus=num_cus)
 
 	#for num_cus in [1, 3, 5, 7, 9, 11, 13, 15]:
 #		call_batch_simulation(ARGS_array, name_files=f"dmpc_simulation_results_not_ignore_message_loss_001_{num_cus}_cus5",#
