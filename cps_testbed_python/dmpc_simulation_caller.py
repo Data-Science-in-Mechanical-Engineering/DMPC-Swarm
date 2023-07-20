@@ -304,8 +304,9 @@ if __name__ == "__main__":
 	#					  message_loss_probability=0.05, ignore_message_loss=True)
 
 	for num_cus in [2]:
-		call_batch_simulation(ARGS_array, name_files=f"dmpc_simulation_results_ignore_message_loss_000_{num_cus}cus",
-							  message_loss_probability=0.00, ignore_message_loss=False, num_cus=num_cus)
+		for message_loss_prob in [0, 0.01, 0.1]:
+			call_batch_simulation(ARGS_array, name_files=f"dmpc_simulation_results_ignore_message_loss_{int(100*message_loss_prob+1e-7)}_{num_cus}cus",
+								  message_loss_probability=message_loss_prob, ignore_message_loss=False, num_cus=num_cus)
 
 	#for num_cus in [1, 3, 5, 7, 9, 11, 13, 15]:
 #		call_batch_simulation(ARGS_array, name_files=f"dmpc_simulation_results_not_ignore_message_loss_001_{num_cus}_cus5",#
