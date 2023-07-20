@@ -27,6 +27,8 @@ import useful_scripts.initializer as initializer
 from useful_scripts.plotter import Plotter
 import useful_scripts.cuboid as cuboid
 
+import compute_unit.setpoint_creator as setpoint_creator
+
 import contextlib
 
 
@@ -97,9 +99,9 @@ if __name__ == "__main__":
 		description='Helix flight script using CtrlAviary or VisionAviary and DSLPIDControl')
 	parser.add_argument('--drone', default="cf2x", type=DroneModel, help='Drone model (default: CF2X)', metavar='',
 						choices=DroneModel)
-	parser.add_argument('--drones', default={i: "Vicon" for i in range(1, 8)}, type=dict,
+	parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 4: "Vicon", 5: "Vicon", 6: "Vicon",  7: "Vicon", 8: "Vicon", 9: "Vicon", 10: "Vicon"}, type=dict,
 						help='drone IDs with name of the testbed', metavar='')
-	parser.add_argument('--computing_agent_ids', default=[i for i in range(40, 42)], type=list, help='List of Computing Agent IDs')
+	parser.add_argument('--computing_agent_ids', default=[i for i in range(40, 45)], type=list, help='List of Computing Agent IDs')
 	parser.add_argument('--testbeds', default={"Vicon": ([-1.7, -1.7, 0.3], [1.7, 1.7, 3.0], [0, 0, 0])},
                         type=dict, help='Testbeds of the system. Format: name: (min, max, offset)')
 
@@ -132,7 +134,7 @@ if __name__ == "__main__":
 	parser.add_argument('--sim_steps_per_control', default=4, type=int, help='')
 	parser.add_argument('--control_steps_per_round', default=12, type=int, help='')
 	parser.add_argument('--use_constant_freq', default=True, type=bool, help='')
-	parser.add_argument('--duration_sec', default=50, type=int,
+	parser.add_argument('--duration_sec', default=40, type=int,
 						help='Duration of the simulation in seconds (default: 5)', metavar='')
 	parser.add_argument('--communication_freq_hz', default=5, type=int,
 						help='Communication frequency in Hz (default: 10)')
@@ -176,11 +178,11 @@ if __name__ == "__main__":
 						help='Scaling factor to account for the downwash')
 	parser.add_argument('--use_qpsolvers', default=True, type=bool,
 						help='Select, whether qpsolver is used for trajectory planning')
-	parser.add_argument('--alpha_1', default=1000.0*0, type=bool,
+	parser.add_argument('--alpha_1', default=1000.0*1, type=bool,
 						help='Weight in event-trigger')
-	parser.add_argument('--alpha_2', default=10.0, type=bool,
+	parser.add_argument('--alpha_2', default=10.0*0, type=bool,
 						help='Weight in event-trigger')
-	parser.add_argument('--alpha_3', default=0.0, type=bool,
+	parser.add_argument('--alpha_3', default=1.0*0, type=bool,
 						help='Weight in event-trigger')
 	parser.add_argument('--alpha_4', default=10.0*0, type=bool,
 
@@ -216,7 +218,7 @@ if __name__ == "__main__":
     #						help='Select, whether a video should be saved')
 	parser.add_argument('--cooperative_normal_vector_noise', default=0.17137653933980446 * 0, type=float)
 
-	parser.add_argument('--use_high_level_planner', default=True, type=bool)
+	parser.add_argument('--use_high_level_planner', default=False, type=bool)
 	parser.add_argument('--agent_dodge_distance', default=0.5, type=float)
 
 	parser.add_argument('--hyperparameter_optimization', default=False, type=bool,
@@ -230,6 +232,9 @@ if __name__ == "__main__":
 
 	parser.add_argument('--use_demo_setpoints', default=False, type=bool,
 						help='if the drones should fly in a demo formation')
+
+	parser.add_argument('--use_own_targets', default=False, type=bool,
+						help='if the cus should use their own targets')
 
 	ARGS = parser.parse_args()
 
@@ -250,7 +255,8 @@ if __name__ == "__main__":
 		ARGS.max_positions[key] = np.array(ARGS.testbeds[testbed][1]) + offset
 		print(
 			f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
-	ARGS.setpoint_creator = None
+
+	ARGS.setpoint_creator = setpoint_creator.SetpointCreator(ARGS.drones, ARGS.testbeds)
 
 	if ARGS.hyperparameter_optimization:
 		ARGS.save_video = False
@@ -293,18 +299,25 @@ if __name__ == "__main__":
 
 	use_inits_const = True
 
+	TESTBED = 0
+	CIRCLE = 1
+	init_method = CIRCLE
 	a = 2
-	r = 1.5
-	INIT_XYZS = [None for i in range(ARGS.num_drones[0])]
-	INIT_TARGETS = [None for i in range(ARGS.num_drones[0])]
-	for i in range(0, ARGS.num_drones[0]):
-		INIT_XYZS[i] = [r * math.cos(2 * 3.141 / ARGS.num_drones[0] * i),
-						  r * math.sin(2 * 3.141 / ARGS.num_drones[0] * i), 1.0]
-		INIT_TARGETS[i] = [r * math.cos(2 * 3.141/ ARGS.num_drones[0] * i + math.pi * (1.0)),
-							r * math.sin(2 * 3.141 / ARGS.num_drones[0] * i + math.pi * (1.0)), 1.0]
+	if init_method == CIRCLE:
+		r = 1.5
+		INIT_XYZS = [None for i in range(ARGS.num_drones[0])]
+		INIT_TARGETS = [None for i in range(ARGS.num_drones[0])]
+		for i in range(0, ARGS.num_drones[0]):
+			INIT_XYZS[i] = [r * math.cos(2 * 3.141 / ARGS.num_drones[0] * i),
+							  r * math.sin(2 * 3.141 / ARGS.num_drones[0] * i), 1.0]
+			INIT_TARGETS[i] = [r * math.cos(2 * 3.141/ ARGS.num_drones[0] * i + math.pi * (1.0)),
+								r * math.sin(2 * 3.141 / ARGS.num_drones[0] * i + math.pi * (1.0)), 1.0]
 
-	INIT_XYZS = np.array(INIT_XYZS)
-	INIT_TARGETS = np.array(INIT_TARGETS)
+		INIT_XYZS = np.array(INIT_XYZS)
+		INIT_TARGETS = np.array(INIT_TARGETS)
+	elif init_method == TESTBED:
+		INIT_XYZS = np.array([[-1, 1, 1], [0, 1, 1], [1, 1, 1], [-1, 0, 1], [0, 0, 1], [1, 0, 1], [-1, -1, 1], [0, -1, 1], [1, -1, 1]])
+		INIT_TARGETS = INIT_XYZS + 1000
 
 
 	# load_data_path = None

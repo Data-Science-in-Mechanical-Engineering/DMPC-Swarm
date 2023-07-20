@@ -218,6 +218,9 @@ if __name__ == "__main__":
 	parser.add_argument('--use_demo_setpoints', default=False, type=bool,
 						help='if the drones should fly in a demo formation')
 
+	parser.add_argument('--use_own_targets', default=False, type=bool,
+						help='if the cus should use their own targets')
+
 	parser.add_argument('--agent_dodge_distance', default=0.5, type=float)
 
 	ARGS = parser.parse_args()
@@ -303,7 +306,7 @@ if __name__ == "__main__":
 	#call_batch_simulation(ARGS_array, name_files="dmpc_simulation_results_ignore_message_loss_005",
 	#					  message_loss_probability=0.05, ignore_message_loss=True)
 
-	for num_cus in [2]:
+	for num_cus in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
 		call_batch_simulation(ARGS_array, name_files=f"dmpc_simulation_results_ignore_message_loss_000_{num_cus}cus",
 							  message_loss_probability=0.00, ignore_message_loss=False, num_cus=num_cus)
 

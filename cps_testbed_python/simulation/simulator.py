@@ -173,10 +173,10 @@ class Simulation:
             weight_state_derivative_1_difference=np.eye(3) * self.__ARGS.weight_speed,
             weight_state_derivative_2_difference=np.eye(3) * self.__ARGS.weight_acc,
             weight_state_derivative_3_difference=np.eye(3) * self.__ARGS.weight_jerk,
-            max_speed=np.array([1.0, 1.0, 1.0]),  #np.array([1.5, 1.5, 1.5])
+            max_speed=np.array([2.0, 2.0, 2.0]),  #np.array([1.5, 1.5, 1.5])
             max_position=self.__ARGS.max_positions,
-            max_acceleration=np.array([3.0, 3.0, 3.0]),  #np.array([5, 5, 5])
-            max_jerk=np.array([3.0, 3.0, 3.0]),
+            max_acceleration=np.array([5.0, 5.0, 5.0]),  #np.array([5, 5, 5])
+            max_jerk=np.array([5.0, 5.0, 5.0]),
             min_position=self.__ARGS.min_positions,
             r_min=self.__ARGS.r_min,
             optimization_variable_sample_time=delta_t / 1.0,  # can be tuned
@@ -241,7 +241,7 @@ class Simulation:
                                                   ignore_message_loss=self.__ARGS.ignore_message_loss,
                                                   use_high_level_planner=self.__ARGS.use_high_level_planner,
                                                   agent_dodge_distance=self.__ARGS.agent_dodge_distance,
-                                                  use_own_targets=False,
+                                                  use_own_targets=self.__ARGS.use_own_targets,
                                                   slot_group_setpoints_id=slot_group_setpoints.id, send_setpoints=i==self.__ARGS.num_drones,
                                                   simulated=self.__ARGS.simulated,
                                                   use_optimized_constraints=self.__ARGS.use_optimized_constraints,
