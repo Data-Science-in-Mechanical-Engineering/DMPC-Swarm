@@ -79,12 +79,32 @@ class SetpointCreator:
 		return self.__current_setpoints
 
 	def generate_new_circle_setpoint(self, name_testbed, drone_id):
+		mult = 1
+		if name_testbed == "Vicon" and not (drone_id == 1 or drone_id == 1000):
+			a = 0.5
+			const_targets = {1: [-1 - a, 1 + a, 1], 2: [0, 1 + a, 1], 3: [1 + a, 1 + a, 1],
+							 5: [-1 - a, 0, 1], 6: [0, 0, 1], 7: [1 + a, 0, 1],
+							 8: [-1 - a, -1 - a, 1], 9: [0, -1 - a, 1], 10: [1 + a, -1 - a, 1]}
+			return np.array(const_targets[drone_id])
+
+		"""if (self.__round+50) % 100 <= 50:
+			if drone_id == 1:
+				return np.array([1.1, -1, 1])
+			else:
+				return np.array([-0.9, 1, 1])
+		else:
+			if drone_id == 1:
+				return np.array([-1.1, 1, 1])
+			else:
+				return np.array([0.9, -1, 1])"""
+
 		min_pos = np.array(self.__testbeds[name_testbed][0])
 		max_pos = np.array(self.__testbeds[name_testbed][1])
+		offset = np.array(self.__testbeds[name_testbed][2])
 		dpos = (max_pos - min_pos) * 0.8
-		mean = (min_pos + max_pos) / 2
-		r = 0.5
-		angle = 2*math.pi * (self.__round + drone_id*5) / 40
+		mean = (min_pos + max_pos) / 2 + offset
+		angle = 2*math.pi * (self.__round * mult) / 30 + 2*math.pi*drone_id / 10 + math.pi
+		dpos = [0.2, 0.2, 0.2]
 		return np.array([dpos[0]*math.cos(angle), dpos[1]*math.sin(angle), 0]) + mean
 
 	def generate_new_setpoint(self, name_testbed):

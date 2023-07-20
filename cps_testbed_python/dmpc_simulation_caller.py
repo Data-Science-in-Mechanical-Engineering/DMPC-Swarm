@@ -218,6 +218,9 @@ if __name__ == "__main__":
 	parser.add_argument('--use_demo_setpoints', default=False, type=bool,
 						help='if the drones should fly in a demo formation')
 
+	parser.add_argument('--use_own_targets', default=False, type=bool,
+						help='if the cus should use their own targets')
+
 	parser.add_argument('--agent_dodge_distance', default=0.5, type=float)
 
 	ARGS = parser.parse_args()

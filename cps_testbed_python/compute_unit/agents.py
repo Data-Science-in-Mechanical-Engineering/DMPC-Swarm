@@ -14,6 +14,8 @@ import threading
 
 import random
 
+import pickle
+
 NORMAL = 0
 INFORMATION_DEPRECATED = 1
 RECOVER_INFORMATION_NOTIFY = 2
@@ -340,6 +342,10 @@ class ComputationAgent(net.Agent):
 
         self.__setpoint_creator = setpoint_creator
 
+        self.__num_trigger_times = {agent_id: 0 for agent_id in self.__agents_ids}
+
+        self.__selected_UAVs = []
+
     def add_new_agent(self, m_id):
         last_trajectory = None
 
@@ -362,6 +368,8 @@ class ComputationAgent(net.Agent):
 
         # first every agent should fly to the origin.
         self.__setpoint_creator.add_drone(m_id, np.array([0.0, 0.0, 1.0]))
+
+        self.__num_trigger_times[m_id] = 0
 
     def add_new_computation_agent(self, m_id):
         self.__computing_agents_ids.append(m_id)
@@ -578,6 +586,7 @@ class ComputationAgent(net.Agent):
     def round_finished(self, round_nmbr=None):
         """this function has to be called at the end of the round to tell the agent that the communication round is
         finished"""
+        self.__selected_UAVs.append(-1)
         self.__last_system_state = self.__system_state
         self.__init_configuration = False
         self.ordered_indexes = None
@@ -746,6 +755,8 @@ class ComputationAgent(net.Agent):
                 ordered_indexes = np.argsort(-np.array(self.__prio_consensus))  # self.order_agents_by_priority()#
                 self.__current_agent = ordered_indexes[self.__comp_agent_prio]
                 current_id = self.__agents_ids[self.__current_agent]
+                self.__num_trigger_times[current_id] += 1
+                self.__selected_UAVs[-1] = current_id
 
                 self.ordered_indexes = ordered_indexes
                 self.starting_times = self.__agents_starting_times
@@ -807,6 +818,15 @@ class ComputationAgent(net.Agent):
         self.__last_calc_time = time.time() - start_time
 
         self.__state_feedback_triggered = []
+
+        if round_nmbr is not None:
+            if round_nmbr % 5 == 0 and not self.__simulated:
+                with open(f'../../experiment_measurements/num_trigger_times{self.ID}_{int(self.__alpha_1)}_{int(self.__alpha_2)}_{int(self.__alpha_3)}_{int(self.__alpha_4)}.p', 'wb') as handle:
+                    pickle.dump({"num_trigger_times": self.__num_trigger_times, "selected_UAVs": self.__selected_UAVs}, handle)
+
+        if int(self.__current_time / self.__communication_delta_t) % 5 == 0 and not self.__simulated:
+            with open(f'../../experiment_measurements/num_trigger_times_sim{self.ID}_{int(self.__alpha_1)}_{int(self.__alpha_2)}_{int(self.__alpha_3)}_{int(self.__alpha_4)}.p', 'wb') as handle:
+                pickle.dump({"num_trigger_times": self.__num_trigger_times, "selected_UAVs": self.__selected_UAVs}, handle)
 
     def __calculate_trajectory(self, current_id, ordered_indexes):
         # calulate number of timesteps, the alternative data need to be delayed
@@ -1071,9 +1091,19 @@ class ComputationAgent(net.Agent):
 
             prios[i] /= (1.0 * self.__num_agents * max_dist)  # normalize prio
 
-            prios[i] *= self.__alpha_3
-            prios[i] += self.__alpha_2 * (self.__current_time - self.__trajectory_tracker.get_information(own_id).content[0].trajectory_start_time) / max_time #self.__agents_starting_times[own_id]) / max_time  # 0.1
-            prios[i] += self.__alpha_1 * dist_to_target / max_dist * (self.__current_time - self.__trajectory_tracker.get_information(own_id).content[0].trajectory_start_time) / max_time
+            max_starting_time = 0
+            for j in range(len(self.__trajectory_tracker.get_information(own_id).content)):
+                if max_starting_time < self.__trajectory_tracker.get_information(own_id).content[j].trajectory_start_time:
+                    max_starting_time = self.__trajectory_tracker.get_information(own_id).content[j].trajectory_start_time
+
+            print("ssssssssssssssssssssssssssssssssssss")
+            print(max_starting_time)
+            print(self.__current_time)
+            prios[i] *= self.__alpha_3 * 0
+            prios[i] += self.__alpha_2 * (self.__current_time - max_starting_time) / max_time #self.__agents_starting_times[own_id]) / max_time  # 0.1
+            prios[i] += self.__alpha_1 * dist_to_target / max_dist * (self.__current_time - max_starting_time) / max_time
+            prios[i] += self.__alpha_3 * dist_to_target / max_dist
+            print(prios[i])
 
             if own_id in self.__state_feedback_triggered:
                 prios[i] += state_feeback_triggered_prio
@@ -1129,7 +1159,7 @@ class ComputationAgent(net.Agent):
             elif prios[i] < 0:
                 prios[i] = int(0)
             else:
-                prios[i] = int(round(prios[i] / (self.__alpha_1 + self.__alpha_2)*(2**quantization_bit_number-1)))
+                prios[i] = int(round(prios[i] / (self.__alpha_1 + self.__alpha_2 + self.__alpha_3 + self.__alpha_4)*(2**quantization_bit_number-1)))
                 if prios[i] > 2**quantization_bit_number-2:
                     prios[i] = int(2 ** quantization_bit_number - 2)
         print("zzzzzzzzzzzzzzz")
