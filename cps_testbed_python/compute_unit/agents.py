@@ -78,7 +78,7 @@ def hash_trajectory(trajectory, init_state):
     return hash(str(coeff))
 
 
-def calculate_band_weight(p_target, p_self, p_other, weight=1.0, weight_angle=2):
+def calculate_band_weight(p_target, p_self, p_other, weight=0.5, weight_angle=2):
     dp_target = p_target - p_self
     weight_mult = 1
     if np.linalg.norm(dp_target) < 0.5:
@@ -827,6 +827,9 @@ class ComputationAgent(net.Agent):
         if int(self.__current_time / self.__communication_delta_t) % 5 == 0 and not self.__simulated:
             with open(f'../../experiment_measurements/num_trigger_times_sim{self.ID}_{int(self.__alpha_1)}_{int(self.__alpha_2)}_{int(self.__alpha_3)}_{int(self.__alpha_4)}.p', 'wb') as handle:
                 pickle.dump({"num_trigger_times": self.__num_trigger_times, "selected_UAVs": self.__selected_UAVs}, handle)
+
+        if int(self.__current_time / self.__communication_delta_t) >= 200:
+
 
     def __calculate_trajectory(self, current_id, ordered_indexes):
         # calulate number of timesteps, the alternative data need to be delayed

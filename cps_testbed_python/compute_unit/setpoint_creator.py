@@ -24,7 +24,6 @@ class SetpointCreator:
 		self.__current_setpoints_reached = {drone_id: False for drone_id in drones}
 
 		self.__current_setpoints = {drone_id: self.generate_new_setpoint(drones[drone_id]) for drone_id in drones}
-		print(self.__current_setpoints)
 		self.__current_setpoints_age = {drone_id: 0 for drone_id in drones}
 
 	@property
@@ -74,11 +73,24 @@ class SetpointCreator:
 			if self.__drones[drone_id] == "Mobile" or True:
 				self.__current_setpoints[drone_id] = self.generate_new_circle_setpoint(self.drones[drone_id], drone_id)
 			self.__current_setpoints_age[drone_id] += 1
-			print(f"{drone_id}: {self.__current_setpoints_age[drone_id]}, {self.__current_setpoints_reached[drone_id]}")
 
 		return self.__current_setpoints
 
 	def generate_new_circle_setpoint(self, name_testbed, drone_id):
+		angle_offset = 0
+		if self.__round >= 180:
+			angle_offset = math.pi
+
+		min_pos = np.array(self.__testbeds[name_testbed][0])
+		max_pos = np.array(self.__testbeds[name_testbed][1])
+		offset = np.array(self.__testbeds[name_testbed][2])
+		dpos = (max_pos - min_pos) * 0.8
+		mean = (min_pos + max_pos) / 2 + offset
+		angle = 2 * math.pi * drone_id / 10 + angle_offset
+		dpos = [1.4, 1.4, 1.5]
+		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 1])
+
+
 		mult = 1
 		if name_testbed == "Vicon" and not (drone_id == 1 or drone_id == 1000):
 			a = 0.5
