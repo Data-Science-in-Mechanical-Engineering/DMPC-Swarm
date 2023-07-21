@@ -20,18 +20,24 @@ MAX_POSITION = 5.0
 MAX_VELOCITY = 5.0
 MAX_ACCELERATION = 5.0
 
+
 def quantize_float(float, range):
     lower = np.min(range)
     upper = np.max(range)
+    assert -lower == upper
     resolution = np.iinfo(np.uint16).max
-    return np.round((float - lower) * resolution / (upper - lower)).astype(np.uint16)
+    resolution = 2**15-1
+    scaled = np.clip(float * resolution / upper, a_min=-resolution, a_max=resolution)
+    scaled_round = np.round(scaled)
+    scaled_round += resolution
+    return scaled_round.astype(np.uint16)
 
 
 def dequantize_float(integer, range):
     lower = np.min(range)
     upper = np.max(range)
-    resolution = np.iinfo(np.uint16).max
-    return lower + integer / resolution * (upper - lower)
+    resolution = 2**15-1
+    return (integer - resolution) / resolution * upper
 
 def quantize_pos(pos):
     return quantize_float(pos, [-MAX_POSITION, MAX_POSITION])

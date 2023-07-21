@@ -86,8 +86,8 @@ class SetpointCreator:
 		offset = np.array(self.__testbeds[name_testbed][2])
 		dpos = (max_pos - min_pos) * 0.8
 		mean = (min_pos + max_pos) / 2 + offset
-		angle = 2 * math.pi * drone_id / 10 + angle_offset
-		dpos = [1.4, 1.4, 1.5]
+		angle = 2 * math.pi * drone_id / 6 + angle_offset
+		dpos = [1.5, 1.5, 1.5]
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 1])
 
 
@@ -115,7 +115,7 @@ class SetpointCreator:
 		offset = np.array(self.__testbeds[name_testbed][2])
 		dpos = (max_pos - min_pos) * 0.8
 		mean = (min_pos + max_pos) / 2 + offset
-		angle = 2*math.pi * (self.__round * mult) / 30 + 2*math.pi*drone_id / 10 + math.pi
+		angle = 2*math.pi * (self.__round * mult) / 30 + 2*math.pi*drone_id / 6 + math.pi
 		dpos = [0.2, 0.2, 0.2]
 		return np.array([dpos[0]*math.cos(angle), dpos[1]*math.sin(angle), 0]) + mean
 

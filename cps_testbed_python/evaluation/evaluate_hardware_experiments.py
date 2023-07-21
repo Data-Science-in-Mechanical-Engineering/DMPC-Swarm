@@ -78,7 +78,7 @@ def evaluate_trajectory_simulation(path, name, num_drones):
 
 
 if __name__ == "__main__":
-	evaluate_num_trigger_times(cu_ids=[20, 21], alpha_1=1000*0, alpha_2=10*0, alpha_3=100*1, alpha_4=0, simulated=False)
+	evaluate_num_trigger_times(cu_ids=[20, 21], alpha_1=100*1, alpha_2=10*0, alpha_3=100*0, alpha_4=0, simulated=False)
 
 	path = "../../../experiment_measurements/ExperimentCircleBad.pickle"
 	#evaluate_trajectory(path)

@@ -78,7 +78,7 @@ def hash_trajectory(trajectory, init_state):
     return hash(str(coeff))
 
 
-def calculate_band_weight(p_target, p_self, p_other, weight=0.5, weight_angle=2):
+def calculate_band_weight(p_target, p_self, p_other, weight=1.0, weight_angle=2):
     dp_target = p_target - p_self
     weight_mult = 1
     if np.linalg.norm(dp_target) < 0.5:
@@ -447,6 +447,8 @@ class ComputationAgent(net.Agent):
             self.__num_trajectory_messages_received += 1
             if isinstance(message.content, TrajectoryMessageContent):
                 message.content.init_state[0:3] += self.__pos_offset[message.content.id]
+                print("üüüüüüüüüüüüüüüüüüüüüüüüüü")
+                print(message.content.init_state[0:3])
             #if isinstance(message.content, TrajectoryMessageContent):
             #    self.print(f"{self.__current_time} {message.content.id}: {message.content.init_state}")
             #self.print(f"{message.content.id}: hello there-----------------------------------")
@@ -829,6 +831,7 @@ class ComputationAgent(net.Agent):
                 pickle.dump({"num_trigger_times": self.__num_trigger_times, "selected_UAVs": self.__selected_UAVs}, handle)
 
         if int(self.__current_time / self.__communication_delta_t) >= 200:
+            pass
 
 
     def __calculate_trajectory(self, current_id, ordered_indexes):

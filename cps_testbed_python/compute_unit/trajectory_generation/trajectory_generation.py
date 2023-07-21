@@ -419,22 +419,23 @@ class TrajectoryGenerator:
 
         # add weak constraints variables constraints
         num_weak_variables = len(dynamic_trajectories) + len(static_trajectories) - 1
+        A_eq = self.__A_eq
+        if num_weak_variables > 0:
+            A_uneq_weak = np.zeros((len(A_uneq), num_weak_variables))
+            A_uneq_weak[-num_weak_variables:, :] = np.eye(num_weak_variables)
 
-        A_uneq_weak = np.zeros((len(A_uneq), num_weak_variables))
-        A_uneq_weak[-num_weak_variables:, :] = np.eye(num_weak_variables)
+            A_uneq = np.concatenate((A_uneq, A_uneq_weak), axis=1)
 
-        A_uneq = np.concatenate((A_uneq, A_uneq_weak), axis=1)
+            A_eq = np.concatenate((self.__A_eq, np.zeros((len(self.__A_eq), num_weak_variables))), axis=1)
 
-        A_eq = np.concatenate((self.__A_eq, np.zeros((len(self.__A_eq), num_weak_variables))), axis=1)
+            # now add constraints for weak constraint variables
+            A_uneq_weak = np.zeros((2*num_weak_variables, len(A_uneq[0])))
+            A_uneq_weak[-2*num_weak_variables:-num_weak_variables, -num_weak_variables:] = np.eye(num_weak_variables)
+            A_uneq_weak[-num_weak_variables:, -num_weak_variables:] = -np.eye(num_weak_variables)
+            A_uneq = np.concatenate((A_uneq, A_uneq_weak), axis=0)
 
-        # now add constraints for weak constraint variables
-        A_uneq_weak = np.zeros((2*num_weak_variables, len(A_uneq[0])))
-        A_uneq_weak[-2*num_weak_variables:-num_weak_variables, -num_weak_variables:] = np.eye(num_weak_variables)
-        A_uneq_weak[-num_weak_variables:, -num_weak_variables:] = -np.eye(num_weak_variables)
-        A_uneq = np.concatenate((A_uneq, A_uneq_weak), axis=0)
-
-        b_uneq = np.concatenate(
-            (b_uneq, np.array([w_band for i in range(num_weak_variables)]), np.zeros((num_weak_variables,))), axis=0)
+            b_uneq = np.concatenate(
+                (b_uneq, np.array([w_band for i in range(num_weak_variables)]), np.zeros((num_weak_variables,))), axis=0)
 
         # build nonlinear constraints
         nonlinear_constraints = []
@@ -510,7 +511,8 @@ class TrajectoryGenerator:
         Q[0:self.__num_optimization_variables, 0:self.__num_optimization_variables] = self.__Q
         # Q[self.__num_optimization_variables:, self.__num_optimization_variables:] = np.eye(num_weak_variables) * 0.1
 
-        q = np.concatenate((q, np.zeros((num_weak_variables,))), axis=0)
+        if num_weak_variables > 0:
+            q = np.concatenate((q, np.zeros((num_weak_variables,))), axis=0)
 
         offset = 0
         for i in range(num_weak_variables):
@@ -586,8 +588,8 @@ class TrajectoryGenerator:
 
 
         # reshaped: optimale Koeffizienten auf die prediction horizons aufteilen
-        print("------------------")
-        print(optimal_coefficients[-num_weak_variables:])
+        # print("------------------")
+        # print(optimal_coefficients[-num_weak_variables:])
         reshaped = np.reshape(optimal_coefficients[0:self.__trajectory_interpolation.num_optimization_variables],
                               (self.prediction_horizon, self.__dim))
 
