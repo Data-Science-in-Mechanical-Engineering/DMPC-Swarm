@@ -427,6 +427,8 @@ class ComputationAgent(net.Agent):
         elif slot_group_id == self.__slot_group_setpoints_id:
             if self.__send_setpoints:
                 return net.Message(self.ID, slot_group_id, SetpointMessageContent(self.__high_level_setpoints))
+            else:
+                return None
 
     def send_message(self, message):
         """send message to agent.
