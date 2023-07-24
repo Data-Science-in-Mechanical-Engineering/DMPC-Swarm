@@ -117,7 +117,7 @@ class ComputationAgent(net.Agent):
                  slot_group_ack_id=100000, ignore_message_loss=False, use_own_targets=False,
                  state_feedback_trigger_dist=0.5, simulated=True, use_high_level_planner=True,
                  agent_dodge_distance=0.5, slot_group_setpoints_id=100000, send_setpoints=False, use_given_init_pos=False,
-                 use_optimized_constraints=True):
+                 use_optimized_constraints=True, weight_band=1.0):
         """
 
         Parameters
@@ -345,6 +345,8 @@ class ComputationAgent(net.Agent):
         self.__selected_UAVs = []
 
         self.__time_last_deadlock = 0
+
+        self.__weight_band = weight_band
 
     def add_new_agent(self, m_id):
         last_trajectory = None
@@ -839,7 +841,7 @@ class ComputationAgent(net.Agent):
         band_weights = []
         last_trajectory_current_agent = self.__trajectory_tracker.get_information(current_id).content[0].last_trajectory
 
-        weight_band = 1.0 if not self.__using_intermediate_targets else 1e-6
+        weight_band = self.__weight_band if not self.__using_intermediate_targets else 1e-6
         # if we ignore message loss, we can use the optimized version of DMPC. If not, we have to use more conservative
         # (dynamic) constraints?
         if self.__use_optimized_constraints or True:

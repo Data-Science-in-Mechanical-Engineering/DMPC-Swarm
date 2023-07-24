@@ -85,6 +85,7 @@ class TrajectoryGeneratorOptions:
     min_distance_cooperative: float
     weight_cooperative: float
     cooperative_normal_vector_noise: float
+    width_band: float
 
 
 class TrajectoryGenerator:
@@ -335,8 +336,7 @@ class TrajectoryGenerator:
                              band_weights,
                              cooperative_objective_function=True,
                              use_nonlinear_mpc=False,
-                             high_level_setpoints=None,
-                             w_band=0.3,
+                             high_level_setpoints=None
                              ):
         """
         calculates data
@@ -432,7 +432,7 @@ class TrajectoryGenerator:
             A_uneq = np.concatenate((A_uneq, A_uneq_weak), axis=0)
 
             b_uneq = np.concatenate(
-                (b_uneq, np.array([w_band for i in range(num_weak_variables)]), np.zeros((num_weak_variables,))), axis=0)
+                (b_uneq, np.array([self.__options.width_band for i in range(num_weak_variables)]), np.zeros((num_weak_variables,))), axis=0)
 
         # build nonlinear constraints
         nonlinear_constraints = []
@@ -515,7 +515,7 @@ class TrajectoryGenerator:
         for i in range(num_weak_variables):
             if i == index:
                 offset = 1
-            q[self.__num_optimization_variables+i] = -band_weights[i+offset] * w_band
+            q[self.__num_optimization_variables+i] = -band_weights[i+offset] * self.__options.width_band
             Q[self.__num_optimization_variables+i, self.__num_optimization_variables+i] = band_weights[i+offset]
 
         # solve optimization problem

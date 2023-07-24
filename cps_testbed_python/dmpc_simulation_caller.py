@@ -225,6 +225,9 @@ if __name__ == "__main__":
 
 	parser.add_argument('--agent_dodge_distance', default=0.5, type=float)
 
+	parser.add_argument("--weight_band", default=0.5, type=float, help="")
+	parser.add_argument("--width_band", default=0.1, type=float, help="")
+
 	ARGS = parser.parse_args()
 
 	ARGS.drone_ids = list(ARGS.drones.keys())

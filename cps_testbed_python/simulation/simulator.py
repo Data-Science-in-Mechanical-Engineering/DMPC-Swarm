@@ -190,7 +190,8 @@ class Simulation:
             weight_soft_constraint=self.__ARGS.weight_soft_constraint,
             min_distance_cooperative=self.__ARGS.min_distance_cooperative,
             weight_cooperative=self.__ARGS.weight_cooperative,
-            cooperative_normal_vector_noise=self.__ARGS.cooperative_normal_vector_noise
+            cooperative_normal_vector_noise=self.__ARGS.cooperative_normal_vector_noise,
+            width_band=self.__ARGS.width_band
         )
 
         slot_group_trajectory = net.SlotGroup(0, False, self.__ARGS.num_computing_agents)
@@ -246,7 +247,8 @@ class Simulation:
                                                   simulated=self.__ARGS.simulated,
                                                   use_optimized_constraints=self.__ARGS.use_optimized_constraints,
                                                   setpoint_creator=self.__ARGS.setpoint_creator,
-                                                  pos_offset=self.__ARGS.pos_offset)
+                                                  pos_offset=self.__ARGS.pos_offset,
+                                                  weight_band=self.__ARGS.weight_band)
             prio += 1
             self.__agents.append(computing_agent)
             self.__computing_agents.append(computing_agent)
