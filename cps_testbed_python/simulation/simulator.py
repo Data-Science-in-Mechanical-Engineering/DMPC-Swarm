@@ -464,8 +464,9 @@ class Simulation:
                         target_vel=next_state[j, 3:6],
                         target_rpy=self.__INIT_RPYS[j, :]
                     )
-                    self.__easy_logger.add_data_point(f"state_{j}", self.__agents[j].state)
-                    self.__easy_logger.add_data_point(f"state_set{j}", copy.deepcopy(next_state[j, :]))
+                    if self.__ARGS.log_state:
+                        self.__easy_logger.add_data_point(f"state_{j}", self.__agents[j].state)
+                        self.__easy_logger.add_data_point(f"state_set{j}", copy.deepcopy(next_state[j, :]))
                 current_time += control_interval
 
                 # check if drones have crashed

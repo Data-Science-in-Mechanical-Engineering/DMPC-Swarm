@@ -107,6 +107,8 @@ if __name__ == "__main__":
 						help='Whether simulations run in parallel', metavar='')
 	parser.add_argument('--log', default=True, type=str2bool,
 						help='Whether to log the simulations', metavar='')
+	parser.add_argument('--log_state', default=False, type=str2bool,
+						help='Whether to log the state', metavar='')
 	parser.add_argument('--log_path', default='', type=str,
 						help='Path for simulation logs', metavar='')
 	parser.add_argument('--aggregate', default=True, type=str2bool,
