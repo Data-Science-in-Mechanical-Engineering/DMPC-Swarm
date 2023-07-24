@@ -651,6 +651,11 @@ class ComputationAgent(net.Agent):
                 self.__prio_consensus = copy.deepcopy(trajectory.prios)
             else:
                 for i in range(len(self.__prio_consensus)):
+                    # when there is message loss, then the CUs might send an
+                    # empty prio
+                    if i >= len(trajectory.prios):
+                        break
+
                     # if the prio is 0, an agent was recalculated before. Then it is important that this agent will not be
                     # recalculated, thus we should set its priority to the lowest value, such that all other agents have
                     # a low prio.
@@ -839,7 +844,7 @@ class ComputationAgent(net.Agent):
         band_weights = []
         last_trajectory_current_agent = self.__trajectory_tracker.get_information(current_id).content[0].last_trajectory
 
-        weight_band = 1.0 if not self.__using_intermediate_targets else 1e-6
+        weight_band = 0.1 if not self.__using_intermediate_targets else 1e-6
         # if we ignore message loss, we can use the optimized version of DMPC. If not, we have to use more conservative
         # (dynamic) constraints?
         if self.__use_optimized_constraints or True:
