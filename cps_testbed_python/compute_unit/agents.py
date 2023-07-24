@@ -81,7 +81,7 @@ def hash_trajectory(trajectory, init_state):
 def calculate_band_weight(p_target, p_self, p_other, weight=1.0, weight_angle=2):
     dp_target = p_target - p_self
     weight_mult = 1
-    if np.linalg.norm(dp_target) < 0.5:
+    if np.linalg.norm(dp_target) <= 0.8:
         weight_mult = 1e-7
     dp_other = p_other - p_self
     dp_target /= np.linalg.norm(dp_target) + 1e-7
