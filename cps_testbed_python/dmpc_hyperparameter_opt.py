@@ -101,7 +101,7 @@ if __name__ == "__main__":
 						choices=DroneModel)
 	parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 4: "Vicon", 5: "Vicon", 6: "Vicon"}, type=dict,
 						help='drone IDs with name of the testbed', metavar='')
-	parser.add_argument('--computing_agent_ids', default=[i for i in range(40, 41)], type=list, help='List of Computing Agent IDs')
+	parser.add_argument('--computing_agent_ids', default=[i for i in range(40, 42)], type=list, help='List of Computing Agent IDs')
 	parser.add_argument('--testbeds', default={"Vicon": ([-1.8, -1.8, 0.3], [1.8, 1.8, 3.0], [0, 0, 0])},
                         type=dict, help='Testbeds of the system. Format: name: (min, max, offset)')
 
@@ -178,13 +178,13 @@ if __name__ == "__main__":
 						help='Scaling factor to account for the downwash')
 	parser.add_argument('--use_qpsolvers', default=True, type=bool,
 						help='Select, whether qpsolver is used for trajectory planning')
-	parser.add_argument('--alpha_1', default=1000.0*0, type=bool,
+	parser.add_argument('--alpha_1', default=1*1, type=bool,
 						help='Weight in event-trigger')
-	parser.add_argument('--alpha_2', default=10.0*0, type=bool,
+	parser.add_argument('--alpha_2', default=1*0, type=bool,
 						help='Weight in event-trigger')
-	parser.add_argument('--alpha_3', default=1.0*1, type=bool,
+	parser.add_argument('--alpha_3', default=1*0, type=bool,
 						help='Weight in event-trigger')
-	parser.add_argument('--alpha_4', default=10.0*0, type=bool,
+	parser.add_argument('--alpha_4', default=1*1, type=bool,
 
 						help='Weight in event-trigger')
 	parser.add_argument('--save_video', default=True, type=bool,
@@ -317,7 +317,9 @@ if __name__ == "__main__":
 		INIT_TARGETS = np.array(INIT_TARGETS)
 	elif init_method == TESTBED:
 		INIT_XYZS = np.array([[-1, 1, 1], [0, 1, 1], [1, 1, 1],
-							  [-1.5, 0, 1], [-0.5, 0, 1], [0.5, 0, 1]#, [1.5, 0, 1],  [-1, -1, 1], [0, -1, 1], [1, -1, 1]
+							  [-1.5, 0, 1], [-0.5, 0, 1], [0.5, 0, 1],
+							  #[1.5, 0, 1],
+							  #[-1, -1, 1] #, [0, -1, 1], [1, -1, 1]
 							  ])
 		INIT_TARGETS = INIT_XYZS + 1000
 
