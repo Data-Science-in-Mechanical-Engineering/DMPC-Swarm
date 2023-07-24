@@ -53,7 +53,7 @@ if __name__ == "__main__":
 			print(result["num_targets_reached"][0])
 			#fig = plt.figure()
 			#ax = plt.axes(projection='3d')
-			for j in range(num_drones):
+			"""for j in range(num_drones):
 				states = result[f"state_{j}"]
 				xline = []
 				yline = []
@@ -62,7 +62,7 @@ if __name__ == "__main__":
 					xline.append(s[0])
 					yline.append(s[1])
 					zline.append(s[2])
-				#ax.plot3D(xline, yline, zline)
+				#ax.plot3D(xline, yline, zline)"""
 
 
 		num_optimizer_runs += result["num_optimizer_runs"][0]
