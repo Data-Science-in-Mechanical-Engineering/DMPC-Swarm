@@ -164,9 +164,9 @@ if __name__ == "__main__":
 						help='Scaling factor to account for the downwash')
 	parser.add_argument('--use_qpsolvers', default=True, type=bool,
 						help='Select, whether qpsolver is used for trajectory planning')
-	parser.add_argument('--alpha_1', default=0, type=bool,
+	parser.add_argument('--alpha_1', default=10.0, type=bool,
 						help='Weight in event-trigger')
-	parser.add_argument('--alpha_2', default=10.0, type=bool,
+	parser.add_argument('--alpha_2', default=10.0*0, type=bool,
 						help='Weight in event-trigger')
 	parser.add_argument('--alpha_3', default=0.0, type=bool,
 						help='Weight in event-trigger')
@@ -306,7 +306,7 @@ if __name__ == "__main__":
 	#call_batch_simulation(ARGS_array, name_files="dmpc_simulation_results_ignore_message_loss_005",
 	#					  message_loss_probability=0.05, ignore_message_loss=True)
 
-	for num_cus in [2]:
+	for num_cus in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
 		for message_loss_prob in [0, 0.01, 0.1]:
 			call_batch_simulation(ARGS_array, name_files=f"dmpc_simulation_results_ignore_message_loss_{int(100*message_loss_prob+1e-7)}_{num_cus}cus",
 								  message_loss_probability=message_loss_prob, ignore_message_loss=False, num_cus=num_cus)
