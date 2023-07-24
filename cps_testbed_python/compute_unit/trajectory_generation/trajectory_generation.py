@@ -336,7 +336,7 @@ class TrajectoryGenerator:
                              cooperative_objective_function=True,
                              use_nonlinear_mpc=False,
                              high_level_setpoints=None,
-                             w_band=0.3,
+                             w_band=0.1,
                              ):
         """
         calculates data

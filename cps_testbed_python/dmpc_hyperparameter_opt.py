@@ -258,7 +258,7 @@ if __name__ == "__main__":
 		print(
 			f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
 
-	ARGS.setpoint_creator = setpoint_creator.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=1)
+	ARGS.setpoint_creator = setpoint_creator.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=0)
 
 	if ARGS.hyperparameter_optimization:
 		ARGS.save_video = False
@@ -303,7 +303,7 @@ if __name__ == "__main__":
 
 	TESTBED = 0
 	CIRCLE = 1
-	init_method = TESTBED
+	init_method = CIRCLE
 	a = 2
 	if init_method == CIRCLE:
 		r = 1.5

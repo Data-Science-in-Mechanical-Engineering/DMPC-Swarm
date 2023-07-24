@@ -839,7 +839,7 @@ class ComputationAgent(net.Agent):
         band_weights = []
         last_trajectory_current_agent = self.__trajectory_tracker.get_information(current_id).content[0].last_trajectory
 
-        w_band = 1.0 if not self.__using_intermediate_targets else 1e-6
+        weight_band = 1.0 if not self.__using_intermediate_targets else 1e-6
         # if we ignore message loss, we can use the optimized version of DMPC. If not, we have to use more conservative
         # (dynamic) constraints?
         if self.__use_optimized_constraints or True:
@@ -875,7 +875,7 @@ class ComputationAgent(net.Agent):
                         band_weights.append(calculate_band_weight(p_target=self.__current_target_positions[current_id],
                                                                   p_self=last_trajectory_current_agent[-1],
                                                                   p_other=trajectory.last_trajectory[-1],
-                                                                  weight=w_band))
+                                                                  weight=weight_band))
                         i += 1
                 else:
                     for trajectory in self.__trajectory_tracker.get_information(id).content:
@@ -896,7 +896,7 @@ class ComputationAgent(net.Agent):
                         band_weights.append(calculate_band_weight(p_target=self.__current_target_positions[current_id],
                                                                   p_self=last_trajectory_current_agent[-1],
                                                                   p_other=trajectory.last_trajectory[-1],
-                                                                  weight=w_band))
+                                                                  weight=weight_band))
                         i += 1
 
         else:
@@ -1213,6 +1213,7 @@ class ComputationAgent(net.Agent):
                     self.__received_setpoints = copy.deepcopy(self.__high_level_setpoints)
                 self.__deadlock_breaker_agents = []
                 # do not calculate new intermediate setpoints
+                self.__hlp_lock = 0
                 return
             else:
                 self.__using_intermediate_targets = True
