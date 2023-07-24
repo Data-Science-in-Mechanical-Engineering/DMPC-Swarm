@@ -46,7 +46,7 @@ class RecoverInformationNotifyContent:
 
 @dataclass
 class EmtpyContent:
-    empty: any
+    prios: any
 
 
 @dataclass
@@ -78,10 +78,10 @@ def hash_trajectory(trajectory, init_state):
     return hash(str(coeff))
 
 
-def calculate_band_weight(p_target, p_self, p_other, weight=1.0, weight_angle=2):
+def calculate_band_weight(p_target, p_self, p_other, weight=0.1, weight_angle=2):
     dp_target = p_target - p_self
     weight_mult = 1
-    if np.linalg.norm(dp_target) < 0.5:
+    if np.linalg.norm(dp_target) < 0.9:
         weight_mult = 1e-7
     dp_other = p_other - p_self
     dp_target /= np.linalg.norm(dp_target) + 1e-7
@@ -300,7 +300,7 @@ class ComputationAgent(net.Agent):
             self.__trajectory_tracker.add_unique_information(id, trajectory_content)
 
         self.__last_calc_time = None
-        self.__last_received_messages = {self.ID: EmtpyContent(None)}
+        self.__last_received_messages = {self.ID: EmtpyContent([])}
         self.__received_drone_state_messages = []
 
         self.__all_targets_reached = False
@@ -345,6 +345,8 @@ class ComputationAgent(net.Agent):
         self.__num_trigger_times = {agent_id: 0 for agent_id in self.__agents_ids}
 
         self.__selected_UAVs = []
+
+        self.__time_last_deadlock = 0
 
     def add_new_agent(self, m_id):
         last_trajectory = None
@@ -607,7 +609,7 @@ class ComputationAgent(net.Agent):
         if not all_init_states_known:
             self.__messages_rec = {}
             self.__number_rounds = self.__number_rounds + 1
-            self.__last_received_messages = {self.ID: EmtpyContent(None)}
+            self.__last_received_messages = {self.ID: EmtpyContent([])}
             self.__current_time = self.__current_time + self.__communication_delta_t
             return
 
@@ -668,6 +670,9 @@ class ComputationAgent(net.Agent):
             else:
                 self.__trajectory_tracker.add_information(trajectory.id, trajectory)"""
 
+        for message_id, trajectory in self.__last_received_messages.items():
+            if not (isinstance(trajectory, TrajectoryMessageContent) or isinstance(trajectory, EmtpyContent)):
+                continue
             # calculate consensus:
             if len(self.__prio_consensus) == 0:
                 self.__prio_consensus = copy.deepcopy(trajectory.prios)
@@ -690,6 +695,7 @@ class ComputationAgent(net.Agent):
         if (not self.__num_trajectory_messages_received == len(self.__computing_agents_ids)) and not self.__ignore_message_loss:
             for information in self.__trajectory_tracker.get_all_information().values():
                 information.set_deprecated()
+            print("Lost messages of CU!")
         self.__num_trajectory_messages_received = 0
         assert self.__num_trajectory_messages_received <= len(self.__computing_agents_ids)
 
@@ -743,6 +749,7 @@ class ComputationAgent(net.Agent):
         if self.__trajectory_tracker.no_information_deprecated and self.__system_state != WAIT_FOR_UPDATE:
             self.__system_state = NORMAL
 
+        print(f".................{self.__system_state}")
         if self.__system_state == NORMAL:
             if self.__use_own_targets:
                 self.update_target_ids()
@@ -750,7 +757,9 @@ class ComputationAgent(net.Agent):
                 print("77777777777777777")
                 print(self.__current_target_positions)
             if len(self.__agents_ids) <= self.__comp_agent_prio:
-                self.__last_received_messages = {self.ID: EmtpyContent(None)}
+                prios = self.calc_prio()
+                prios[self.__current_agent] = 0
+                self.__last_received_messages = {self.ID: EmtpyContent(prios)}
             else:
                 # select next agent
                 #ordered_indexes = self.order_agents_by_priority()
@@ -766,7 +775,9 @@ class ComputationAgent(net.Agent):
                 # if the information about the agent is not unique do not calculate something, because we will calculate
                 # something wrong
                 if not self.__trajectory_tracker.get_information(current_id).is_unique:
-                    self.__last_received_messages = {self.ID: EmtpyContent(None)}
+                    prios = self.calc_prio()
+                    prios[self.__current_agent] = 0
+                    self.__last_received_messages = {self.ID: EmtpyContent(prios)}
                 else:
                     # solve optimization problem
                     calc_coeff = self.__calculate_trajectory(current_id=current_id, ordered_indexes=ordered_indexes)
@@ -791,8 +802,9 @@ class ComputationAgent(net.Agent):
 
         elif self.__system_state == INFORMATION_DEPRECATED:
             # send an emtpy message such that other agents know this is not a lost message
+            prios = self.calc_prio()
             self.__last_received_messages = {
-                self.ID: InformationDeprecatedContent(None)}
+                self.ID: EmtpyContent(prios)}
             self.__system_state = RECOVER_INFORMATION_NOTIFY
         elif self.__system_state == RECOVER_INFORMATION_NOTIFY:
             self.__last_received_messages = {}
@@ -803,8 +815,8 @@ class ComputationAgent(net.Agent):
                     break
             if len(self.__last_received_messages) == 0:
                 self.__system_state = NORMAL
-                self.__last_received_messages = {
-                    self.ID: EmtpyContent(None)}
+                prios = self.calc_prio()
+                self.__last_received_messages = {self.ID: EmtpyContent(prios)}
             else:
                 self.__system_state = WAIT_FOR_UPDATE
         elif self.__system_state == WAIT_FOR_UPDATE:
@@ -980,7 +992,8 @@ class ComputationAgent(net.Agent):
                 priority based order of ondexes. The first M agents will be scheduled
         """
         if self.__use_own_targets:
-            return self.__setpoint_creator.next_setpoints(self.__agent_state, round_nmbr=round(self.__current_time / self.__communication_delta_t))
+            setpoints, self.__recalculate_setpoints = self.__setpoint_creator.next_setpoints(self.__agent_state, round_nmbr=round(self.__current_time / self.__communication_delta_t))
+            return setpoints
             """
             targets = {}
             for id in self.__agents_ids:
@@ -1065,7 +1078,8 @@ class ComputationAgent(net.Agent):
             #    d_target = self.get_targets()[own_id] - self.__trajectory_tracker.get_information(own_id).content[0].current_state[0:3]
             #else:
             #    d_target = self.get_targets()[own_id] - self.__agent_state[own_id][0:3]
-            d_target = copy.deepcopy(self.get_targets()[own_id]) - copy.deepcopy(self.__trajectory_tracker.get_information(own_id).content[0].current_state[0:3])
+            target_pos = self.get_targets()[own_id] if self.__received_setpoints is None else self.__received_setpoints[own_id][-1]
+            d_target = target_pos - copy.deepcopy(self.__trajectory_tracker.get_information(own_id).content[0].current_state[0:3])
             #if self.__high_level_setpoints is not None:
             #    if self.__high_level_setpoints[own_id] is not None:
             #        pass
@@ -1114,7 +1128,7 @@ class ComputationAgent(net.Agent):
             if own_id in self.__state_feedback_triggered:
                 prios[i] += state_feeback_triggered_prio
 
-            if own_id in np.argsort(-np.array(self.__prio_consensus))[0:len(self.__computing_agents_ids)]:
+            if i in np.argsort(-np.array(self.__prio_consensus))[0:len(self.__computing_agents_ids)]:
                 prios[i] = -100000000
 
             prio_dodge = 0
@@ -1189,7 +1203,13 @@ class ComputationAgent(net.Agent):
         if not self.__simulated:
             self.__thread_lock.release()
 
-    def deadlock_breaker_condition(self, agent_id, other_agent_id):
+    def deadlock_breaker_condition(self, agent_id, other_agent_id, check_time=False):
+        self.print("000000111111111111111111111111")
+        self.print(self.__current_time - self.__time_last_deadlock)
+        if self.__current_time - self.__time_last_deadlock <= 4 and check_time:   # only check time, if we are already in the deadlock breaker
+            print(".........................................................")
+            return True
+
         if other_agent_id == agent_id:
             return False
         current_pos = {}
@@ -1222,7 +1242,10 @@ class ComputationAgent(net.Agent):
         return False
 
     def round_started(self):
-        if not self.__send_setpoints and self.__simulated:
+        if len(self.__deadlock_breaker_agents) == 0:
+            self.__using_intermediate_targets = 0
+
+        if not self.__send_setpoints: #and self.__simulated:
             return
 
         if not self.__use_high_level_planner:
@@ -1240,7 +1263,7 @@ class ComputationAgent(net.Agent):
         # if we do not block the hlp, after it has been called, it will be callefd multiple times in a row,
         # because the drones need a while to move and it will otherwise think, the drones are in a deadlock
         self.__hlp_lock += 1
-        if self.__hlp_lock < 5 and not self.__recalculate_setpoints:
+        if self.__hlp_lock < 10 and not self.__recalculate_setpoints:
             return
 
         # check if we already know the target positions
@@ -1252,8 +1275,11 @@ class ComputationAgent(net.Agent):
             self.__current_targets_reached = {agent_id: False for agent_id in self.__agents_ids}
 
 
-        # check if agents are in a deadlock
-        all_agents_in_deadlock = True
+        # check if agents are in a deadlock (only if we currently not try to break a deadlock)
+        print("tttttttttttttttttt")
+        print(self.__using_intermediate_targets)
+        print(len(self.__deadlock_breaker_agents))
+        all_agents_in_deadlock = True # self.__using_intermediate_targets == 0
         for agent_id in self.__agents_ids:
             if np.linalg.norm(self.__trajectory_tracker.get_information(agent_id).content[0].current_state[3:6]) > 1e-1:
                 all_agents_in_deadlock = False
@@ -1265,7 +1291,7 @@ class ComputationAgent(net.Agent):
         if len(self.__deadlock_breaker_agents) > 0:
             deadlock_broken = True
             for dba in self.__deadlock_breaker_agents:
-                if self.deadlock_breaker_condition(dba[0], dba[1]):
+                if self.deadlock_breaker_condition(dba[0], dba[1], check_time=True):
                     deadlock_broken = False
                     break
 
@@ -1274,6 +1300,12 @@ class ComputationAgent(net.Agent):
         print(all_agents_in_deadlock)
         print(deadlock_broken)
         if all_agents_in_deadlock or self.__recalculate_setpoints or deadlock_broken:
+            self.__time_last_deadlock = self.__current_time
+            print("--------------------")
+            print(self.__current_time)
+            print(all_agents_in_deadlock)
+            print(self.__recalculate_setpoints)
+            print(deadlock_broken)
             if self.__using_intermediate_targets >= 1 or self.__recalculate_setpoints:
                 self.__recalculate_setpoints = False
                 self.__high_level_setpoints = {}

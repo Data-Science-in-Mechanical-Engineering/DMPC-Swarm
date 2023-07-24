@@ -364,8 +364,8 @@ class EmptyMessage(message.MessageType):
 
     def __init__(self):
         super().__init__(
-            ["type", "id", "cu_id"],
-            [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1)])
+            ["type", "id", "cu_id", "prios"],
+            [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint8_t", MAX_NUM_DRONES)])
         self.set_content({"type": np.array([TYPE_EMTPY_MESSAGE], dtype=self.get_data_type("type"))})
 
     def set_content(self, content):
@@ -388,6 +388,20 @@ class EmptyMessage(message.MessageType):
     @cu_id.setter
     def cu_id(self, cu_id):
         self.set_content({"cu_id": np.array([cu_id], dtype=self.get_data_type("cu_id"))})
+
+    @property
+    def prios(self):
+        return self.get_content("prios")
+
+    @prios.setter
+    def prios(self, prios):
+        if isinstance(prios, list):
+            prios = copy.deepcopy(prios)
+        else:
+            prios = copy.deepcopy(prios.tolist())
+        while len(prios) < MAX_NUM_DRONES:
+            prios.append(0)
+        self.set_content({"prios": np.array(prios, dtype=self.get_data_type("prios"))})
 
 
 class MetadataMessage(message.MessageType):
@@ -647,6 +661,7 @@ class ComputingUnit:
             elif state == STATE_SYS_RUN:
                 # check if a new agent is inside the swarm
                 for m in messages_rx:
+                    print(m)
                     if isinstance(m, StateMessage):
                         if m.m_id not in self.__drones_in_swarm:
                             self.__computation_agent.add_new_agent(m.m_id)
@@ -684,7 +699,7 @@ class ComputingUnit:
         for m in messages_rx:
             m_temp = None
             if isinstance(m, EmptyMessage):
-                content_temp = da.EmtpyContent(empty=0)
+                content_temp = da.EmtpyContent(prios=m.prios[0:len(self.__drones_in_swarm)])
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
             elif isinstance(m, StateMessage):
@@ -754,6 +769,7 @@ class ComputingUnit:
             m_temp = EmptyMessage()
             m_temp.m_id = traj_message.ID
             m_temp.cu_id = self.__cu_id
+            m_temp.prios = traj_message.content.prios
             messages_tx.append(m_temp)
             print("Empty")
         elif isinstance(traj_message.content, da.RecoverInformationNotifyContent):

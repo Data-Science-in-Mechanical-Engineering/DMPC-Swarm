@@ -398,7 +398,7 @@ class Simulation:
                 # (on our real system this is performed in parallel to everything else) ##############
 
                 # do low level control
-                if self.__ARGS.save_video and i % 8 == 0:
+                if self.__ARGS.save_video and i % 16 == 0:
                     width, height, rgbImg, depthImg, segImg = p.getCameraImage(
                         width=resolution_video[0],
                         height=resolution_video[1],

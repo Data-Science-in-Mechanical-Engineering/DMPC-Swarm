@@ -378,9 +378,6 @@ class TrajectoryGenerator:
             future_state = self.state_to_trajectory_vector_matrix_state_wrapper(derivative=i) @ current_state
 
             if i == 0:
-                print("??????????????????????????????????????")
-                print(self.__upper_boundaries[i][current_id])
-                print(self.__lower_boundaries[i][current_id])
                 ub = np.tile(self.__upper_boundaries[i][current_id], self.__num_state_constraint_sample_points) - future_state
                 lb = -np.tile(self.__lower_boundaries[i][current_id], self.__num_state_constraint_sample_points) + future_state
 

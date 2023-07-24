@@ -99,9 +99,9 @@ if __name__ == "__main__":
 		description='Helix flight script using CtrlAviary or VisionAviary and DSLPIDControl')
 	parser.add_argument('--drone', default="cf2x", type=DroneModel, help='Drone model (default: CF2X)', metavar='',
 						choices=DroneModel)
-	parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 4: "Vicon", 5: "Vicon", 6: "Vicon",  7: "Vicon", 8: "Vicon", 9: "Vicon", 10: "Vicon"}, type=dict,
+	parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 4: "Vicon", 5: "Vicon", 6: "Vicon"}, type=dict,
 						help='drone IDs with name of the testbed', metavar='')
-	parser.add_argument('--computing_agent_ids', default=[i for i in range(40, 45)], type=list, help='List of Computing Agent IDs')
+	parser.add_argument('--computing_agent_ids', default=[i for i in range(40, 41)], type=list, help='List of Computing Agent IDs')
 	parser.add_argument('--testbeds', default={"Vicon": ([-1.8, -1.8, 0.3], [1.8, 1.8, 3.0], [0, 0, 0])},
                         type=dict, help='Testbeds of the system. Format: name: (min, max, offset)')
 
@@ -218,7 +218,7 @@ if __name__ == "__main__":
     #						help='Select, whether a video should be saved')
 	parser.add_argument('--cooperative_normal_vector_noise', default=0.17137653933980446 * 0, type=float)
 
-	parser.add_argument('--use_high_level_planner', default=False, type=bool)
+	parser.add_argument('--use_high_level_planner', default=True, type=bool)
 	parser.add_argument('--agent_dodge_distance', default=0.5, type=float)
 
 	parser.add_argument('--hyperparameter_optimization', default=False, type=bool,
@@ -256,7 +256,7 @@ if __name__ == "__main__":
 		print(
 			f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
 
-	ARGS.setpoint_creator = setpoint_creator.SetpointCreator(ARGS.drones, ARGS.testbeds)
+	ARGS.setpoint_creator = setpoint_creator.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=1)
 
 	if ARGS.hyperparameter_optimization:
 		ARGS.save_video = False
@@ -317,8 +317,8 @@ if __name__ == "__main__":
 		INIT_TARGETS = np.array(INIT_TARGETS)
 	elif init_method == TESTBED:
 		INIT_XYZS = np.array([[-1, 1, 1], [0, 1, 1], [1, 1, 1],
-							  [-1.5, 0, 1], [-0.5, 0, 1], [0.5, 0, 1], [1.5, 0, 1],
-							  [-1, -1, 1], [0, -1, 1], [1, -1, 1]])
+							  [-1.5, 0, 1], [-0.5, 0, 1], [0.5, 0, 1]#, [1.5, 0, 1],  [-1, -1, 1], [0, -1, 1], [1, -1, 1]
+							  ])
 		INIT_TARGETS = INIT_XYZS + 1000
 
 
