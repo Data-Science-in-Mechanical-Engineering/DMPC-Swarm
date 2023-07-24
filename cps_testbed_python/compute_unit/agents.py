@@ -1157,6 +1157,12 @@ class ComputationAgent(net.Agent):
                 else:
                     current_pos[agent_id] = self.__current_target_positions[agent_id]
 
+        # check if we already know the target positions. If we do not know all (one drones has not sent it),
+        # do not calculate
+        for agent_id in self.__agents_ids:
+            if self.__current_target_positions[agent_id] is None or current_pos[agent_id] is None:
+                return
+
         # if we do not block the hlp, after it has been called, it will be called multiple times in a row,
         # because the drones need a while to move and it will otherwise think, the drones are in a deadlock again
         self.__hlp_lock += 1
@@ -1171,12 +1177,6 @@ class ComputationAgent(net.Agent):
                 all_agents_close_to_target = False
         if all_agents_close_to_target:
             return
-
-        # check if we already know the target positions. If we do not know all (one drones has not sent it),
-        # do not calculate
-        for agent_id in self.__agents_ids:
-            if self.__current_target_positions[agent_id] is None:
-                return
 
         if self.__recalculate_setpoints:
             self.__current_targets_reached = {agent_id: False for agent_id in self.__agents_ids}
