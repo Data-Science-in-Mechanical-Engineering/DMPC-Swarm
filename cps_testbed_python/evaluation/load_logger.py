@@ -7,7 +7,7 @@ if __name__ == "__main__":
 	path = "C:\\Users\\mf724021\\Documents\\003_Testbed\\007_Code\\batch_simulation_results\\dmpc\\dmpc_simulation_results_ignore_message_loss_000_2cus"
 		   #"batch_simulation_results\\dmpc\\dmpc_simulation_results_not_ignore_message_loss_005\\"
 	path = str(Path('~').expanduser()) + "/Documents/batch_simulation_results/" \
-										  "dmpc/dmpc_simulation_results_ignore_message_loss_10_2cus"
+										  "dmpc/dmpc_simulation_results_ignore_message_loss_0_1cus"
 	plot_states = False
 	num_drones = 10
 	files = [os.path.join(path, f) for f in os.listdir(path) if f.startswith(f"simulation_result-{num_drones}_drones_simnr_")]
@@ -53,7 +53,7 @@ if __name__ == "__main__":
 			print(result["num_targets_reached"][0])
 			#fig = plt.figure()
 			#ax = plt.axes(projection='3d')
-			for j in range(num_drones):
+			"""for j in range(num_drones):
 				states = result[f"state_{j}"]
 				xline = []
 				yline = []
@@ -62,7 +62,7 @@ if __name__ == "__main__":
 					xline.append(s[0])
 					yline.append(s[1])
 					zline.append(s[2])
-				#ax.plot3D(xline, yline, zline)
+				#ax.plot3D(xline, yline, zline)"""
 
 
 		num_optimizer_runs += result["num_optimizer_runs"][0]
