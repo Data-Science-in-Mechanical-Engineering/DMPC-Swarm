@@ -20,18 +20,24 @@ MAX_POSITION = 5.0
 MAX_VELOCITY = 5.0
 MAX_ACCELERATION = 5.0
 
+
 def quantize_float(float, range):
     lower = np.min(range)
     upper = np.max(range)
+    assert -lower == upper
     resolution = np.iinfo(np.uint16).max
-    return np.round((float - lower) * resolution / (upper - lower)).astype(np.uint16)
+    resolution = 2**15-1
+    scaled = np.clip(float * resolution / upper, a_min=-resolution, a_max=resolution)
+    scaled_round = np.round(scaled)
+    scaled_round += resolution
+    return scaled_round.astype(np.uint16)
 
 
 def dequantize_float(integer, range):
     lower = np.min(range)
     upper = np.max(range)
-    resolution = np.iinfo(np.uint16).max
-    return lower + integer / resolution * (upper - lower)
+    resolution = 2**15-1
+    return (integer - resolution) / resolution * upper
 
 def quantize_pos(pos):
     return quantize_float(pos, [-MAX_POSITION, MAX_POSITION])
@@ -74,6 +80,7 @@ TYPE_SYS_SHUTDOWN = 10
 TYPE_EMTPY_MESSAGE = 11
 TYPE_START_SYNC_MOVEMENT = 12
 TYPE_SYNC_MOVEMENT_MESSAGE = 13
+TYPE_TARGET_POSITIONS_MESSAGE = 14
 TYPE_DUMMY = 255
 
 # crazyflie status flags
@@ -358,8 +365,8 @@ class EmptyMessage(message.MessageType):
 
     def __init__(self):
         super().__init__(
-            ["type", "id", "cu_id"],
-            [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1)])
+            ["type", "id", "cu_id", "prios"],
+            [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint8_t", MAX_NUM_DRONES)])
         self.set_content({"type": np.array([TYPE_EMTPY_MESSAGE], dtype=self.get_data_type("type"))})
 
     def set_content(self, content):
@@ -382,6 +389,73 @@ class EmptyMessage(message.MessageType):
     @cu_id.setter
     def cu_id(self, cu_id):
         self.set_content({"cu_id": np.array([cu_id], dtype=self.get_data_type("cu_id"))})
+
+    @property
+    def prios(self):
+        return self.get_content("prios")
+
+    @prios.setter
+    def prios(self, prios):
+        if isinstance(prios, list):
+            prios = copy.deepcopy(prios)
+        else:
+            prios = copy.deepcopy(prios.tolist())
+        while len(prios) < MAX_NUM_DRONES:
+            prios.append(0)
+        self.set_content({"prios": np.array(prios, dtype=self.get_data_type("prios"))})
+
+
+class TargetPositionsMessage(message.MessageType):
+    def __init__(self):
+        super().__init__(["type", "id", "ids", "target_positions"],
+                         [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", MAX_NUM_DRONES), ("uint16_t", 3*MAX_NUM_DRONES)])
+        self.set_content({"type": np.array([TYPE_TARGET_POSITIONS_MESSAGE], dtype=self.get_data_type("type"))})
+
+    def set_content(self, content):
+        if "type" in content:
+            assert content["type"] == TYPE_TARGET_POSITIONS_MESSAGE
+        super().set_content(content)
+
+    @property
+    def m_id(self):
+        return self.get_content("id")[0]
+
+    @m_id.setter
+    def m_id(self, mid):
+        self.set_content({"id": np.array([mid], dtype=self.get_data_type("id"))})
+
+    @property
+    def target_positions(self):
+        tp = {}
+        for i in range(MAX_NUM_DRONES):
+            agent_id = self.get_content("ids")[i]
+            # then this is a valid target position
+            if agent_id != 255:
+                tp[agent_id] = np.array([0, 0, 0])
+                for j in range(3):
+                    tp[agent_id][j] = dequantize_pos(self.get_content("target_positions")[i*3 + j])
+        return tp
+
+    @target_positions.setter
+    def target_positions(self, tp):
+        if tp is None:
+            ids = []
+        else:
+            ids = list(tp.keys())
+        while len(ids) < MAX_NUM_DRONES:
+            ids.append(255)
+        self.set_content({"ids": np.array(ids, dtype=self.get_data_type("ids"))})
+
+        target_pos = []
+        if tp is not None:
+            for k in tp:
+                target_pos.append(quantize_pos(tp[k][0]))
+                target_pos.append(quantize_pos(tp[k][1]))
+                target_pos.append(quantize_pos(tp[k][2]))
+        while len(target_pos) < 3*MAX_NUM_DRONES:
+            ids.append(0)
+
+        self.set_content({"target_positions": np.array(target_pos, dtype=self.get_data_type("target_positions"))})
 
 
 class MetadataMessage(message.MessageType):
@@ -569,6 +643,7 @@ class ComputingUnit:
         self.__message_type_trajectory_id = 0
         self.__message_type_trajectory_initital_state = 1
         self.__message_type_drone_state = 2
+        self.__slot_group_setpoints_id = 3
 
         self.__uart_interface = None
         self.__computation_agent = None
@@ -641,6 +716,7 @@ class ComputingUnit:
             elif state == STATE_SYS_RUN:
                 # check if a new agent is inside the swarm
                 for m in messages_rx:
+                    print(m)
                     if isinstance(m, StateMessage):
                         if m.m_id not in self.__drones_in_swarm:
                             self.__computation_agent.add_new_agent(m.m_id)
@@ -654,9 +730,6 @@ class ComputingUnit:
     def connect_to_cp(self):
         """ DEFINE FREQUENTLY USED MESSAGES """
         print("Start Connecting")
-        ack_message = message.MixerMessage(message_type="TYPE_AP_ACK", agent_ID=self.__cu_id,
-                                           data=np.array([1], dtype=np.uint8))
-
         # connect to CP
         self.uart_interface.initialize()  # initialize communication with CP
         ack_message = MetadataMessage()
@@ -678,7 +751,7 @@ class ComputingUnit:
         for m in messages_rx:
             m_temp = None
             if isinstance(m, EmptyMessage):
-                content_temp = da.EmtpyContent(empty=0)
+                content_temp = da.EmtpyContent(prios=m.prios[0:len(self.__drones_in_swarm)])
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
             elif isinstance(m, StateMessage):
@@ -708,6 +781,9 @@ class ComputingUnit:
                 content_temp = da.RecoverInformationNotifyContent(cu_id=m.cu_id, drone_id=m.drone_id)
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
+            elif isinstance(m, TargetPositionsMessage):
+                content_temp = da.SetpointMessageContent(setpoints=m.target_positions)
+                m_temp = net.Message(ID=m.m_id, slot_group_id=self.__slot_group_setpoints_id, content=content_temp)
             elif isinstance(m, MetadataMessage):
                 if m.type == TYPE_METADATA:
                     round_mbr = m.round_mbr
@@ -748,6 +824,7 @@ class ComputingUnit:
             m_temp = EmptyMessage()
             m_temp.m_id = traj_message.ID
             m_temp.cu_id = self.__cu_id
+            m_temp.prios = traj_message.content.prios
             messages_tx.append(m_temp)
             print("Empty")
         elif isinstance(traj_message.content, da.RecoverInformationNotifyContent):
@@ -756,6 +833,13 @@ class ComputingUnit:
             m_temp.drone_id = traj_message.content.drone_id
             m_temp.cu_id = traj_message.content.cu_id
             print(f"Requesting new trajectory! {m_temp.drone_id}, {traj_message.content.drone_id}, {m_temp.cu_id}")
+            messages_tx.append(m_temp)
+
+        setpoint_message = self.__computation_agent.get_message(self.__slot_group_setpoints_id)
+        if setpoint_message is not None:
+            m_temp = TargetPositionsMessage()
+            m_temp.m_id = 200
+            m_temp.target_positions = setpoint_message.content.setpoints
             messages_tx.append(m_temp)
 
         return messages_tx
@@ -1041,6 +1125,8 @@ class ComputingUnit:
                 message_rec = TrajectoryReqMessage()
             elif type == TYPE_SYNC_MOVEMENT_MESSAGE:
                 message_rec = SyncMovementMessage()
+            elif type == TYPE_TARGET_POSITIONS_MESSAGE:
+                message_rec = TargetPositionsMessage()
             else:
                 message_rec = MetadataMessage()
             message_rec.set_content_bytes(data[data_idx:data_idx+message_rec.size])
@@ -1100,7 +1186,7 @@ class ComputingUnit:
             weight_soft_constraint=self.__ARGS.weight_soft_constraint,
             min_distance_cooperative=self.__ARGS.min_distance_cooperative,
             weight_cooperative=self.__ARGS.weight_cooperative,
-            cooperative_normal_vector_noise=0
+            cooperative_normal_vector_noise=0,
         )
 
         self.computation_agent = da.ComputationAgent(ID=self.__cu_id,
@@ -1129,7 +1215,9 @@ class ComputingUnit:
                                                      use_high_level_planner=self.__ARGS.use_high_level_planner,
                                                      use_own_targets=True, #not self.__ARGS.dynamic_swarm,
                                                      #use_optimized_constraints=self.__ARGS.use_optimized_constraints,
-                                                     setpoint_creator=self.__ARGS.setpoint_creator)
+                                                     setpoint_creator=self.__ARGS.setpoint_creator,
+                                                     slot_group_setpoints_id=self.__slot_group_setpoints_id
+                                                     )
 
     def send_socket(self, message: message.MixerMessage):
         if self.socket is None:

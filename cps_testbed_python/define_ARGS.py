@@ -11,7 +11,7 @@ import compute_unit.setpoint_creator as sc
 def define_ARGS():
     parser = argparse.ArgumentParser(
         description='ARGS for the ET-DMPC')
-    parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 5: "Vicon", 6: "Vicon", 7: "Vicon", 8: "Vicon", 9: "Vicon", 10: "Vicon"}, type=dict,
+    parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 4: "Vicon", 5: "Vicon", 6: "Vicon", 7: "Vicon", 8: "Vicon", 9: "Vicon", 10: "Vicon"}, type=dict,
                         help='drone IDs with name of the testbed', metavar='')
     parser.add_argument('--num_targets_per_drone', default=3, type=int,
                         help='Number of targets', metavar='')
@@ -31,7 +31,7 @@ def define_ARGS():
 
     parser.add_argument('--prediction_horizon', default=15, type=int, help='Prediction Horizon for DMPC')
 
-    parser.add_argument('--r_min', default=0.4, type=float, help='minimum distance to each Drone')
+    parser.add_argument('--r_min', default=0.5, type=float, help='minimum distance to each Drone')
     parser.add_argument('--r_min_crit', default=0.2, type=float, help='minimum distance to each Drone')
 
     parser.add_argument('--use_soft_constraints', default=False, type=bool, help='')
@@ -42,7 +42,7 @@ def define_ARGS():
     parser.add_argument('--sim_id', default=0, type=int, help='ID of simulation, used for random generator seed')
     parser.add_argument('--INIT_XYZS', default={}, type=dict, help='Initial drone positions')
     parser.add_argument('--INIT_TARGETS', default={}, type=dict, help='Initial target positions')
-    parser.add_argument('--testbeds', default={"Vicon": ([-1.5, -1.5, 0.3], [1.5, 1.5, 3.0], [0, 0, 0]),
+    parser.add_argument('--testbeds', default={"Vicon": ([-1.8, -1.8, 0.3], [1.8, 1.8, 3.0], [0, 0, 0]),
                                                "Mobile": ([-0.7, -0.7, 0.7], [0.7, 0.7, 1.1], [100, 100, 0])},
                         type=dict, help='Testbeds of the system. Format: name: (min, max, offset)')
     parser.add_argument('--pos_offset', default={}, type=dict, help='Corresponding spatial offsets for drones')
@@ -59,9 +59,9 @@ def define_ARGS():
     parser.add_argument('--use_qpsolvers', default=True, type=bool,
                         help='Select, whether qpsolver is used for data planning')
 
-    parser.add_argument('--alpha_1', default=100.0*0, type=bool,
+    parser.add_argument('--alpha_1', default=100.0*1, type=bool,
                         help='Weight in event-trigger')
-    parser.add_argument('--alpha_2', default=10.0, type=bool,
+    parser.add_argument('--alpha_2', default=10.0*0, type=bool,
                         help='Weight in event-trigger')
     parser.add_argument('--alpha_3', default=100*0, type=bool,
                         help='Weight in event-trigger')

@@ -64,11 +64,11 @@ def evaluate_trajectory_simulation(path, name, num_drones):
 	csv_data = {}
 	for i in range(num_drones):
 		states = np.array(result[f"state_{i}"])
-		csv_data[f"{str(i)}_1"] = states[::10, 0]
-		csv_data[f"{str(i)}_2"] = states[::10, 1]
-		csv_data[f"{str(i)}_3"] = states[::10, 2]
-		x = np.array([i for i in range(len(states))])
-		plt.plot(states[:, 0], states[:, 1])
+		csv_data[f"{str(i)}_1"] = states[1800::10, 0]
+		csv_data[f"{str(i)}_2"] = states[1800::10, 1]
+		csv_data[f"{str(i)}_3"] = states[1800::10, 2]
+		x = np.array([i for i in range(len(csv_data[f"{str(i)}_1"]))])
+		plt.plot(csv_data[f"{str(i)}_1"], csv_data[f"{str(i)}_2"])
 	plt.show()
 
 	df = pd.DataFrame(data=csv_data)
@@ -78,10 +78,10 @@ def evaluate_trajectory_simulation(path, name, num_drones):
 
 
 if __name__ == "__main__":
-	evaluate_num_trigger_times(cu_ids=[40, 41], alpha_1=1000*0, alpha_2=10*0, alpha_3=1*1, alpha_4=0, simulated=True)
+	evaluate_num_trigger_times(cu_ids=[40, 41], alpha_1=1*1, alpha_2=10*0, alpha_3=1*0, alpha_4=1, simulated=True)
 
 	path = "../../../experiment_measurements/ExperimentCircleBad.pickle"
 	#evaluate_trajectory(path)
 
-	path = "../../../batch_simulation_results/dmpc/dmpc_simulation_results_not_ignore_message_loss_demo1/simulation_result-10_drones_simnr_1.pkl"
-	evaluate_trajectory_simulation(path, "CircleRR", 10)
+	path = "../../../batch_simulation_results/dmpc/dmpc_simulation_results_not_ignore_message_loss_demo1/simulation_result-6_drones_simnr_1.pkl"
+	evaluate_trajectory_simulation(path, "CircleET", 6)
