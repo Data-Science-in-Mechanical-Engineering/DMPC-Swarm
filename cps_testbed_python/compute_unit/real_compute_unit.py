@@ -427,17 +427,29 @@ class TargetPositionsMessage(message.MessageType):
     @property
     def target_positions(self):
         tp = {}
+        print(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;,")
+        print(self.get_content("target_positions"))
         for i in range(MAX_NUM_DRONES):
+            print(tp)
+            print(self.get_content("ids"))
             agent_id = self.get_content("ids")[i]
             # then this is a valid target position
             if agent_id != 255:
-                tp[agent_id] = np.array([0, 0, 0])
+                tp[agent_id] = np.array([0.0, 0.0, 0.0])
                 for j in range(3):
-                    tp[agent_id][j] = dequantize_pos(self.get_content("target_positions")[i*3 + j])
+                    print(self.get_content("target_positions")[i*3 + j])
+                    print(dequantize_pos(self.get_content("target_positions")[i*3 + j]))
+                    tp[agent_id][j] = float(dequantize_pos(int(self.get_content("target_positions")[i*3 + j])))
+                    print(j)
+                    print(tp[agent_id][j])
+                    print(tp)
+                    print("-")
+        print(tp)
         return tp
 
     @target_positions.setter
     def target_positions(self, tp):
+        print(f"Target positions!!: {tp}")
         if tp is None:
             ids = []
         else:
@@ -449,11 +461,13 @@ class TargetPositionsMessage(message.MessageType):
         target_pos = []
         if tp is not None:
             for k in tp:
-                target_pos.append(quantize_pos(tp[k][0]))
-                target_pos.append(quantize_pos(tp[k][1]))
-                target_pos.append(quantize_pos(tp[k][2]))
+                if k != 255:
+                    print(tp[k])
+                    target_pos.append(quantize_pos(tp[k][0]))
+                    target_pos.append(quantize_pos(tp[k][1]))
+                    target_pos.append(quantize_pos(tp[k][2]))
         while len(target_pos) < 3*MAX_NUM_DRONES:
-            ids.append(0)
+            target_pos.append(0)
 
         self.set_content({"target_positions": np.array(target_pos, dtype=self.get_data_type("target_positions"))})
 
@@ -726,6 +740,8 @@ class ComputingUnit:
 
             # send data to CP
             self.write_data_to_cp(messages_tx)
+
+            self.__computation_agent.round_started()
 
     def connect_to_cp(self):
         """ DEFINE FREQUENTLY USED MESSAGES """
@@ -1187,6 +1203,7 @@ class ComputingUnit:
             min_distance_cooperative=self.__ARGS.min_distance_cooperative,
             weight_cooperative=self.__ARGS.weight_cooperative,
             cooperative_normal_vector_noise=0,
+            width_band=self.__ARGS.width_band
         )
 
         self.computation_agent = da.ComputationAgent(ID=self.__cu_id,
@@ -1216,7 +1233,9 @@ class ComputingUnit:
                                                      use_own_targets=True, #not self.__ARGS.dynamic_swarm,
                                                      #use_optimized_constraints=self.__ARGS.use_optimized_constraints,
                                                      setpoint_creator=self.__ARGS.setpoint_creator,
-                                                     slot_group_setpoints_id=self.__slot_group_setpoints_id
+                                                     slot_group_setpoints_id=self.__slot_group_setpoints_id,
+                                                     weight_band=self.__ARGS.weight_band,
+                                                     send_setpoints=self.__cu_id == self.__ARGS.computing_agent_ids[0],
                                                      )
 
     def send_socket(self, message: message.MixerMessage):

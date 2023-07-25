@@ -560,6 +560,7 @@ class ComputationAgent(net.Agent):
 
         if message.slot_group_id == self.__slot_group_setpoints_id:
             self.__received_setpoints = copy.deepcopy(message.content.setpoints)
+            self.print(f"New setpoints: {self.__received_setpoints}")
             pass
 
     def round_finished(self, round_nmbr=None):
@@ -1058,7 +1059,10 @@ class ComputationAgent(net.Agent):
         for i in range(0, self.__num_agents):
             own_id = self.__agents_ids[i]
             max_dist = np.linalg.norm(self.__options.max_position[own_id] - self.__options.min_position[own_id])
-            target_pos = self.get_targets()[own_id] if self.__received_setpoints is None else self.__received_setpoints[own_id]
+            target_pos = self.get_targets()[own_id]
+            if self.__received_setpoints is not None:
+                if own_id in self.__received_setpoints:
+                    target_pos = self.__received_setpoints[own_id]
             d_target = target_pos - copy.deepcopy(self.__trajectory_tracker.get_information(own_id).content[0].current_state[0:3])
 
             dist_to_target = np.linalg.norm(d_target)
@@ -1139,6 +1143,7 @@ class ComputationAgent(net.Agent):
         return False
 
     def round_started(self):
+        print("round started!")
         if not self.__use_high_level_planner:
             return
 
@@ -1216,7 +1221,7 @@ class ComputationAgent(net.Agent):
                 for agent_id in self.__agents_ids:
                     self.__high_level_setpoints[agent_id] = self.__current_target_positions[agent_id]
                 self.__using_intermediate_targets = 0
-                if not self.__simulated:
+                if not self.__simulated and False:
                     self.__received_setpoints = copy.deepcopy(self.__high_level_setpoints)
                 self.__deadlock_breaker_agents = []
                 # do not calculate new intermediate setpoints
@@ -1225,6 +1230,7 @@ class ComputationAgent(net.Agent):
             else:
                 self.__using_intermediate_targets = True
             self.__hlp_lock = 0
+            print("Deadlock!!!!")
         else:
             return
 

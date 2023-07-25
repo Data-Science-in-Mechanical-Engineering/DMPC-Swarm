@@ -44,9 +44,10 @@ def get_min(arr):
 if __name__ == "__main__":
 	state_message_size = 2+2*9+1+2*3+2+1+1
 	print(state_message_size)
-	trajectory_message_size = 2+2*45+2*9+2+1+1
+	trajectory_message_size = 2+2*45+2*9+2+1+1 + 10
+	setpoint_message_size = 2 + 10 + 3 * 2 * 10
 	print(trajectory_message_size)
-	message_list = [state_message_size, state_message_size, state_message_size, state_message_size, state_message_size, state_message_size, trajectory_message_size, trajectory_message_size]
+	message_list = [state_message_size]*11 + [trajectory_message_size]*2 + [setpoint_message_size]
 	sizes = [i for i in range(10, 100)]
 	num_messages = [calculate_num_messages(s, message_list) for s in sizes]
 	round_times = [calculate_round_time(sizes[i], num_messages[i]) for i in range(len(sizes))]
