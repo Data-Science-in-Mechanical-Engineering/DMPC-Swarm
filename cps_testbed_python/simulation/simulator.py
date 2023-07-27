@@ -82,7 +82,7 @@ class Simulation:
     Methods:
         run: runs the simulation
     """
-    def __init__(self, ARGS):
+    def __init__(self, ARGS, cus=[]):
         """constructor
 
         Parameters:
@@ -201,6 +201,26 @@ class Simulation:
 
         agent_ids = {}
         for i in range(0, self.__ARGS.num_drones):
+            if self.__ARGS.load_cus:
+                trajectory_starting_times = []
+                trajectory_cu_id = 0
+                for cu in self.__ARGS.cus:
+                    print(cu.current_time)
+                    if len(cu.get_trajectory_tracker().get_information(self.__ARGS.drone_ids[i]).content) == 1:
+                        trajectory = cu.get_trajectory_tracker().get_information(self.__ARGS.drone_ids[i]).content[0]
+                    else:
+                        trajectory = cu.get_trajectory_tracker().get_information(self.__ARGS.drone_ids[i]).content[1]
+                        print("44444444444")
+                        print(trajectory.trajectory_start_time)
+                        if abs(trajectory.trajectory_start_time - (self.__ARGS.load_cus_round_nmbr)*0.2) < 1e-5:
+                            trajectory = cu.get_trajectory_tracker().get_information(self.__ARGS.drone_ids[i]).content[1]
+                            print(trajectory.trajectory_start_time)
+                    trajectory_starting_times.append(trajectory.trajectory_start_time)
+                    trajectory_cu_id = trajectory.trajectory_calculated_by
+                print(trajectory_starting_times)
+                trajectory_start_time = min(trajectory_starting_times)
+
+
             drone_id = self.__ARGS.drone_ids[i]
             agent = da.RemoteDroneAgent(ID=drone_id,
                                         slot_group_planned_trajectory_id=slot_group_trajectory.id,
@@ -213,43 +233,55 @@ class Simulation:
                                         order_interpolation=self.__ARGS.interpolation_order,
                                         target_positions=self.__INIT_TARGETS[drone_id],
                                         other_drones_ids=self.__ARGS.drone_ids,
-                                        use_demo_setpoints=self.__ARGS.use_demo_setpoints)
+                                        use_demo_setpoints=self.__ARGS.use_demo_setpoints,
+                                        load_cus_round_nmbr=0 if not self.__ARGS.load_cus else self.__ARGS.load_cus_round_nmbr,
+                                        trajectory_start_time= 0 if not self.__ARGS.load_cus else trajectory_start_time,
+                                        trajectory_cu_id=-1 if not self.__ARGS.load_cus else trajectory_cu_id)
 
             agent_ids[i] = drone_id
             self.__agents.append(agent)
 
         prio = 0
-        for i in range(self.__ARGS.num_drones, self.__ARGS.num_drones + min(self.__ARGS.num_computing_agents, self.__ARGS.num_drones)):
-            cu_id = self.__ARGS.computing_agent_ids[i-self.__ARGS.num_drones]
-            computing_agent = da.ComputationAgent(ID=cu_id, slot_group_planned_trajectory_id=slot_group_trajectory.id,
-                                                  slot_group_trajectory_initial_state=slot_group_initial_state.id,
-                                                  slot_group_drone_state=slot_group_state.id,
-                                                  init_positions=self.__ARGS.INIT_XYZS_id,
-                                                  target_positions=self.__INIT_TARGETS,
-                                                  computing_agents_ids=self.__ARGS.computing_agent_ids,
-                                                  agents_ids=self.__ARGS.drone_ids, communication_delta_t=delta_t,
-                                                  trajectory_generator_options=trajectory_generator_options,
-                                                  prediction_horizon=self.__ARGS.prediction_horizon,
-                                                  num_computing_agents=self.__ARGS.num_computing_agents,
-                                                  comp_agent_prio=sorted(self.__ARGS.computing_agent_ids).index(
-                                                      cu_id),
-                                                  offset=(cu_id - self.__ARGS.num_drones) * int(
-                                                      self.__ARGS.num_drones / max(
-                                                          (self.__ARGS.num_computing_agents), 1)),
-                                                  use_event_trigger=self.__ARGS.event_trigger, alpha_1=self.__ARGS.alpha_1,
-                                                  alpha_2=self.__ARGS.alpha_2, alpha_3=self.__ARGS.alpha_3, alpha_4=self.__ARGS.alpha_4,
-                                                  remove_redundant_constraints=self.__ARGS.remove_redundant_constraints,
-                                                  ignore_message_loss=self.__ARGS.ignore_message_loss,
-                                                  use_high_level_planner=self.__ARGS.use_high_level_planner,
-                                                  agent_dodge_distance=self.__ARGS.agent_dodge_distance,
-                                                  use_own_targets=self.__ARGS.use_own_targets,
-                                                  slot_group_setpoints_id=slot_group_setpoints.id, send_setpoints=i==self.__ARGS.num_drones,
-                                                  simulated=self.__ARGS.simulated,
-                                                  use_optimized_constraints=self.__ARGS.use_optimized_constraints,
-                                                  setpoint_creator=self.__ARGS.setpoint_creator,
-                                                  pos_offset=self.__ARGS.pos_offset,
-                                                  weight_band=self.__ARGS.weight_band)
-            prio += 1
+        for i in range(self.__ARGS.num_drones, self.__ARGS.num_drones + min(self.__ARGS.num_computing_agents, 10000)):  #, self.__ARGS.num_drones)):
+            if len(cus) == 0:
+                cu_id = self.__ARGS.computing_agent_ids[i-self.__ARGS.num_drones]
+                computing_agent = da.ComputationAgent(ID=cu_id, slot_group_planned_trajectory_id=slot_group_trajectory.id,
+                                                      slot_group_trajectory_initial_state=slot_group_initial_state.id,
+                                                      slot_group_drone_state=slot_group_state.id,
+                                                      init_positions=self.__ARGS.INIT_XYZS_id,
+                                                      target_positions=self.__INIT_TARGETS,
+                                                      computing_agents_ids=self.__ARGS.computing_agent_ids,
+                                                      agents_ids=self.__ARGS.drone_ids, communication_delta_t=delta_t,
+                                                      trajectory_generator_options=trajectory_generator_options,
+                                                      prediction_horizon=self.__ARGS.prediction_horizon,
+                                                      num_computing_agents=self.__ARGS.num_computing_agents,
+                                                      comp_agent_prio=sorted(self.__ARGS.computing_agent_ids).index(
+                                                          cu_id),
+                                                      offset=(cu_id - self.__ARGS.num_drones) * int(
+                                                          self.__ARGS.num_drones / max(
+                                                              (self.__ARGS.num_computing_agents), 1)),
+                                                      use_event_trigger=self.__ARGS.event_trigger, alpha_1=self.__ARGS.alpha_1,
+                                                      alpha_2=self.__ARGS.alpha_2, alpha_3=self.__ARGS.alpha_3, alpha_4=self.__ARGS.alpha_4,
+                                                      remove_redundant_constraints=self.__ARGS.remove_redundant_constraints,
+                                                      ignore_message_loss=self.__ARGS.ignore_message_loss,
+                                                      use_high_level_planner=self.__ARGS.use_high_level_planner,
+                                                      agent_dodge_distance=self.__ARGS.agent_dodge_distance,
+                                                      use_own_targets=self.__ARGS.use_own_targets,
+                                                      slot_group_setpoints_id=slot_group_setpoints.id, send_setpoints=i==self.__ARGS.num_drones,
+                                                      simulated=self.__ARGS.simulated,
+                                                      use_optimized_constraints=self.__ARGS.use_optimized_constraints,
+                                                      setpoint_creator=self.__ARGS.setpoint_creator,
+                                                      pos_offset=self.__ARGS.pos_offset,
+                                                      weight_band=self.__ARGS.weight_band,
+                                                      simulate_quantization=self.__ARGS.simulate_quantization,
+                                                      save_snapshot_times=self.__ARGS.save_snapshot_times)
+                prio += 1
+            else:
+                computing_agent = cus[i - self.__ARGS.num_drones]
+                computing_agent.set_simulate_quantization(self.__ARGS.simulate_quantization)
+                computing_agent.set_current_time((self.__ARGS.load_cus_round_nmbr) * 0.2)
+                computing_agent.set_save_snapshot_times([])
+                computing_agent.round_started()
             self.__agents.append(computing_agent)
             self.__computing_agents.append(computing_agent)
 

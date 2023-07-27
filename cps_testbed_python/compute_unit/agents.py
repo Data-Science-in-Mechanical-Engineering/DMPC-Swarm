@@ -10,7 +10,8 @@ from dataclasses import dataclass
 from compute_unit.trajectory_generation.information_tracker import InformationTracker, Information, TrajectoryContent
 import time
 import compute_unit.trajectory_generation.high_level_planner as hlp
-import threading
+
+from compute_unit import real_compute_unit
 
 import random
 
@@ -65,6 +66,38 @@ class SetpointMessageContent:
     setpoints: any
 
 
+def simulate_quantization_setpoints_message(message):
+    message_quant = copy.deepcopy(message)
+    if message.setpoints is None:
+        return message_quant
+    for k in message.setpoints:
+        for i in range(3):
+            message_quant.setpoints[k][i] = real_compute_unit.dequantize_pos(real_compute_unit.quantize_pos(message.setpoints[k][i]))
+    return message_quant
+
+
+def simulate_quantization_trajectory_message(message):
+    message_quant = copy.deepcopy(message)
+    message_quant.coefficients.valid = True
+    coefficients = message.coefficients.coefficients if message.coefficients.valid else message.coefficients.alternative_trajectory
+    for i in range(len(coefficients)):
+        for j in range(3):
+            message_quant.coefficients.coefficients[i][j] = real_compute_unit.dequantize_input(real_compute_unit.quantize_input(coefficients[i][j]))
+
+    for j in range(3):
+        message_quant.init_state[j] = real_compute_unit.dequantize_pos(real_compute_unit.quantize_pos(message.init_state[j]))
+
+    for j in range(3, 6):
+        message_quant.init_state[j] = real_compute_unit.dequantize_vel(real_compute_unit.quantize_vel(message.init_state[j]))
+
+    for j in range(6, 9):
+        message_quant.init_state[j] = real_compute_unit.dequantize_acc(real_compute_unit.quantize_acc(message.init_state[j]))
+
+    for j in range(0, 3):
+        message_quant.init_state[j] = real_compute_unit.dequantize_pos(real_compute_unit.quantize_pos(message.init_state[j]))
+    return message_quant
+
+
 def trajectories_equal(trajectory1, trajectory2):
     return abs(trajectory1.trajectory_start_time - trajectory2.trajectory_start_time) < 1e-4 \
            and trajectory1.trajectory_calculated_by == trajectory2.trajectory_calculated_by
@@ -117,7 +150,9 @@ class ComputationAgent(net.Agent):
                  slot_group_ack_id=100000, ignore_message_loss=False, use_own_targets=False,
                  state_feedback_trigger_dist=0.5, simulated=True, use_high_level_planner=True,
                  agent_dodge_distance=0.5, slot_group_setpoints_id=100000, send_setpoints=False, use_given_init_pos=False,
-                 use_optimized_constraints=True, weight_band=1.0):
+                 use_optimized_constraints=True, weight_band=1.0,
+                 save_snapshot_times=[], snapshot_saving_path="",
+                 simulate_quantization=False):
         """
 
         Parameters
@@ -323,9 +358,6 @@ class ComputationAgent(net.Agent):
         self.__total_num_optimizer_runs = 0
         self.__num_succ_optimizer_runs = 0
 
-        # if we use multipcoressing, we cannot use thread lock (gives an error message)
-        if not simulated:
-            self.__thread_lock = threading.Lock()
         self.__hlp_running = False  # flag that shows if the hlp thread is running.
         self.__simulated = simulated
         self.__hlp_agent_idx = 0
@@ -347,6 +379,12 @@ class ComputationAgent(net.Agent):
         self.__time_last_deadlock = 0
 
         self.__weight_band = weight_band
+
+        self.__save_snapshot_times = save_snapshot_times
+        self.__snapshot_saving_path = snapshot_saving_path
+        self.__setpoint_history = []
+        
+        self.__simulate_quantization = simulate_quantization
 
     def add_new_agent(self, m_id):
         last_trajectory = None
@@ -420,6 +458,7 @@ class ComputationAgent(net.Agent):
             copy_message = copy.deepcopy(self.__last_received_messages[self.ID])
             if isinstance(copy_message, TrajectoryMessageContent):
                 copy_message.init_state[0:3] -= self.__pos_offset[copy_message.id]
+                copy_message = copy_message if not self.__simulate_quantization else simulate_quantization_trajectory_message(copy_message)
             return net.Message(self.ID, slot_group_id, copy_message)
 
         elif slot_group_id == self.__slot_group_state_id:
@@ -428,7 +467,9 @@ class ComputationAgent(net.Agent):
             pass
         elif slot_group_id == self.__slot_group_setpoints_id:
             if self.__send_setpoints:
-                return net.Message(self.ID, slot_group_id, SetpointMessageContent(self.__high_level_setpoints))
+                setpoint_message = SetpointMessageContent(self.__high_level_setpoints)
+                setpoint_message = setpoint_message if not self.__simulate_quantization else simulate_quantization_setpoints_message(setpoint_message)
+                return net.Message(self.ID, slot_group_id, setpoint_message)
             else:
                 return None
 
@@ -468,6 +509,7 @@ class ComputationAgent(net.Agent):
 
         if message.slot_group_id == self.__slot_group_drone_state:
             message.content.state[0:3] += self.__pos_offset[message.ID]
+            self.print(f"Received pos from {message.ID}: {message.content.state[0:3]}")
             message.content.target_position += self.__pos_offset[message.ID]
             self.__received_drone_state_messages.append(message)
             # The state is measured at the beginning of the round and extrapolated by drone
@@ -676,7 +718,7 @@ class ComputationAgent(net.Agent):
         if (not self.__num_trajectory_messages_received == len(self.__computing_agents_ids)) and not self.__ignore_message_loss:
             for information in self.__trajectory_tracker.get_all_information().values():
                 information.set_deprecated()
-            print("Lost messages of CU!")
+            print(f"Lost messages of CU! {self.__num_trajectory_messages_received}")
         self.__num_trajectory_messages_received = 0
         assert self.__num_trajectory_messages_received <= len(self.__computing_agents_ids)
 
@@ -815,12 +857,28 @@ class ComputationAgent(net.Agent):
                 with open(f'../../experiment_measurements/num_trigger_times{self.ID}_{int(self.__alpha_1)}_{int(self.__alpha_2)}_{int(self.__alpha_3)}_{int(self.__alpha_4)}.p', 'wb') as handle:
                     pickle.dump({"num_trigger_times": self.__num_trigger_times, "selected_UAVs": self.__selected_UAVs}, handle)
 
-        if int(self.__current_time / self.__communication_delta_t) % 5 == 0 and not self.__simulated:
+        if int(round(self.__current_time / self.__communication_delta_t)) % 5 == 0 and not self.__simulated:
             with open(f'../../experiment_measurements/num_trigger_times_sim{self.ID}_{int(self.__alpha_1)}_{int(self.__alpha_2)}_{int(self.__alpha_3)}_{int(self.__alpha_4)}.p', 'wb') as handle:
                 pickle.dump({"num_trigger_times": self.__num_trigger_times, "selected_UAVs": self.__selected_UAVs}, handle)
 
-        if int(self.__current_time / self.__communication_delta_t) >= 200:
-            pass
+        if int(round(self.__current_time / self.__communication_delta_t)) in self.__save_snapshot_times:
+            with open("../../experiment_measurements" +
+                      f"/CU{self.ID}snapshot{int(self.__current_time / self.__communication_delta_t)}.p", 'wb') \
+                    as out_file:
+                pickle.dump(self, out_file)
+
+
+        if len(self.__save_snapshot_times) > 0:
+            if int(round(self.__current_time / self.__communication_delta_t)) >= self.__save_snapshot_times[0]:
+                setpoints = {}
+                for agent_id in self.__agents_ids:
+                    setpoints[agent_id] = self.__trajectory_tracker.get_information(agent_id).content[0].current_state[0:3]
+                self.__setpoint_history.append(setpoints)
+            if int(round(self.__current_time / self.__communication_delta_t)) == 500:
+                with open("../../experiment_measurements" +
+                          f"/CU{self.ID}setpoints{int(self.__current_time / self.__communication_delta_t)}.p", 'wb') \
+                        as out_file:
+                    pickle.dump(self.__setpoint_history, out_file)
 
 
     def __calculate_trajectory(self, current_id, ordered_indexes):
@@ -1269,180 +1327,6 @@ class ComputationAgent(net.Agent):
                     # add some random noise. This helps breacking up deadlocks caused by symmetry.
                     self.__high_level_setpoints[agent_id] = current_pos[agent_id] + dodge_direction * self.__agent_dodge_distance + np.random.randn(3) * 0.1
 
-        return
-        if single_agent_calc:
-            use_hlp = True
-            hlp_threshold_distance = 0.7
-            all_agents_close_to_target = True
-            for agent_id in self.__agents_ids:
-                if np.linalg.norm(current_pos[agent_id] - self.__current_target_positions[agent_id]) > self.__options.r_min*0.9:
-                    all_agents_close_to_target = False
-                    break
-            if not all_agents_close_to_target:
-                recalculate_pos_list = []
-                for agent_id in self.__agents_ids:
-                    if agent_id not in agents_to_recalculate:
-                        continue
-                    use_hlp = True
-                    #agent_id = self.__agents_ids[self.__hlp_agent_idx]
-                    if self.__high_level_setpoint_trajectory is None:
-                        self.__high_level_setpoint_trajectory = {ids: None for ids in self.__agents_ids}
-                    agents_to_dodge = []
-                    own_dist_to_target = np.linalg.norm(current_pos[agent_id] - self.__current_target_positions[agent_id])
-                    for other_agent_id in self.__agents_ids:
-                        if other_agent_id == agent_id:
-                            continue
-                        if self.deadlock_breaker_condition(agent_id, other_agent_id):
-                            self.__deadlock_breaker_agents.append((agent_id, other_agent_id))
-                            agents_to_dodge.append(other_agent_id)
-
-                        """other_agent_dist_to_target = np.linalg.norm(current_pos[other_agent_id] - self.__current_target_positions[other_agent_id])
-                        if other_agent_dist_to_target < self.__options.r_min*0.9 and other_agent_dist_to_target < own_dist_to_target:
-                            pass
-                        elif other_agent_dist_to_target > own_dist_to_target:
-                            if self.__trajectory_tracker.get_information(other_agent_id).content[0].current_state is not None:
-                                if self.__scaled_norm(current_pos[other_agent_id] - current_pos[agent_id]) < self.__options.r_min*1.05:
-                                    if np.dot(self.__trajectory_tracker.get_information(other_agent_id).content[0].current_state[3:6],
-                                              current_pos[agent_id] - current_pos[other_agent_id]) > 0 or np.dot(self.__current_target_positions[other_agent_id] - self.__trajectory_tracker.get_information(other_agent_id).content[0].current_state[0:3],
-                                              current_pos[agent_id] - current_pos[other_agent_id]) > 0:
-                                        agents_to_dodge.append(other_agent_id)
-                                    if np.dot(self.__current_target_positions[other_agent_id] - current_pos[other_agent_id],
-                                              current_pos[agent_id] - current_pos[other_agent_id]) > 0:
-                                        agents_to_dodge.append(other_agent_id)"""
-
-
-                    # find the closest agent
-                    if len(agents_to_dodge) != 0:
-                        closest_agent = agents_to_dodge[0]
-                        closest_distance = self.__scaled_norm(current_pos[closest_agent] - current_pos[agent_id])
-                        for other_agent_id in agents_to_dodge:
-                            if other_agent_id == agent_id:
-                                continue
-                            other_agent_distance = self.__scaled_norm(current_pos[other_agent_id] - current_pos[agent_id])
-                            if closest_distance > other_agent_distance:
-                                closest_agent = other_agent_id
-                                closest_distance = other_agent_distance
-                        # if an agent is closer to hlp_threshold_distance, use some sort of potential function approach
-                        if closest_distance < hlp_threshold_distance:
-                            closest_agent_speed = self.__current_target_positions[closest_agent] - current_pos[closest_agent]#self.__trajectory_tracker.get_information(closest_agent).content[0].current_state[3:6]
-                            c = np.cross(current_pos[agent_id] - current_pos[closest_agent], closest_agent_speed)
-                            dodge_direction = np.cross(closest_agent_speed, c)
-                            dodge_direction = current_pos[agent_id] - current_pos[closest_agent]
-                            # dodge_direction[2] = 0
-                            dodge_direction /= np.linalg.norm(dodge_direction)
-                            self.__high_level_setpoint_trajectory[agent_id] = [current_pos[agent_id] + dodge_direction*self.__agent_dodge_distance + np.random.randn(3)*0.1]
-                            use_hlp = False
-                    if use_hlp:
-                        if self.__age_setpoint_trajectories[agent_id] % (self.__prediction_horizon//2) == 0 or self.__recalculate_setpoints or True:
-                            recalculate_pos_list.append(agent_id)
-                            self.__recalculate_setpoints = False
-                            if self.__simulated or True:
-                                horizon = 1
-                                step_size = (self.__trajectory_generator_options.objective_function_sample_points[-1] -
-                                             self.__trajectory_generator_options.objective_function_sample_points[0]) * \
-                                            self.__trajectory_generator_options.max_speed[0] / horizon
-                                #temp = hlp.calculate_setpoints_one_drone(current_pos, self.__current_target_positions, agent_id,
-                                #                                    horizon=horizon,
-                                #                                    step_size=step_size, downwash_scaling_factor=self.__options.downwash_scaling_factor,
-                                #                                    max_position=self.__options.max_position,
-                                #                                    min_position=self.__options.min_position,
-                                #                                    r_min=self.__options.r_min
-                                #                                    )
-                                self.__high_level_setpoint_trajectory[agent_id] = [self.__current_target_positions[agent_id]] #temp[agent_id]
-                                self.__age_setpoint_trajectories[agent_id] = 0
-
-                if not self.__simulated:
-                    self.__thread_lock.acquire()
-                    if not self.__hlp_running:
-                        self.__hlp_running = True
-
-                        #thread = hlp.HLPOneDroneThread(1, cu=self, current_pos=current_pos,
-                        #                       current_target_positions=self.__current_target_positions,
-                        #                       horizon=horizon, step_size=step_size,
-                        #                       downwash_scaling_factor=self.__options.downwash_scaling_factor,
-                        #                       max_position=self.__options.max_position,
-                        #                       min_position=self.__options.min_position)
-                        #thread.start()
-                    self.__thread_lock.release()
-
-            else:
-                self.__high_level_setpoint_trajectory = {}
-                for agent_id in self.__agents_ids:
-                    self.__high_level_setpoint_trajectory[agent_id] = [self.__current_target_positions[agent_id]]
-
-            self.__age_setpoint_trajectories = {agent_id: self.__age_setpoint_trajectories[agent_id]+1 for agent_id in self.__agents_ids}
-        else:
-            # every horizon rounds we recalculate the setpoints.
-            if self.__age_setpoint_trajectory % self.__prediction_horizon == 0 or self.__recalculate_setpoints:
-                self.__recalculate_setpoints = False
-                self.__age_setpoint_trajectory = 0
-                horizon = 4
-                step_size = (self.__trajectory_generator_options.objective_function_sample_points[-1] - self.__trajectory_generator_options.objective_function_sample_points[0]) * self.__trajectory_generator_options.max_speed[0] / horizon
-                if not self.__simulated:
-                    self.__thread_lock.acquire()
-                    if not self.__hlp_running:
-                        self.__hlp_running = True
-                        thread = hlp.HLPThread(1, cu=self, current_pos=current_pos,
-                                               current_target_positions=self.__current_target_positions,
-                                               horizon=horizon, step_size=step_size,
-                                               downwash_scaling_factor=self.__options.downwash_scaling_factor,
-                                               max_position=self.__options.max_position,
-                                               min_position=self.__options.min_position)
-                        thread.start()
-                    self.__thread_lock.release()
-                else:
-                    self.__high_level_setpoint_trajectory = \
-                        hlp.calculate_setpoints(current_pos, self.__current_target_positions,
-                                                max_position=self.__options.max_position,
-                                                min_position=self.__options.min_position,
-                                                horizon=horizon, step_size=step_size, downwash_scaling_factor=self.__options.downwash_scaling_factor,
-                                                )
-        if self.__high_level_setpoint_trajectory is not None:
-            if not self.__simulated:
-                self.__thread_lock.acquire()
-            self.__high_level_setpoints = {}
-            for key in self.__high_level_setpoint_trajectory.keys():
-                if self.__high_level_setpoint_trajectory[key] is None:
-                    self.__high_level_setpoints[key] = None
-                    continue
-                setpoints = self.__high_level_setpoint_trajectory[key]
-
-                # find closest setpoint to current position
-                min_dist = np.linalg.norm(setpoints[0] - current_pos[key])
-                closest_setpoint_idx = 0
-                for setpoint_idx in range(len(setpoints)):
-                    if np.linalg.norm(setpoints[setpoint_idx] - current_pos[key]) < min_dist:
-                        min_dist = np.linalg.norm(setpoints[setpoint_idx] - current_pos[key])
-                        closest_setpoint_idx = setpoint_idx
-
-                # this says how much, the angle changes over the trajectory. If this is bigger than a threshold, we
-                # use the last point as the setpoint
-                sum_abs_angle = 0
-                setpoint = setpoints[-1]
-                for i in range(closest_setpoint_idx, len(setpoints)-2):
-                    sum_abs_angle += abs(angle_between(setpoints[i+1]-setpoints[i], setpoints[i+2]-setpoints[i+1]))
-                    if sum_abs_angle>math.pi/4:
-                        setpoint = setpoints[i+1]
-                        break
-                self.__high_level_setpoints[key] = np.array([setpoint for i in range(num_objective_function_sample_points)])
-            if not self.__simulated:
-                self.__thread_lock.release()
-        print(f"Start round time: {time.time()-start_time}")
-        if not self.__simulated:
-            self.__received_setpoints = copy.deepcopy(self.__high_level_setpoints)
-        self.__age_setpoint_trajectory += 1
-        self.__hlp_agent_idx = (self.__hlp_agent_idx+1)%len(self.__agents_ids)
-        """x = np.interp(np.linspace(0, 1, num_objective_function_sample_points),
-                                                     np.linspace(0, 3, horizon+1),
-                                                     np.array(self.__high_level_setpoints[key])[:, 0])
-        y = np.interp(np.linspace(0, 1, num_objective_function_sample_points),
-                      np.linspace(0, 3, horizon+1),
-                      np.array(self.__high_level_setpoints[key])[:, 1])
-        z = np.interp(np.linspace(0, 1, num_objective_function_sample_points),
-                      np.linspace(0, 3, horizon+1),
-                      np.array(self.__high_level_setpoints[key])[:, 2])
-        self.__high_level_setpoints[key] = np.array([x, y, z]).T"""
-
     def __scaled_norm(self, vector):
         return np.linalg.norm(self.__downwash_scaling@vector)
 
@@ -1552,6 +1436,21 @@ class ComputationAgent(net.Agent):
     def num_succ_optimizer_runs(self):
         return self.__num_succ_optimizer_runs
 
+    def get_trajectory_tracker(self):
+        return self.__trajectory_tracker
+
+    def get_agent_position(self, agent_id):
+        return self.__trajectory_tracker.get_information(agent_id).content[0].current_state[0:3]
+
+    def set_simulate_quantization(self, value):
+        self.__simulate_quantization = value
+
+    def set_current_time(self, value):
+        self.__current_time = value
+
+    def set_save_snapshot_times(self, value):
+        self.__save_snapshot_times = value
+
 
 class DemoSetpointGenerator:
     def __init__(self, radius=1.3, angle_speed=2*math.pi/8):
@@ -1586,7 +1485,9 @@ class RemoteDroneAgent(net.Agent):
     def __init__(self, ID, slot_group_planned_trajectory_id, init_position, target_position, communication_delta_t,
                  trajectory_generator_options, prediction_horizon, other_drones_ids, target_positions, order_interpolation=4,
                  slot_group_state_id=None, slot_group_ack_id=100000, state_feedback_trigger_dist=0.3,
-                 use_demo_setpoints=True):
+                 use_demo_setpoints=True, load_cus_round_nmbr=0,
+                 trajectory_start_time=0,
+                 trajectory_cu_id=-1):
         """
 
         Parameters
@@ -1629,8 +1530,8 @@ class RemoteDroneAgent(net.Agent):
         self.__communication_delta_t = communication_delta_t
         self.__crashed = False
 
-        self.__current_time = 0
-        self.__planned_trajectory_start_time = 0
+        self.__current_time = load_cus_round_nmbr * self.__communication_delta_t
+        self.__planned_trajectory_start_time = trajectory_start_time
         self.__prediction_horizon = prediction_horizon
 
         # communication timepoints start with the time of the next communication. (we have a delay of one due to the
@@ -1666,7 +1567,7 @@ class RemoteDroneAgent(net.Agent):
         self.__state = np.array([init_position[0], init_position[1], init_position[2],
                                  0, 0, 0, 0, 0, 0])
 
-        self.__current_trajectory_calculated_by = 0  #ID
+        self.__current_trajectory_calculated_by = trajectory_cu_id  #ID
 
         self.__send_trajectory_message_to = []
 

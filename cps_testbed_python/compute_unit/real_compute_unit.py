@@ -29,7 +29,7 @@ def quantize_float(float, range):
     resolution = 2**15-1
     scaled = np.clip(float * resolution / upper, a_min=-resolution, a_max=resolution)
     scaled_round = np.round(scaled)
-    scaled_round += resolution
+    scaled_round = np.round(resolution + scaled_round)
     return scaled_round.astype(np.uint16)
 
 
@@ -836,6 +836,9 @@ class ComputingUnit:
             m_temp.drone_id = traj_message.content.id
             m_temp.prios = traj_message.content.prios
             messages_tx.append(m_temp)
+            print(f"Send trajectory {traj_message.content.trajectory_start_time}")
+            print(int(
+                round(traj_message.content.trajectory_start_time * self.__ARGS.communication_freq_hz)))
         elif isinstance(traj_message.content, da.EmtpyContent):
             m_temp = EmptyMessage()
             m_temp.m_id = traj_message.ID
@@ -1236,6 +1239,7 @@ class ComputingUnit:
                                                      slot_group_setpoints_id=self.__slot_group_setpoints_id,
                                                      weight_band=self.__ARGS.weight_band,
                                                      send_setpoints=self.__cu_id == self.__ARGS.computing_agent_ids[0],
+                                                     save_snapshot_times=self.__ARGS.save_snapshot_times
                                                      )
 
     def send_socket(self, message: message.MixerMessage):

@@ -204,7 +204,11 @@ class Network:
 
     def step(self):
         """Performs one communication round"""
-
+        for slot_group in self.__slot_groups:
+            slot_group.clear_schedule()
+            for agent in self.__agents:
+                if slot_group.id in agent.slot_group_id_list:
+                    slot_group.add_application_for_schedule(agent)
         # get messages for the next round
         self.__messages = []
         for slot_group in self.__slot_groups:
@@ -222,13 +226,13 @@ class Network:
                     else:
                         self.__messages.append(me)
 
-        # get schedules for the next round (in reality this computation is done during the round
+        """"# get schedules for the next round (in reality this computation is done during the round
         # (collection of priorities) and after the round (scheduling for following round))
         for slot_group in self.__slot_groups:
             slot_group.clear_schedule()
             for agent in self.__agents:
                 if slot_group.id in agent.slot_group_id_list:
-                    slot_group.add_application_for_schedule(agent)
+                    slot_group.add_application_for_schedule(agent)"""
 
         for agent in self.__agents:
             # in this function the agents should do long time calculations during the current communication round

@@ -78,7 +78,90 @@ def evaluate_trajectory_simulation(path, name, num_drones):
 		sep=" ", header=False)
 
 
+def compare_simulation_real_world(path_simulation, path_real_world, path_real_world_setpoints, num_drones, name):
+	with open(path_simulation, "rb") as file:
+		result = pickle.load(file)
+	csv_data = {}
+	for i in range(num_drones):
+		states = np.array(result[f"state_{i}"])
+		csv_data[f"{str(i)}_1"] = states[::10, 0]
+		csv_data[f"{str(i)}_2"] = states[::10, 1]
+		csv_data[f"{str(i)}_3"] = states[::10, 2]
+		x = np.array([i for i in range(len(csv_data[f"{str(i)}_1"]))])
+		plt.plot(csv_data[f"{str(i)}_1"], csv_data[f"{str(i)}_2"])
+
+	df = pd.DataFrame(data=csv_data)
+	df.to_csv(
+		f"../../../experiment_measurements/{name}Simulated.csv",
+		sep=" ", header=False)
+
+	csv_data = {}
+	for i in range(num_drones):
+		states = np.array(result[f"state_set{i}"])
+		csv_data[f"{str(i)}set_1"] = states[::10, 0]
+		csv_data[f"{str(i)}set_2"] = states[::10, 1]
+		csv_data[f"{str(i)}set_3"] = states[::10, 2]
+		x = np.array([i for i in range(len(csv_data[f"{str(i)}set_1"]))])
+		plt.plot(csv_data[f"{str(i)}set_1"], csv_data[f"{str(i)}set_2"])
+
+	df = pd.DataFrame(data=csv_data)
+	df.to_csv(
+		f"../../../experiment_measurements/{name}SimulatedSetpoints.csv",
+		sep=" ", header=False)
+
+	with open(path_real_world, "rb") as file:
+		data = pickle.load(file)
+
+	#plt.figure()
+	csv_data = {}
+	for i in range(len(data)):
+		p = np.array(data[i])
+
+		csv_data[f"{str(i)}_1"] = p[::10, 0]
+		csv_data[f"{str(i)}_2"] = p[::10, 1]
+		csv_data[f"{str(i)}_3"] = p[::10, 2]
+		x = np.array([i for i in range(len(csv_data[f"{str(i)}_1"]))])
+		plt.plot(csv_data[f"{str(i)}_1"], csv_data[f"{str(i)}_2"])
+
+	df = pd.DataFrame(data=csv_data)
+	df.to_csv(
+		f"../../../experiment_measurements/{name}Real.csv",
+		sep=" ", header=False)
+
+	with open(path_real_world_setpoints, "rb") as file:
+		data = pickle.load(file)
+
+	csv_data = {}
+	for i in range(num_drones):
+		p = np.array(data[i])
+
+		csv_data[f"{str(i)}set_1"] = []
+		csv_data[f"{str(i)}set_2"] = []
+		csv_data[f"{str(i)}set_3"] = []
+		for j in range(len(data)):
+			csv_data[f"{str(i)}set_1"].append(data[j][i+1][0])
+			csv_data[f"{str(i)}set_2"].append(data[j][i+1][1])
+			csv_data[f"{str(i)}set_3"].append(data[j][i+1][2])
+		x = np.array([i for i in range(len(csv_data[f"{str(i)}set_1"]))])
+		csv_data[f"{str(i)}set_1"] = np.array(csv_data[f"{str(i)}set_1"])
+		csv_data[f"{str(i)}set_2"] = np.array(csv_data[f"{str(i)}set_2"])
+		csv_data[f"{str(i)}set_3"] = np.array(csv_data[f"{str(i)}set_3"])
+		plt.plot(csv_data[f"{str(i)}set_1"], csv_data[f"{str(i)}set_2"])
+	plt.show()
+
+	df = pd.DataFrame(data=csv_data)
+	df.to_csv(
+		f"../../../experiment_measurements/{name}RealSetpoints.csv",
+		sep=" ", header=False)
+
+
 if __name__ == "__main__":
+	path_simulation = "../../../batch_simulation_results/dmpc/dmpc_simulation_results_not_ignore_message_loss_demo1/simulation_result-6_drones_simnr_1.pkl"
+	path_real_world = "../../../experiment_measurements/ExperimentDemo.pickle"
+	path_real_world_setpoints = "../../../experiment_measurements/CU20setpoints500.p"
+	compare_simulation_real_world(path_simulation, path_real_world, path_real_world_setpoints, 6, "Demo")
+	exit(0)
+
 	evaluate_num_trigger_times(cu_ids=[20, 21], alpha_1=1, alpha_2=0, alpha_3=0, alpha_4=1, simulated=True)
 
 	path = "../../../experiment_measurements/ExperimentDemoGood.pickle"
