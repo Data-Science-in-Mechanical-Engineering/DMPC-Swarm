@@ -136,7 +136,7 @@ if __name__ == "__main__":
 
 	parser.add_argument('--abort_simulation', default=True, type=bool, help='Total number of simulations')
 
-	parser.add_argument('--total_simulations', default=100, type=int, help='Total number of simulations')
+	parser.add_argument('--total_simulations', default=1000, type=int, help='Total number of simulations')
 	parser.add_argument('--network_message_loss', default=[0], type=list,
 						help='List of message loss values of the communication network')
 	parser.add_argument('--prediction_horizon', default=15, type=int, help='Prediction Horizon for DMPC')
@@ -226,7 +226,7 @@ if __name__ == "__main__":
 	parser.add_argument('--agent_dodge_distance', default=0.5, type=float)
 
 	parser.add_argument("--weight_band", default=0.5, type=float, help="")
-	parser.add_argument("--width_band", default=0.1, type=float, help="")
+	parser.add_argument("--width_band", default=0.3, type=float, help="")
 
 	ARGS = parser.parse_args()
 
