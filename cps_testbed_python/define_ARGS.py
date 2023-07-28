@@ -11,7 +11,7 @@ import compute_unit.setpoint_creator as sc
 def define_ARGS():
     parser = argparse.ArgumentParser(
         description='ARGS for the ET-DMPC')
-    parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 4: "Vicon", 5: "Vicon", 6: "Vicon", 7: "Vicon", 8: "Vicon", 9: "Vicon", 10: "Vicon"}, type=dict,
+    parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 4: "Vicon", 5: "Vicon", 6: "Vicon", 7: "Vicon", 8: "Vicon", 9: "Mobile", 10: "Mobile"}, type=dict,
                         help='drone IDs with name of the testbed', metavar='')
     parser.add_argument('--num_targets_per_drone', default=3, type=int,
                         help='Number of targets', metavar='')
@@ -43,7 +43,7 @@ def define_ARGS():
     parser.add_argument('--INIT_XYZS', default={}, type=dict, help='Initial drone positions')
     parser.add_argument('--INIT_TARGETS', default={}, type=dict, help='Initial target positions')
     parser.add_argument('--testbeds', default={"Vicon": ([-1.8, -1.8, 0.3], [1.8, 1.8, 3.0], [0, 0, 0]),
-                                               "Mobile": ([-0.7, -0.7, 0.7], [0.7, 0.7, 1.1], [100, 100, 0])},
+                                               "Mobile": ([-0.7, -0.7, 0.5], [0.7, 0.7, 1.1], [0, 0, 0])},
                         type=dict, help='Testbeds of the system. Format: name: (min, max, offset)')
     parser.add_argument('--pos_offset', default={}, type=dict, help='Corresponding spatial offsets for drones')
     parser.add_argument('--testbed_size', default=[3.7, 3.7, 3.7], type=list, help='Size of the testbed')
@@ -59,13 +59,13 @@ def define_ARGS():
     parser.add_argument('--use_qpsolvers', default=True, type=bool,
                         help='Select, whether qpsolver is used for data planning')
 
-    parser.add_argument('--alpha_1', default=100.0*1, type=bool,
+    parser.add_argument('--alpha_1', default=1, type=bool,
                         help='Weight in event-trigger')
-    parser.add_argument('--alpha_2', default=10.0*0, type=bool,
+    parser.add_argument('--alpha_2', default=0, type=bool,
                         help='Weight in event-trigger')
-    parser.add_argument('--alpha_3', default=100*0, type=bool,
+    parser.add_argument('--alpha_3', default=0, type=bool,
                         help='Weight in event-trigger')
-    parser.add_argument('--alpha_4', default=10.0*0, type=bool,
+    parser.add_argument('--alpha_4', default=1, type=bool,
                         help='Weight in event-trigger')
 
     parser.add_argument('--remove_redundant_constraints', default=False, type=bool,
@@ -79,6 +79,12 @@ def define_ARGS():
     parser.add_argument('--use_high_level_planner', default=True, type=bool)
 
     parser.add_argument('--dynamic_swarm', default=True, type=bool)   # if drones should be added dynamically or not.
+
+    parser.add_argument("--weight_band", default=0.5, type=float, help="")
+    parser.add_argument("--width_band", default=0.3, type=float, help="")
+
+    parser.add_argument("--save_snapshot_times", default=[150], type=any, help="")
+
     ARGS = parser.parse_args()
 
     ARGS.drone_ids = list(ARGS.drones.keys())
@@ -100,7 +106,7 @@ def define_ARGS():
         ARGS.min_positions[key] = np.array(ARGS.testbeds[testbed][0]) + offset
         ARGS.max_positions[key] = np.array(ARGS.testbeds[testbed][1]) + offset
         print(f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
-    ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds)
+    ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=0)
     """
     testbed = cuboid.Cuboid(np.array([0.4, 0.4, 0.3]), np.array([ARGS.testbed_size[0], 0, 0]),
                             np.array([0, ARGS.testbed_size[1], 0]),

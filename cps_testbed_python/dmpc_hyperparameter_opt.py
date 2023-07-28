@@ -47,7 +47,7 @@ def create_dir(path_to_logger):
 
 
 def parallel_simulation_wrapper(ARGS_for_simulation):
-	sim = simulation.Simulation(ARGS_for_simulation)
+	sim = simulation.Simulation(ARGS_for_simulation, ARGS_for_simulation.cus)
 	sim.run()
 	del sim
 	gc.collect()
@@ -99,9 +99,9 @@ if __name__ == "__main__":
 		description='Helix flight script using CtrlAviary or VisionAviary and DSLPIDControl')
 	parser.add_argument('--drone', default="cf2x", type=DroneModel, help='Drone model (default: CF2X)', metavar='',
 						choices=DroneModel)
-	parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 4: "Vicon", 5: "Vicon", 6: "Vicon"}, type=dict,
+	parser.add_argument('--drones', default={i: "Vicon" for i in range(1, 7)}, type=dict,
 						help='drone IDs with name of the testbed', metavar='')
-	parser.add_argument('--computing_agent_ids', default=[i for i in range(40, 42)], type=list, help='List of Computing Agent IDs')
+	parser.add_argument('--computing_agent_ids', default=[i for i in range(20, 22)], type=list, help='List of Computing Agent IDs')
 	parser.add_argument('--testbeds', default={"Vicon": ([-1.8, -1.8, 0.3], [1.8, 1.8, 3.0], [0, 0, 0])},
                         type=dict, help='Testbeds of the system. Format: name: (min, max, offset)')
 
@@ -189,7 +189,7 @@ if __name__ == "__main__":
 	parser.add_argument('--alpha_4', default=1*1, type=bool,
 
 						help='Weight in event-trigger')
-	parser.add_argument('--save_video', default=True, type=bool,
+	parser.add_argument('--save_video', default=False, type=bool,
 						help='Select, whether a video should be saved')
 	parser.add_argument('--remove_redundant_constraints', default=False, type=bool,
 						help='Select, whether a video should be saved')
@@ -239,7 +239,14 @@ if __name__ == "__main__":
 						help='if the cus should use their own targets')
 
 	parser.add_argument("--weight_band", default=0.5, type=float, help="")
-	parser.add_argument("--width_band", default=0.1, type=float, help="")
+	parser.add_argument("--width_band", default=0.3, type=float, help="")
+
+	parser.add_argument("--load_cus", default=True, type=float, help="")
+	parser.add_argument("--load_cus_round_nmbr", default=150, type=int, help="")
+
+	parser.add_argument("--save_snapshot_times", default=[], type=any, help="")
+
+	parser.add_argument("--simulate_quantization", default=True, type=bool, help="")
 
 	ARGS = parser.parse_args()
 
@@ -250,6 +257,8 @@ if __name__ == "__main__":
 	ARGS.max_positions = {}
 	ARGS.min_positions = {}
 	ARGS.pos_offset = {}
+
+	ARGS.cus = []
 
 	print("Initializing drones:")
 	for key in ARGS.drones:
@@ -308,25 +317,47 @@ if __name__ == "__main__":
 	CIRCLE = 1
 	init_method = CIRCLE
 	a = 2
-	if init_method == CIRCLE:
-		r = 1.5
-		INIT_XYZS = [None for i in range(ARGS.num_drones[0])]
-		INIT_TARGETS = [None for i in range(ARGS.num_drones[0])]
-		for i in range(0, ARGS.num_drones[0]):
-			INIT_XYZS[i] = [r * math.cos(2 * 3.141 / ARGS.num_drones[0] * i),
-							  r * math.sin(2 * 3.141 / ARGS.num_drones[0] * i), 1.0]
-			INIT_TARGETS[i] = [r * math.cos(2 * 3.141/ ARGS.num_drones[0] * i + math.pi * (1.0)),
-								r * math.sin(2 * 3.141 / ARGS.num_drones[0] * i + math.pi * (1.0)), 1.0]
 
+	cus = []
+	# if we do not load cus, then use some other init positions.
+	if not ARGS.load_cus:
+		if init_method == CIRCLE:
+			r = 1.5
+			INIT_XYZS = [None for i in range(ARGS.num_drones[0])]
+			INIT_TARGETS = [None for i in range(ARGS.num_drones[0])]
+			for i in range(0, ARGS.num_drones[0]):
+				INIT_XYZS[i] = [r * math.cos(2 * 3.141 / ARGS.num_drones[0] * i),
+								  r * math.sin(2 * 3.141 / ARGS.num_drones[0] * i), 1.0]
+				INIT_TARGETS[i] = [r * math.cos(2 * 3.141/ ARGS.num_drones[0] * i + math.pi * (1.0)),
+									r * math.sin(2 * 3.141 / ARGS.num_drones[0] * i + math.pi * (1.0)), 1.0]
+
+			INIT_XYZS = np.array(INIT_XYZS)
+			INIT_TARGETS = np.array(INIT_TARGETS)
+		elif init_method == TESTBED:
+			INIT_XYZS = np.array([[-1, 1, 1], [0, 1, 1], [1, 1, 1],
+								  [-1.5, 0, 1], [-0.5, 0, 1], [0.5, 0, 1],
+								  #[1.5, 0, 1],
+								  #[-1, -1, 1] #, [0, -1, 1], [1, -1, 1]
+								  ])
+			INIT_TARGETS = INIT_XYZS + 1000
+	else:
+		print("Loading CUs")
+		# use init pos from loaded CUs
+		for cu_id in ARGS.computing_agent_ids:
+			with open("../../experiment_measurements" +
+				f"/CU{cu_id}snapshot{ARGS.load_cus_round_nmbr}.p", 'rb') \
+					as in_file:
+				cus.append(pickle.load(in_file))
+
+		INIT_XYZS = []
+		for drone_id in cus[0].agent_ids:
+			INIT_XYZS.append(list(cus[0].get_agent_position(drone_id)))
+			# print(cus[0].get_agent_input(drone_id))
 		INIT_XYZS = np.array(INIT_XYZS)
-		INIT_TARGETS = np.array(INIT_TARGETS)
-	elif init_method == TESTBED:
-		INIT_XYZS = np.array([[-1, 1, 1], [0, 1, 1], [1, 1, 1],
-							  [-1.5, 0, 1], [-0.5, 0, 1], [0.5, 0, 1],
-							  #[1.5, 0, 1],
-							  #[-1, -1, 1] #, [0, -1, 1], [1, -1, 1]
-							  ])
+		print(INIT_XYZS)
+
 		INIT_TARGETS = INIT_XYZS + 1000
+		ARGS.cus = cus
 
 
 	# load_data_path = None

@@ -50,7 +50,8 @@ def parallel_simulation_wrapper(ARGS_for_simulation):
 
 
 def call_batch_simulation(ARGS_array, name_files="test",
-                          message_loss_probability=0.0, ignore_message_loss=False, num_cus=None):
+                          message_loss_probability=0.0, ignore_message_loss=False, num_cus=None,
+						  simulate_quantization=False):
 	for ARGS in ARGS_array:
 		ARGS.path = os.path.dirname(os.path.abspath(__file__)) + "/../../batch_simulation_results/dmpc/" \
 															+ name_files
@@ -60,6 +61,7 @@ def call_batch_simulation(ARGS_array, name_files="test",
 		if num_cus is not None:
 			ARGS.num_computing_agents = num_cus
 			ARGS.computing_agent_ids = [i for i in range(40, 40+num_cus)]
+		ARGS.simulate_quantization = simulate_quantization
 
 	with open(ARGS_array[0].path + "/ARGS.pkl", 'wb') as out_file:
 		pickle.dump(ARGS_array, out_file)
@@ -228,6 +230,13 @@ if __name__ == "__main__":
 	parser.add_argument("--weight_band", default=0.5, type=float, help="")
 	parser.add_argument("--width_band", default=0.3, type=float, help="")
 
+	parser.add_argument("--load_cus", default=False, type=float, help="")
+	parser.add_argument("--load_cus_round_nmbr", default=150, type=int, help="")
+
+	parser.add_argument("--save_snapshot_times", default=[], type=any, help="")
+
+	parser.add_argument("--simulate_quantization", default=True, type=bool, help="")
+
 	ARGS = parser.parse_args()
 
 	ARGS.drone_ids = list(ARGS.drones.keys())
@@ -313,8 +322,10 @@ if __name__ == "__main__":
 
 	for num_cus in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
 		for message_loss_prob in [0, 0.01, 0.1]:
-			call_batch_simulation(ARGS_array, name_files=f"dmpc_simulation_results_ignore_message_loss_{int(100*message_loss_prob+1e-7)}_{num_cus}cus",
-								  message_loss_probability=message_loss_prob, ignore_message_loss=False, num_cus=num_cus)
+			for simulate_quantization in [True]:
+				call_batch_simulation(ARGS_array, name_files=f"dmpc_simulation_results_ignore_message_loss_{int(100*message_loss_prob+1e-7)}_{num_cus}cus_{'quant' if simulate_quantization else ''}",
+									  message_loss_probability=message_loss_prob, ignore_message_loss=False,
+									  num_cus=num_cus, simulate_quantization=simulate_quantization)
 
 	#for num_cus in [1, 3, 5, 7, 9, 11, 13, 15]:
 #		call_batch_simulation(ARGS_array, name_files=f"dmpc_simulation_results_not_ignore_message_loss_001_{num_cus}_cus5",#
