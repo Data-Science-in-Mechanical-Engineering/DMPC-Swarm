@@ -213,7 +213,8 @@ class Simulation:
                         print("44444444444")
                         print(trajectory.trajectory_start_time)
                         if abs(trajectory.trajectory_start_time - (self.__ARGS.load_cus_round_nmbr)*0.2) < 1e-5:
-                            trajectory = cu.get_trajectory_tracker().get_information(self.__ARGS.drone_ids[i]).content[1]
+                            assert False
+                            trajectory = cu.get_trajectory_tracker().get_information(self.__ARGS.drone_ids[i]).content[0]
                             print(trajectory.trajectory_start_time)
                     trajectory_starting_times.append(trajectory.trajectory_start_time)
                     trajectory_cu_id = trajectory.trajectory_calculated_by

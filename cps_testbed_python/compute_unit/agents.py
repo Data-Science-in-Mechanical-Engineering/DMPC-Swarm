@@ -93,8 +93,8 @@ def simulate_quantization_trajectory_message(message):
     for j in range(6, 9):
         message_quant.init_state[j] = real_compute_unit.dequantize_acc(real_compute_unit.quantize_acc(message.init_state[j]))
 
-    for j in range(0, 3):
-        message_quant.init_state[j] = real_compute_unit.dequantize_pos(real_compute_unit.quantize_pos(message.init_state[j]))
+    #for j in range(0, 3):
+    #    message_quant.init_state[j] = real_compute_unit.dequantize_pos(real_compute_unit.quantize_pos(message.init_state[j]))
     return message_quant
 
 
@@ -1441,6 +1441,9 @@ class ComputationAgent(net.Agent):
 
     def get_agent_position(self, agent_id):
         return self.__trajectory_tracker.get_information(agent_id).content[0].current_state[0:3]
+
+    def get_agent_input(self, agent_id):
+        return self.__trajectory_tracker.get_information(agent_id).content[0].coefficients.coefficients
 
     def set_simulate_quantization(self, value):
         self.__simulate_quantization = value

@@ -352,6 +352,7 @@ if __name__ == "__main__":
 		INIT_XYZS = []
 		for drone_id in cus[0].agent_ids:
 			INIT_XYZS.append(list(cus[0].get_agent_position(drone_id)))
+			# print(cus[0].get_agent_input(drone_id))
 		INIT_XYZS = np.array(INIT_XYZS)
 		print(INIT_XYZS)
 
