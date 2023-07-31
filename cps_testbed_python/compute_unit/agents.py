@@ -467,7 +467,11 @@ class ComputationAgent(net.Agent):
             pass
         elif slot_group_id == self.__slot_group_setpoints_id:
             if self.__send_setpoints:
-                setpoint_message = SetpointMessageContent(self.__high_level_setpoints)
+                setpoints = copy.deepcopy(self.__high_level_setpoints)
+                if setpoints is not None:
+                    for agent_id in setpoints:
+                        setpoints[agent_id] -= self.__pos_offset[agent_id]
+                setpoint_message = SetpointMessageContent(setpoints)
                 setpoint_message = setpoint_message if not self.__simulate_quantization else simulate_quantization_setpoints_message(setpoint_message)
                 return net.Message(self.ID, slot_group_id, setpoint_message)
             else:
@@ -509,7 +513,7 @@ class ComputationAgent(net.Agent):
 
         if message.slot_group_id == self.__slot_group_drone_state:
             message.content.state[0:3] += self.__pos_offset[message.ID]
-            self.print(f"Received pos from {message.ID}: {message.content.state[0:3]}")
+            self.print(f"Received pos from {message.ID}: {message.content.state}")
             message.content.target_position += self.__pos_offset[message.ID]
             self.__received_drone_state_messages.append(message)
             # The state is measured at the beginning of the round and extrapolated by drone
@@ -602,7 +606,10 @@ class ComputationAgent(net.Agent):
 
         if message.slot_group_id == self.__slot_group_setpoints_id:
             self.__received_setpoints = copy.deepcopy(message.content.setpoints)
-            self.print(f"New setpoints: {self.__received_setpoints}")
+            if self.__received_setpoints is not None:
+                for agent_id in self.__received_setpoints:
+                    self.__received_setpoints[agent_id] += self.__pos_offset[agent_id]
+                self.print(f"New setpoints: {self.__received_setpoints}")
             pass
 
     def round_finished(self, round_nmbr=None):
@@ -755,6 +762,7 @@ class ComputationAgent(net.Agent):
                     trajectory.coefficients,
                     x0=trajectory.current_state,
                     integration_start=self.__current_time - trajectory.trajectory_start_time)
+                print(f"Current_pos: {trajectory.current_state[0:3]}")
         # calculate current state of all agents
         for i in range(0, self.__num_agents):
             id = self.__agents_ids[i]
@@ -772,13 +780,10 @@ class ComputationAgent(net.Agent):
         if self.__trajectory_tracker.no_information_deprecated and self.__system_state != WAIT_FOR_UPDATE:
             self.__system_state = NORMAL
 
-        print(f".................{self.__system_state}")
         if self.__system_state == NORMAL:
             if self.__use_own_targets:
                 self.update_target_ids()
                 self.__current_target_positions = self.get_targets()
-                print("77777777777777777")
-                print(self.__current_target_positions)
             if len(self.__agents_ids) <= self.__comp_agent_prio:
                 prios = self.calc_prio()
                 self.__last_received_messages = {self.ID: EmtpyContent(prios)}
@@ -1021,7 +1026,7 @@ class ComputationAgent(net.Agent):
             dynamic_trajectory_age=dynamic_trajectory_age,
             static_trajectory_age=static_trajectory_age,
             use_nonlinear_mpc=False,
-            high_level_setpoints= high_level_setpoint #None if self.__high_level_setpoints is None else self.__high_level_setpoints[current_id]
+            high_level_setpoints=high_level_setpoint #None if self.__high_level_setpoints is None else self.__high_level_setpoints[current_id]
         )
 
     def get_targets(self):
@@ -1087,8 +1092,9 @@ class ComputationAgent(net.Agent):
                 dist_to_target = np.linalg.norm(targets[id] -
                                                 self.__trajectory_tracker.get_information(id).content[0].init_state[0:3])
             if dist_to_target < threshold_dist:
-                self.print("AGENT " + str(id) + " REACHED TARGET " + str(self.__agent_target_id[id]))
-                self.print(targets[id])
+                #self.print("AGENT " + str(id) + " REACHED TARGET " + str(self.__agent_target_id[id]))
+                #self.print(targets[id])
+                pass
             else:
                 all_drones_reached_current_target = False
                 all_drones_reached_target = False
@@ -1135,7 +1141,6 @@ class ComputationAgent(net.Agent):
             prios[i] += self.__alpha_2 * (self.__current_time - max_starting_time) / max_time #self.__agents_starting_times[own_id]) / max_time  # 0.1
             prios[i] += self.__alpha_1 * dist_to_target / max_dist * (self.__current_time - max_starting_time) / max_time
             prios[i] += self.__alpha_3 * dist_to_target / max_dist
-            print(prios[i])
 
             if own_id in self.__state_feedback_triggered:
                 prios[i] += state_feeback_triggered_prio
@@ -1144,7 +1149,6 @@ class ComputationAgent(net.Agent):
                 prios[i] += -100000000 * self.__alpha_4
 
 
-        print(prios)
         # quantize prios
         for i in range(len(prios)):
             if prios[i] >= state_feeback_triggered_prio:
@@ -1155,18 +1159,18 @@ class ComputationAgent(net.Agent):
                 prios[i] = int(round(prios[i] / (self.__alpha_1 + self.__alpha_2 + self.__alpha_3 + self.__alpha_4)*(2**quantization_bit_number-1)))
                 if prios[i] > 2**quantization_bit_number-2:
                     prios[i] = int(2 ** quantization_bit_number - 2)
-        print("zzzzzzzzzzzzzzz")
-        print(prios)
+        # print("zzzzzzzzzzzzzzz")
+        # print(prios)
         return prios
 
     def print(self, text):
         print("[" + str(self.ID) + "]: " + str(text))
 
     def deadlock_breaker_condition(self, agent_id, other_agent_id, check_time=False):
-        self.print("000000111111111111111111111111")
-        self.print(self.__current_time - self.__time_last_deadlock)
+        # self.print("000000111111111111111111111111")
+        # self.print(self.__current_time - self.__time_last_deadlock)
         if self.__current_time - self.__time_last_deadlock <= 4 and check_time:   # only check time, if we are already in the deadlock breaker
-            print(".........................................................")
+            # print(".........................................................")
             return True
 
         if other_agent_id == agent_id:
@@ -1216,7 +1220,6 @@ class ComputationAgent(net.Agent):
         # if the CU is not the one calculating the high level targets, do not calculate them.
         if not self.__send_setpoints: #and self.__simulated:
             return
-
         # get the current position of all agents.
         current_pos = {}
         for agent_id in self.__agents_ids:

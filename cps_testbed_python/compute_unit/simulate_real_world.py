@@ -189,7 +189,7 @@ if __name__ == "__main__":
 	parser.add_argument('--alpha_4', default=1*1, type=bool,
 
 						help='Weight in event-trigger')
-	parser.add_argument('--save_video', default=True, type=bool,
+	parser.add_argument('--save_video', default=False, type=bool,
 						help='Select, whether a video should be saved')
 	parser.add_argument('--remove_redundant_constraints', default=False, type=bool,
 						help='Select, whether a video should be saved')
@@ -241,7 +241,7 @@ if __name__ == "__main__":
 	parser.add_argument("--weight_band", default=0.5, type=float, help="")
 	parser.add_argument("--width_band", default=0.3, type=float, help="")
 
-	parser.add_argument("--load_cus", default=False, type=float, help="")
+	parser.add_argument("--load_cus", default=True, type=float, help="")
 	parser.add_argument("--load_cus_round_nmbr", default=150, type=int, help="")
 
 	parser.add_argument("--save_snapshot_times", default=[], type=any, help="")
@@ -270,7 +270,7 @@ if __name__ == "__main__":
 		print(
 			f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
 
-	ARGS.setpoint_creator = setpoint_creator.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=setpoint_creator.DEMO)
+	ARGS.setpoint_creator = setpoint_creator.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=0)
 
 	if ARGS.hyperparameter_optimization:
 		ARGS.save_video = False
@@ -280,7 +280,7 @@ if __name__ == "__main__":
 		"%m_%d_%Y_%H_%M_%S")
 
 	path = os.path.dirname(os.path.abspath(__file__)) + "\\..\\..\\batch_simulation_results\\dmpc\\" \
-														"dmpc_simulation_results_not_ignore_message_loss_demo1"
+														"dmpc_simulation_results_compare_real_world"
 
 	testbed = cuboid.Cuboid(np.array([0.4, 0.4, 0.3]), np.array([ARGS.testbed_size[0], 0, 0]),
 							np.array([0, ARGS.testbed_size[1], 0]),
