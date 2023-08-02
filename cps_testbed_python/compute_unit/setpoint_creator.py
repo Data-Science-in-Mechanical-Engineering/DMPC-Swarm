@@ -6,6 +6,7 @@ import math
 CIRCLE = 0
 DEMO = 1
 CIRCLE_DYNAMIC = 2
+MESSAGE_LOSS_CRASH = 3
 
 
 class SetpointCreator:
@@ -79,6 +80,8 @@ class SetpointCreator:
 				self.__current_setpoints[drone_id] = self.generate_new_demo_setpoint(drone_id)
 			elif self.__demo_setpoints == CIRCLE_DYNAMIC:
 				self.__current_setpoints[drone_id] = self.generate_new_dynamic_circle_setpoint(drone_id)
+			elif self.__demo_setpoints == MESSAGE_LOSS_CRASH:
+				self.__current_setpoints[drone_id] = self.generate_new_message_loss_crash_setpoint(drone_id)
 
 		setpoints_changed = False
 		for k in self.__current_setpoints:
@@ -125,6 +128,15 @@ class SetpointCreator:
 		else:
 			angle = 2 * math.pi * (self.__round) / 50.0 + 2 * math.pi * drone_id / 2 + math.pi
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean
+
+	def generate_new_message_loss_crash_setpoint(self, drone_id):
+		if drone_id > 2:
+			return np.array([0.0, 0.0, 0.0])
+		if self.__round <= 150:
+			targets = {1: [-1.2, 0.0, 1], 2: [1.2, 0, 1]}
+		else:
+			targets = {1: [1.2, 0.0, 1], 2: [-1.2, 0, 1]}
+		return np.array(targets[drone_id])
 
 
 	def generate_new_setpoint(self, name_testbed):
