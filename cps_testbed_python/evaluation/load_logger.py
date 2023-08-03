@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 
+import pandas as pd
+
 
 def print_success_statistics(num_drones, message_loss, num_cus, quant):
 	path = str(Path('~').expanduser()) + f"/Documents/batch_simulation_results/" \
@@ -81,13 +83,16 @@ def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
 
 	target_reached_times = []
 
-	for num_cus in range(1, num_drones, 2):
-		path = str(Path('~').expanduser()) + f"/Documents/batch_simulation_results/" \
-											 f"dmpc/dmpc_simulation_results_iml{ignore_message_loss}_{int(round(100 * message_loss))}_{num_cus}cus_{'' if not quant else 'quant'}"
+	for num_cus in range(1, num_drones+1, 2):
+		path = "../../../batch_simulation_results/" \
+				f"dmpc/dmpc_simulation_results_ignore_message_loss_{int(round(100 * message_loss))}_{num_cus}cus"
+		# f"dmpc/dmpc_simulation_results_iml{ignore_message_loss}_{int(round(100 * message_loss))}_{num_cus}cus_{'' if not quant else 'quant'}"
+		print(path)
 		files = [os.path.join(path, f) for f in os.listdir(path) if
 				 f.startswith(f"simulation_result-{num_drones}_drones_simnr_")]
 
 		target_reached_time = []
+		print(files)
 		for f in files:
 			result = p.load(open(f, "rb"))
 			if result["crashed"][0]:
@@ -96,17 +101,30 @@ def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
 
 		target_reached_times.append(target_reached_time)
 
+	target_reached_times_np = np.array(target_reached_times)
+	print(np.max(target_reached_times_np, axis=1))
+
+	boxplot_data = {}
+	boxplot_data["index"] = np.array([i for i in range(1, num_drones+1, 2)])
+	boxplot_data["median"] = np.median(target_reached_times_np, axis=1)
+	boxplot_data["box_top"] = np.percentile(target_reached_times_np, q=75, axis=1)
+	boxplot_data["box_bottom"] = np.percentile(target_reached_times_np, q=25, axis=1)
+	boxplot_data["whisker_top"] = np.percentile(target_reached_times_np, q=95, axis=1)
+	boxplot_data["whisker_bottom"] = np.percentile(target_reached_times_np, q=5, axis=1)
+
+	df = pd.DataFrame(data=boxplot_data)
+	df.to_csv(
+		f"../../../experiment_measurements/UAVs{num_drones}Boxplot.csv",
+		sep=" ", header=False, index=False)
+
 	plt.figure()
 	plt.boxplot(target_reached_times)
 	plt.show()
 
 if __name__ == "__main__":
 	plot_comparison(10, 0, ignore_message_loss=False, quant=False)
-	exit(0)
 
-	path = "C:\\Users\\mf724021\\Documents\\003_Testbed\\007_Code\\batch_simulation_results\\dmpc\\dmpc_simulation_results_ignore_message_loss_000_2cus"
-		   #"batch_simulation_results\\dmpc\\dmpc_simulation_results_not_ignore_message_loss_005\\"
-	path = str(Path('~').expanduser()) + "/Documents/batch_simulation_results/" \
+	path = "../../../batch_simulation_results/" \
 										  "dmpc/dmpc_simulation_results_imlFalse_0_1cus_"
 	plot_states = False
 	num_drones = 15
