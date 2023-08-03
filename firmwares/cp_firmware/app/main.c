@@ -164,7 +164,7 @@ static uint8_t			agg_input[AGGREGATE_SIZE];
 // ATTENTION: it is important to have TOS_NODE_ID in .data (not in .bss), otherwise tos-set-symbol
 // will not work
 uint16_t __attribute__((section(".data")))	TOS_NODE_ID = 0;
-#define THIS_NODE_ID 9
+#define THIS_NODE_ID 21
 //**************************************************************************************************
 //***** Global Functions ****************************************************************************
 
@@ -635,7 +635,7 @@ int main()
     gpi_milli_sleep(5000);
     for (int i = 0; i < NUM_ELEMENTS(cu_nodes); i++) {
       if (TOS_NODE_ID == cu_nodes[i]) {
-        run_cu_os(TOS_NODE_ID);
+        run_cu_os(TOS_NODE_ID, i==0);
       }
     }
 

@@ -49,7 +49,8 @@ static message_assignment_t message_assignment[] = {{.id=1, .size=sizeof(state_m
                                                     //{.id=3, .size=sizeof(state_message_t)},
                                                     {.id=20, .size=sizeof(trajectory_message_t)},
                                                     {.id=21, .size=sizeof(trajectory_message_t)},
-                                                    {.id=100, .size=sizeof(state_message_t)}
+                                                    {.id=100, .size=sizeof(state_message_t)},
+                                                    {.id=200, .size=sizeof(target_positions_message_t)}
                                                    };
 /*{{.id=1, .size=sizeof(state_message_t)}, 
                                                     {.id=2, .size=sizeof(state_message_t)},
@@ -59,7 +60,7 @@ static message_assignment_t message_assignment[] = {{.id=1, .size=sizeof(state_m
 //static const uint8_t nodes[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21};
 
 #define MX_NUM_NODES			NUM_ELEMENTS(nodes)
-#define MX_INITIATOR_ID			nodes[0] // 1
+#define MX_INITIATOR_ID			20 // nodes[0] // 1
 #define MX_PAYLOAD_ONLY			20 // 16B state and 4B control input for logging
 #define MX_PAYLOAD_SIZE			42 // 2 byte for header 90 bytes for 2 byte quantizized trajectory
 #define DEFAULT_MODE			0
@@ -77,7 +78,7 @@ static message_assignment_t message_assignment[] = {{.id=1, .size=sizeof(state_m
 
 
 #define NUM_PLANTS				NUM_ELEMENTS(plants)
-#define MX_GENERATION_SIZE		(18) // + initiator
+#define MX_GENERATION_SIZE 20 // + initiator
 
 
 // Possible values (Gpi_Radio_Mode):

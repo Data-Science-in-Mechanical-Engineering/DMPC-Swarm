@@ -52,7 +52,7 @@ static uint16_t communication_starts_callback(ap_message_t **data)
 void run_relay_os(uint8_t id, uint8_t m_send_land_command)
 { 
   init_ap_com(&hap_com, &send_uart, &receive_uart, &rx_wait_uart, &tx_wait_uart);
-  init_cp_os(&receive_data_from_AP, &send_data_to_AP, &communication_finished_callback, &communication_starts_callback, id, 0);
+  init_cp_os(&receive_data_from_AP, &send_data_to_AP, &communication_finished_callback, &communication_starts_callback, id, 0, 0);
   send_land_command = m_send_land_command;
   run();
 }

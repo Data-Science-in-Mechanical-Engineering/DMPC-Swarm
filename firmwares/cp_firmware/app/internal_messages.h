@@ -69,12 +69,15 @@ typedef struct __attribute__((packed)) init_message_t_tag
 #define TYPE_EMTPY_MESSAGE TRANSFORM_TYPE(5)
 #define TYPE_START_SYNC_MOVEMENT TRANSFORM_TYPE(6)   // when this message is sent, the drones make a synchronized wave movement
 #define TYPE_SYNC_MOVEMENT_MESSAGE TRANSFORM_TYPE(7)
+#define TYPE_TARGET_POSITIONS_MESSAGE TRANSFORM_TYPE(8)
+#define TYPE_NETWORK_MEMBERS_MESSAGE TRANSFORM_TYPE(9)
 
 #define MESSAGES_SIZES(type) message_sizes(type)
 
 #define MAXIMUM_NUMBER_MESSAGES 100 // maximum number expected for one AP-CP communication round
 
 #define MAX_NUM_DRONES 10
+#define MAX_NUM_AGENTS 10
 
 typedef struct __attribute__((packed)) trajectory_message_t_tag
 {
@@ -110,6 +113,7 @@ typedef struct __attribute__((packed)) empty_message_t_tag
 {
         message_t header;
 	uint8_t cu_id;
+        uint8_t prios[MAX_NUM_DRONES];
 } empty_message_t;
 
 typedef struct __attribute__((packed)) sync_movement_message_t_tag
@@ -117,6 +121,21 @@ typedef struct __attribute__((packed)) sync_movement_message_t_tag
         message_t header;
         uint16_t angle;
 } sync_movement_message_t;
+
+typedef struct __attribute__((packed)) target_positions_message_t_tag
+{
+        message_t header;
+	uint8_t ids[MAX_NUM_DRONES];
+        uint16_t target_positions[3 * MAX_NUM_DRONES];
+} target_positions_message_t;
+
+typedef struct __attribute__((packed)) network_members_message_t_tag
+{
+        message_t header;
+	uint8_t ids[MAX_NUM_AGENTS];      // agents that are in the network (0, is an empty field)                  
+        uint8_t types[MAX_NUM_AGENTS];    // corresponding type of the agent 
+        uint8_t message_layer_area_agent_id[MAX_NUM_AGENTS];  // which message id belongs which network assignement (0 is an empty field)
+} network_members_message_t;
 
 
 // write all possible messages here. This allows us to quickly transform the data from bytes to usefull structs.
@@ -129,6 +148,8 @@ typedef union ap_message_t_tag
 	trajectory_req_message_t trajectory_req_message;
         empty_message_t empty_message;
 	sync_movement_message_t sync_movement_message;
+        target_positions_message_t target_positions_message;
+        network_members_message_t network_members_message;
 } ap_message_t;
 
 

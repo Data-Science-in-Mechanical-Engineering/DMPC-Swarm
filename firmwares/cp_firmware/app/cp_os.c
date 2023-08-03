@@ -9,6 +9,9 @@
 #include "gpi/clocks.h"
 #include "gpi/olf.h"
 #include "message_layer.h"
+#include "internal_messages.h"
+#include "network_manager.h"
+
 #include <string.h>
 
 static unsigned int send_idx = -1u;
@@ -27,12 +30,18 @@ static uint16_t (*communication_starts_callback)(ap_message_t**);
 static ap_message_t dummy_message;
 static uint8_t ap_connected;
 
+static uint8_t is_network_manager;
+
+static network_members_message_t network_manager_state;
+static network_members_message_t network_members_message;
+
 void init_cp_os(uint16_t (*receive_data_from_AP_p)(ap_message_t **), 
                 void (*send_data_to_AP_p)(ap_message_t *, uint16_t), 
                 uint8_t (*communication_finished_callback_p)(ap_message_t*, uint16_t), 
                 uint16_t (*communication_starts_callback_p)(ap_message_t**),
                 uint8_t id,
-                uint8_t m_ap_connnected)
+                uint8_t m_ap_connnected,
+                uint8_t m_is_network_manager)
 {
   receive_data_from_AP = receive_data_from_AP_p;
   send_data_to_AP = send_data_to_AP_p;
@@ -40,6 +49,13 @@ void init_cp_os(uint16_t (*receive_data_from_AP_p)(ap_message_t **),
   communication_starts_callback = communication_starts_callback_p;
   TOS_NODE_ID = id;
   ap_connected = m_ap_connnected;
+  is_network_manager = m_is_network_manager;
+
+  init_network_manager(&network_members_message);
+
+  if (is_network_manager) {
+    init_network_manager(&network_manager_state);
+  }
 
   for (uint16_t i = 0; i < NUM_PLANTS; i++) {
     if (plants[i] == TOS_NODE_ID)
@@ -134,7 +150,7 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
     mixer_set_weak_release_slot(WEAK_RELEASE_SLOT);
     mixer_set_weak_return_msg((void*)-1);
     // init aggregate callback (not important if we do not use aggregates, which we currently not do)
-    mixer_init_agg(&aggregate_M_C_highest);
+    mixer_init_agg(&aggregate_merge);
     // reset aggregate
     memset(agg_input, 0, AGGREGATE_SIZE);
 
@@ -159,18 +175,27 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
     uint16_t size_tx_messages = communication_starts_callback(tx_messages);
     
     // write aggregate (currently not used)
-    set_flag_in_agg(agg_input, plant_idx);
-    set_node_in_agg(agg_input, 0, TOS_NODE_ID);
-    set_prio_in_agg(agg_input, 0, 1);
+    //set_flag_in_agg(agg_input, plant_idx);
+    //set_node_in_agg(agg_input, 0, TOS_NODE_ID);
+    //set_prio_in_agg(agg_input, 0, 1);
     mixer_write_agg(agg_input);
     // write into mixer
     for (uint16_t tx_message_idx = 0; tx_message_idx < size_tx_messages; tx_message_idx++) {
       // when the agent does not want to send anything, it sends a TYPE_DUMMY
       if (tx_messages[tx_message_idx]->header.type != TYPE_DUMMY) {
         // the id of the message in the message layer is written in the header.
-        message_layer_set_message(tx_messages[tx_message_idx]->header.id, (uint8_t *) tx_messages[tx_message_idx]);
+
+        message_layer_set_message(get_message_area_idx(&network_members_message, tx_messages[tx_message_idx]->header.id), 
+            (uint8_t *) tx_messages[tx_message_idx]);
       }
     }
+
+    if (is_network_manager) {
+      message_layer_set_message(0, (uint8_t *) &network_manager_state);
+    }
+
+
+
     // arm mixer
     // start first round with infinite scan
     // -> nodes join next available round, does not require simultaneous boot-up
@@ -196,7 +221,6 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
     t_ref = mixer_start();
     NRF_P0->OUTSET = BV(25);
       
-
     // Just for Debug
     SET_COM_GPIO1();
 
@@ -229,6 +253,24 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
     // process received data (e.g. send it to AP) and finish, if the callback says so.
     if (communication_finished_callback(mixer_messages_received, messages_received_idx)) {
       break;
+    }
+
+    // read and process aggregate
+    if (is_network_manager) {
+      uint8_t *agg_rx = mixer_read_agg();
+      uint8_t id = 0;
+      uint8_t type = 0;
+      uint16_t max_size_message = 0;
+      aggregate_read(agg_rx, &id, &type, &max_size_message);
+      // if id is not 0, then a new message is registered
+      if (id != 0) {
+        // if the type is 255, then an already existing agent wants to reserve an other message area.
+        if (type != 255) {
+          add_new_agent(&network_manager_state, id, type, max_size_message);
+        } else {
+          add_new_message(&network_manager_state, id, max_size_message);
+        }
+      }
     }
   }
 }

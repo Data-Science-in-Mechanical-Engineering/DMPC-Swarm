@@ -95,6 +95,8 @@
       <file file_name="message_layer.h" />
       <file file_name="relay_os.c" />
       <file file_name="relay_os.h" />
+      <file file_name="network_manager.c" />
+      <file file_name="network_manager.h" />
     </folder>
     <folder Name="System Files">
       <file file_name="thumb_crt0.s" />

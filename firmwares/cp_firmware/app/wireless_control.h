@@ -22,7 +22,7 @@ ASSERT_CT_STATIC(NODE_ID_WIDTH <= 8, NODE_ID_WIDTH_greater_8_is_not_implemented)
 	#error "NOT IMPLEMENTED"
 	#define AGGREGATE_SIZE	AGGREGATE_SIZE_ALL_PRIORITIES
 #else
-	#define AGGREGATE_SIZE	AGGREGATE_SIZE_M_C_PRIORITIES
+	#define AGGREGATE_SIZE	4 // agent_id + type + 2byte for max_message_size  // AGGREGATE_SIZE_M_C_PRIORITIES
 #endif
 
 typedef uint8_t priority_t;

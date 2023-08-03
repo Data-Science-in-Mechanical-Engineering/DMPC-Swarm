@@ -294,8 +294,8 @@ void gpi_platform_init()
 	NRF_P0->PIN_CNF[0] =
 		BV_BY_NAME(GPIO_PIN_CNF_DIR, Input)			|
 		BV_BY_NAME(GPIO_PIN_CNF_INPUT, Connect)		|
-		BV_BY_NAME(GPIO_PIN_CNF_PULL, Disabled)		| // see DPP2_user_guide
-		// BV_BY_NAME(GPIO_PIN_CNF_PULL, Pullup)		|
+		//BV_BY_NAME(GPIO_PIN_CNF_PULL, Disabled)		| // see DPP2_user_guide
+		BV_BY_NAME(GPIO_PIN_CNF_PULL, Pullup)		|
 		BV_BY_NAME(GPIO_PIN_CNF_SENSE, Disabled);
 
 	// P0.02: GPIO / AIN0, used as COM_TREQ
@@ -385,6 +385,7 @@ void gpi_platform_init()
 		BV_BY_NAME(GPIO_PIN_CNF_DIR, Output)		|
 		BV_BY_NAME(GPIO_PIN_CNF_INPUT, Disconnect)	|
 		BV_BY_NAME(GPIO_PIN_CNF_PULL, Disabled)		|
+                //BV_BY_NAME(GPIO_PIN_CNF_PULL, Pullup)           |
 		BV_BY_NAME(GPIO_PIN_CNF_DRIVE, S0S1)		|
 		BV_BY_NAME(GPIO_PIN_CNF_SENSE, Disabled);
 	NRF_P0->OUTSET = BV(30);

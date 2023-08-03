@@ -72,7 +72,8 @@ void init_cp_os(uint16_t (*receive_data_from_AP_p)(ap_message_t **),
                 uint8_t (*communication_finished_callback_p)(ap_message_t*, uint16_t), 
                 uint16_t (*communication_starts_callback_p)(ap_message_t**),
                 uint8_t id,
-                uint8_t ap_connnected);
+                uint8_t ap_connnected,
+                uint8_t is_network_manager);
 
 /**
  * runs the communication processor. Call this method to run the communication including search for AP and other CPs

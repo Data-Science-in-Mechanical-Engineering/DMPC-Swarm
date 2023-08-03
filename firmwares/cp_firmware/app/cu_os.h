@@ -51,6 +51,6 @@
 #include "cu_os.h"
 #include <stdint.h>
 
-void run_cu_os(uint8_t id);
+void run_cu_os(uint8_t id, uint8_t is_network_manager);
 
 #endif

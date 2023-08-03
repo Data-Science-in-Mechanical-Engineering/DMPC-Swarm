@@ -65,10 +65,10 @@ static uint8_t get_assignment_idx(uint8_t id)
   return 255;
 }
 
-uint8_t message_layer_get_message(uint8_t id, uint8_t *msg)
+uint8_t message_layer_get_message(uint8_t idx, uint8_t *msg)
 {
 
-  uint8_t idx = get_assignment_idx(id);
+  // uint8_t idx = get_assignment_idx(id);
   if (idx == 255) {
     return 0;
   }
@@ -89,9 +89,9 @@ uint8_t message_layer_get_message(uint8_t id, uint8_t *msg)
   return 1;
 }
 
-uint8_t message_layer_set_message(uint8_t id, uint8_t *message)
+uint8_t message_layer_set_message(uint8_t idx, uint8_t *message)
 {
-  uint8_t idx = get_assignment_idx(id);
+  // uint8_t idx = get_assignment_idx(id);
   if (idx == 255) {
     return 0;
   }

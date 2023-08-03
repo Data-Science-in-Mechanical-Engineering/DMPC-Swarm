@@ -49,10 +49,10 @@ static uint16_t communication_starts_callback(ap_message_t **data)
   return size;
 }
 
-void run_cu_os(uint8_t id)
+void run_cu_os(uint8_t id, uint8_t is_network_manager)
 { 
   init_ap_com(&hap_com, &send_uart, &receive_uart, &rx_wait_uart, &tx_wait_uart);
-  init_cp_os(&receive_data_from_AP, &send_data_to_AP, &communication_finished_callback, &communication_starts_callback, id, 1);
+  init_cp_os(&receive_data_from_AP, &send_data_to_AP, &communication_finished_callback, &communication_starts_callback, id, 1, is_network_manager);
 
   run();
 }

@@ -40,7 +40,7 @@ static uint16_t communication_starts_callback(ap_message_t **data)
 void run_cf_os(uint8_t id)
 {
   init_ap_com(&hap_com, &spi_tx, &spi_rx, &wait_ap_spi, &wait_ap_spi);
-  init_cp_os(&receive_data_from_AP, &send_data_to_AP, &communication_finished_callback, &communication_starts_callback, id, 1);
+  init_cp_os(&receive_data_from_AP, &send_data_to_AP, &communication_finished_callback, &communication_starts_callback, id, 1, 0);
 
   run();
 }
