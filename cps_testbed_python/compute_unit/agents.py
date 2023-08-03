@@ -1624,7 +1624,7 @@ class RemoteDroneAgent(net.Agent):
                                                                trajectory_start_time=self.__planned_trajectory_start_time,
                                                                init_state=self.__init_state,
                                                                trajectory_calculated_by=self.__current_trajectory_calculated_by,
-                                                               prios=np.array([1 for _ in range(len(self.__other_drones_ids))]))))
+                                                               prios=np.array([255 for _ in range(len(self.__other_drones_ids))]))))
             self.__send_trajectory_message_to = []
             return message
 

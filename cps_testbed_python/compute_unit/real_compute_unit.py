@@ -681,6 +681,8 @@ class ComputingUnit:
         self.plotter = None
         self.socket = None
 
+        self.__round_nmbr = 0
+
         self.__drones_in_swarm = []
 
     def run_dynamic_swarm(self, fileno):
@@ -766,7 +768,8 @@ class ComputingUnit:
                                      content=content_temp)
                 if m.status == STATUS_ALL_TARGETS_REACHED:
                     num_all_targets_reached += 1
-            elif isinstance(m, TrajectoryMessage):
+            elif isinstance(m, TrajectoryMessage) and (self.__round_nmbr < self.__ARGS.message_loss_period_start \
+                    or self.__round_nmbr > self.__ARGS.message_loss_period_end):
                 content_temp = da.TrajectoryMessageContent(id=m.drone_id, coefficients=tg.TrajectoryCoefficients(
                     coefficients=m.trajectory, valid=True, alternative_trajectory=None),
                                                            init_state=m.init_state,
@@ -779,7 +782,7 @@ class ComputingUnit:
                 # print(m.calculated_by)
                 # print(m.drone_id)
                 # print(m.trajectory_start_time / self.__ARGS.communication_freq_hz)
-            elif isinstance(m, TrajectoryReqMessage):
+            elif isinstance(m, TrajectoryReqMessage) and round_mbr:
                 content_temp = da.RecoverInformationNotifyContent(cu_id=m.cu_id, drone_id=m.drone_id)
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
@@ -791,7 +794,11 @@ class ComputingUnit:
                     round_mbr = m.round_mbr
                 #if m.type == TYPE_SYS_SHUTDOWN:
                 #    state = STATE_SYS_SHUTDOWN
-            messages_parsed.append(m_temp)
+            if m_temp is not None:
+                messages_parsed.append(m_temp)
+            
+            if round_mbr is not None:
+                self.__round_nmbr = round_mbr
 
         for m in messages_parsed:
             self.__computation_agent.send_message(m)

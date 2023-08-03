@@ -59,13 +59,13 @@ def define_ARGS():
     parser.add_argument('--use_qpsolvers', default=True, type=bool,
                         help='Select, whether qpsolver is used for data planning')
 
-    parser.add_argument('--alpha_1', default=1, type=bool,
+    parser.add_argument('--alpha_1', default=0, type=bool,
                         help='Weight in event-trigger')
     parser.add_argument('--alpha_2', default=0, type=bool,
                         help='Weight in event-trigger')
-    parser.add_argument('--alpha_3', default=0, type=bool,
+    parser.add_argument('--alpha_3', default=1, type=bool,
                         help='Weight in event-trigger')
-    parser.add_argument('--alpha_4', default=1, type=bool,
+    parser.add_argument('--alpha_4', default=0, type=bool,
                         help='Weight in event-trigger')
 
     parser.add_argument('--remove_redundant_constraints', default=False, type=bool,
@@ -84,6 +84,9 @@ def define_ARGS():
     parser.add_argument("--width_band", default=0.3, type=float, help="")
 
     parser.add_argument("--save_snapshot_times", default=[150], type=any, help="")
+
+    parser.add_argument("--message_loss_period_start", default=150, type=int, help="")
+    parser.add_argument("--message_loss_period_end", default=200, type=int, help="")
 
     ARGS = parser.parse_args()
 
@@ -106,7 +109,8 @@ def define_ARGS():
         ARGS.min_positions[key] = np.array(ARGS.testbeds[testbed][0]) + offset
         ARGS.max_positions[key] = np.array(ARGS.testbeds[testbed][1]) + offset
         print(f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
-    ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=sc.CIRCLE_DYNAMIC)
+
+    ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=sc.MESSAGE_LOSS_CRASH)
     """
     testbed = cuboid.Cuboid(np.array([0.4, 0.4, 0.3]), np.array([ARGS.testbed_size[0], 0, 0]),
                             np.array([0, ARGS.testbed_size[1], 0]),
