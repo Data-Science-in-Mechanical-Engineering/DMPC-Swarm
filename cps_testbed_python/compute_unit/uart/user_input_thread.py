@@ -2,7 +2,6 @@ import threading
 import time
 import sys
 import os
-from msvcrt import kbhit, getch as _getch
 
 class UserInputThread(threading.Thread):
     def __init__(self, fileno):

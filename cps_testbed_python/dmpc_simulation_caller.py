@@ -83,7 +83,7 @@ if __name__ == "__main__":
 		description='Helix flight script using CtrlAviary or VisionAviary and DSLPIDControl')
 	parser.add_argument('--drone', default="cf2x", type=DroneModel, help='Drone model (default: CF2X)', metavar='',
 						choices=DroneModel)
-	parser.add_argument('--drones', default={i: "Vicon" for i in range(1, 11)}, type=dict,
+	parser.add_argument('--drones', default={i: "Vicon" for i in range(1, 16)}, type=dict,
 						help='drone IDs with name of the testbed', metavar='')
 	parser.add_argument('--computing_agent_ids', default=[i for i in range(40, 42)], type=list,
 						help='List of Computing Agent IDs')
@@ -322,7 +322,7 @@ if __name__ == "__main__":
 
 	for num_cus in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
 		for message_loss_prob in [0, 0.01, 0.1]:
-			for simulate_quantization in [True]:
+			for simulate_quantization in [False, True]:
 				call_batch_simulation(ARGS_array, name_files=f"dmpc_simulation_results_ignore_message_loss_{int(100*message_loss_prob+1e-7)}_{num_cus}cus_{'quant' if simulate_quantization else ''}",
 									  message_loss_probability=message_loss_prob, ignore_message_loss=False,
 									  num_cus=num_cus, simulate_quantization=simulate_quantization)

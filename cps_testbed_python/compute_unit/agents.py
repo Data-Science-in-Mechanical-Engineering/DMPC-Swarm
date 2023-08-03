@@ -78,12 +78,13 @@ def simulate_quantization_setpoints_message(message):
 
 def simulate_quantization_trajectory_message(message):
     message_quant = copy.deepcopy(message)
-    message_quant.coefficients.valid = True
     coefficients = message.coefficients.coefficients if message.coefficients.valid else message.coefficients.alternative_trajectory
     for i in range(len(coefficients)):
         for j in range(3):
-            message_quant.coefficients.coefficients[i][j] = real_compute_unit.dequantize_input(real_compute_unit.quantize_input(coefficients[i][j]))
-
+            if message_quant.coefficients.valid:
+                message_quant.coefficients.coefficients[i][j] = real_compute_unit.dequantize_input(real_compute_unit.quantize_input(coefficients[i][j]))
+            else:
+                message_quant.coefficients.alternative_trajectory[i][j] = real_compute_unit.dequantize_input(real_compute_unit.quantize_input(coefficients[i][j]))
     for j in range(3):
         message_quant.init_state[j] = real_compute_unit.dequantize_pos(real_compute_unit.quantize_pos(message.init_state[j]))
 
