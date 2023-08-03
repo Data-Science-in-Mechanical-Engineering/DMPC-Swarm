@@ -121,13 +121,10 @@ def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
 
 if __name__ == "__main__":
 	plot_comparison(10, 0, ignore_message_loss=False, quant=False)
-
-	path = "C:\\Users\\mf724021\\Documents\\003_Testbed\\007_Code\\batch_simulation_results\\dmpc\\dmpc_simulation_results_ignore_message_loss_000_2cus"
-		   #"batch_simulation_results\\dmpc\\dmpc_simulation_results_not_ignore_message_loss_005\\"
 	path = "../../../batch_simulation_results/" \
 										  "dmpc/dmpc_simulation_results_imlFalse_0_1cus_"
 	plot_states = False
-	num_drones = 10
+	num_drones = 15
 	files = [os.path.join(path, f) for f in os.listdir(path) if f.startswith(f"simulation_result-{num_drones}_drones_simnr_")]
 	num_crashed = 0
 	num_optimizer_runs = 0

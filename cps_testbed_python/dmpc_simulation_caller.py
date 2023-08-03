@@ -320,7 +320,7 @@ if __name__ == "__main__":
 	#call_batch_simulation(ARGS_array, name_files="dmpc_simulation_results_ignore_message_loss_005",
 	#					  message_loss_probability=0.05, ignore_message_loss=True)
 
-	for num_cus in [1, 3, 5, 7, 9, 11, 13, 15]:
+	for num_cus in [1, 3, 5, 7, 9]:
 		for message_loss_prob in [0]:
 			for simulate_quantization in [False]:
 				for ignore_message_loss in [False]:
