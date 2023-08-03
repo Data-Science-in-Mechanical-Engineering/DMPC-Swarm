@@ -77,13 +77,13 @@ def print_success_statistics(num_drones, message_loss, num_cus, quant):
 	print(f"num_targets_reached percentage {num_targets_reached / (num_drones * len(files)) * 100}%")
 
 
-def plot_comparison(num_drones, message_loss, quant):
+def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
 
 	target_reached_times = []
 
-	for num_cus in range(1, num_drones):
+	for num_cus in range(1, num_drones, 2):
 		path = str(Path('~').expanduser()) + f"/Documents/batch_simulation_results/" \
-											 f"dmpc/dmpc_simulation_results_ignore_message_loss_{int(round(100 * message_loss))}_{num_cus}cus_{'' if not quant else 'quant'}"
+											 f"dmpc/dmpc_simulation_results_iml{ignore_message_loss}_{int(round(100 * message_loss))}_{num_cus}cus_{'' if not quant else 'quant'}"
 		files = [os.path.join(path, f) for f in os.listdir(path) if
 				 f.startswith(f"simulation_result-{num_drones}_drones_simnr_")]
 
@@ -92,7 +92,7 @@ def plot_comparison(num_drones, message_loss, quant):
 			result = p.load(open(f, "rb"))
 			if result["crashed"][0]:
 				continue
-			target_reached_time.append(result["target_reached_time"])
+			target_reached_time.append(result["target_reached_time"][0])
 
 		target_reached_times.append(target_reached_time)
 
@@ -101,10 +101,13 @@ def plot_comparison(num_drones, message_loss, quant):
 	plt.show()
 
 if __name__ == "__main__":
+	plot_comparison(10, 0, ignore_message_loss=False, quant=False)
+	exit(0)
+
 	path = "C:\\Users\\mf724021\\Documents\\003_Testbed\\007_Code\\batch_simulation_results\\dmpc\\dmpc_simulation_results_ignore_message_loss_000_2cus"
 		   #"batch_simulation_results\\dmpc\\dmpc_simulation_results_not_ignore_message_loss_005\\"
 	path = str(Path('~').expanduser()) + "/Documents/batch_simulation_results/" \
-										  "dmpc/dmpc_simulation_results_ignore_message_loss_0_5cus"
+										  "dmpc/dmpc_simulation_results_imlFalse_0_1cus_"
 	plot_states = False
 	num_drones = 10
 	files = [os.path.join(path, f) for f in os.listdir(path) if f.startswith(f"simulation_result-{num_drones}_drones_simnr_")]
