@@ -427,29 +427,17 @@ class TargetPositionsMessage(message.MessageType):
     @property
     def target_positions(self):
         tp = {}
-        print(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;,")
-        print(self.get_content("target_positions"))
         for i in range(MAX_NUM_DRONES):
-            print(tp)
-            print(self.get_content("ids"))
             agent_id = self.get_content("ids")[i]
             # then this is a valid target position
             if agent_id != 255:
                 tp[agent_id] = np.array([0.0, 0.0, 0.0])
                 for j in range(3):
-                    print(self.get_content("target_positions")[i*3 + j])
-                    print(dequantize_pos(self.get_content("target_positions")[i*3 + j]))
                     tp[agent_id][j] = float(dequantize_pos(int(self.get_content("target_positions")[i*3 + j])))
-                    print(j)
-                    print(tp[agent_id][j])
-                    print(tp)
-                    print("-")
-        print(tp)
         return tp
 
     @target_positions.setter
     def target_positions(self, tp):
-        print(f"Target positions!!: {tp}")
         if tp is None:
             ids = []
         else:
@@ -462,7 +450,6 @@ class TargetPositionsMessage(message.MessageType):
         if tp is not None:
             for k in tp:
                 if k != 255:
-                    print(tp[k])
                     target_pos.append(quantize_pos(tp[k][0]))
                     target_pos.append(quantize_pos(tp[k][1]))
                     target_pos.append(quantize_pos(tp[k][2]))
@@ -694,6 +681,8 @@ class ComputingUnit:
         self.plotter = None
         self.socket = None
 
+        self.__round_nmbr = 0
+
         self.__drones_in_swarm = []
 
     def run_dynamic_swarm(self, fileno):
@@ -730,7 +719,6 @@ class ComputingUnit:
             elif state == STATE_SYS_RUN:
                 # check if a new agent is inside the swarm
                 for m in messages_rx:
-                    print(m)
                     if isinstance(m, StateMessage):
                         if m.m_id not in self.__drones_in_swarm:
                             self.__computation_agent.add_new_agent(m.m_id)
@@ -780,7 +768,8 @@ class ComputingUnit:
                                      content=content_temp)
                 if m.status == STATUS_ALL_TARGETS_REACHED:
                     num_all_targets_reached += 1
-            elif isinstance(m, TrajectoryMessage):
+            elif isinstance(m, TrajectoryMessage) and (self.__round_nmbr < self.__ARGS.message_loss_period_start \
+                    or self.__round_nmbr > self.__ARGS.message_loss_period_end):
                 content_temp = da.TrajectoryMessageContent(id=m.drone_id, coefficients=tg.TrajectoryCoefficients(
                     coefficients=m.trajectory, valid=True, alternative_trajectory=None),
                                                            init_state=m.init_state,
@@ -789,11 +778,11 @@ class ComputingUnit:
                                                            prios=m.prios[0:len(self.__drones_in_swarm)])
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
-                print("Trajectory received")
-                print(m.calculated_by)
-                print(m.drone_id)
-                print(m.trajectory_start_time / self.__ARGS.communication_freq_hz)
-            elif isinstance(m, TrajectoryReqMessage):
+                # print("Trajectory received")
+                # print(m.calculated_by)
+                # print(m.drone_id)
+                # print(m.trajectory_start_time / self.__ARGS.communication_freq_hz)
+            elif isinstance(m, TrajectoryReqMessage) and round_mbr:
                 content_temp = da.RecoverInformationNotifyContent(cu_id=m.cu_id, drone_id=m.drone_id)
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
@@ -805,14 +794,17 @@ class ComputingUnit:
                     round_mbr = m.round_mbr
                 #if m.type == TYPE_SYS_SHUTDOWN:
                 #    state = STATE_SYS_SHUTDOWN
-            messages_parsed.append(m_temp)
+            if m_temp is not None:
+                messages_parsed.append(m_temp)
+            
+            if round_mbr is not None:
+                self.__round_nmbr = round_mbr
 
         for m in messages_parsed:
             self.__computation_agent.send_message(m)
         # TRAJECTORY COMPUTATION
         self.uart_interface.print("NEW ROUND " + str(round_mbr))
         self.__computation_agent.round_finished(round_mbr)  # calculate a new trajectory
-        print("round_finished")
         # read data from computing agent.
         traj_message = self.__computation_agent.get_message(self.__message_type_trajectory_id)
         if traj_message is None:
@@ -836,16 +828,12 @@ class ComputingUnit:
             m_temp.drone_id = traj_message.content.id
             m_temp.prios = traj_message.content.prios
             messages_tx.append(m_temp)
-            print(f"Send trajectory {traj_message.content.trajectory_start_time}")
-            print(int(
-                round(traj_message.content.trajectory_start_time * self.__ARGS.communication_freq_hz)))
         elif isinstance(traj_message.content, da.EmtpyContent):
             m_temp = EmptyMessage()
             m_temp.m_id = traj_message.ID
             m_temp.cu_id = self.__cu_id
             m_temp.prios = traj_message.content.prios
             messages_tx.append(m_temp)
-            print("Empty")
         elif isinstance(traj_message.content, da.RecoverInformationNotifyContent):
             m_temp = TrajectoryReqMessage()
             m_temp.m_id = traj_message.ID
@@ -1033,10 +1021,6 @@ class ComputingUnit:
                                                                    trajectory_calculated_by=m.calculated_by, prios=m.prios[0:num_drones])
                         m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                              content=content_temp)
-                        print("Trajectory received")
-                        print(m.calculated_by)
-                        print(m.drone_id)
-                        print(m.trajectory_start_time/self.__ARGS.communication_freq_hz)
                     elif isinstance(m, TrajectoryReqMessage):
                         content_temp = da.RecoverInformationNotifyContent(cu_id=m.cu_id, drone_id=m.drone_id)
                         m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,

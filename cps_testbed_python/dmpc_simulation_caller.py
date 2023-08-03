@@ -138,7 +138,7 @@ if __name__ == "__main__":
 
 	parser.add_argument('--abort_simulation', default=True, type=bool, help='Total number of simulations')
 
-	parser.add_argument('--total_simulations', default=1000, type=int, help='Total number of simulations')
+	parser.add_argument('--total_simulations', default=100, type=int, help='Total number of simulations')
 	parser.add_argument('--network_message_loss', default=[0], type=list,
 						help='List of message loss values of the communication network')
 	parser.add_argument('--prediction_horizon', default=15, type=int, help='Prediction Horizon for DMPC')
@@ -320,12 +320,14 @@ if __name__ == "__main__":
 	#call_batch_simulation(ARGS_array, name_files="dmpc_simulation_results_ignore_message_loss_005",
 	#					  message_loss_probability=0.05, ignore_message_loss=True)
 
-	for num_cus in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
-		for message_loss_prob in [0, 0.01, 0.1]:
-			for simulate_quantization in [False, True]:
-				call_batch_simulation(ARGS_array, name_files=f"dmpc_simulation_results_ignore_message_loss_{int(100*message_loss_prob+1e-7)}_{num_cus}cus_{'quant' if simulate_quantization else ''}",
-									  message_loss_probability=message_loss_prob, ignore_message_loss=False,
-									  num_cus=num_cus, simulate_quantization=simulate_quantization)
+	for num_cus in [1, 3, 5, 7, 9]:
+		for message_loss_prob in [0]:
+			for simulate_quantization in [False]:
+				for ignore_message_loss in [False]:
+					call_batch_simulation(ARGS_array, name_files=f"dmpc_simulation_results_iml{ignore_message_loss}_{int(100*message_loss_prob+1e-7)}_{num_cus}cus_{'quant' if simulate_quantization else ''}",
+										  message_loss_probability=message_loss_prob,
+										  ignore_message_loss=ignore_message_loss,
+										  num_cus=num_cus, simulate_quantization=simulate_quantization)
 
 	#for num_cus in [1, 3, 5, 7, 9, 11, 13, 15]:
 #		call_batch_simulation(ARGS_array, name_files=f"dmpc_simulation_results_not_ignore_message_loss_001_{num_cus}_cus5",#
