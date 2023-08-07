@@ -4,11 +4,11 @@
 #include <stdint.h>
 #include "internal_messages.h"
 
-#define NETWORK_MANAGER_ID 255
-
 void init_network_manager(network_members_message_t *state);
 
 uint8_t add_new_message(network_members_message_t *state, uint8_t message_id, uint16_t max_message_size);
+
+uint8_t id_already_in_message_layer(network_members_message_t *state, uint8_t id);
 
 /**
  * add a new agent to the network. Every agent gets its own message area. 

@@ -327,6 +327,7 @@ def define_ARGS():
     if ARGS.dynamic_swarm:
         ARGS.num_drones = 0
         ARGS.drone_ids = []
+        ARGS.computing_agent_ids = []
 
     path = ""
     with open(path + "ARGS_for_testbed.pkl", 'wb') as out_file:

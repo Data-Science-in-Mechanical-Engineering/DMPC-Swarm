@@ -186,9 +186,13 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
 
       // write into aggregate that the ap wants to reserve a new area in the message layer.
       if (tx_messages[tx_message_idx]->header.type == TYPE_NETWORK_MESSAGE_AREA_REQUEST) {
-        agg_input[0] = tx_messages[tx_message_idx]->network_area_request_message.id;
-        agg_input[1] = tx_messages[tx_message_idx]->network_area_request_message.type;
-        agg_set_max_size_message(agg_input, tx_messages[tx_message_idx]->network_area_request_message.max_size_message);
+        // it takes two round for an AP to get notified by the network manager, that its request was succesfull.
+        // It thus ma send two request. Thats why we check if the requested id was already in the message layer.
+        if (!id_already_in_message_layer(&network_manager_state, tx_messages[tx_message_idx]->network_area_request_message.id)) {
+          agg_input[0] = tx_messages[tx_message_idx]->network_area_request_message.id;
+          agg_input[1] = tx_messages[tx_message_idx]->network_area_request_message.type;
+          agg_set_max_size_message(agg_input, tx_messages[tx_message_idx]->network_area_request_message.max_size_message);
+        }
       }
     }
 

@@ -15,6 +15,8 @@
 	#define DISABLE_BOLT 1
 #endif
 
+#define NETWORK_MANAGER_ID 234
+
 /*****************************************************************************/
 typedef struct message_assignment_t_tag
 {
@@ -37,7 +39,7 @@ static const uint8_t shutdown_node = 35;
 // ids of message slots
 // corresponding sizes (in bytes) of message slots
 static message_assignment_t message_assignment[] = {
-                                                    {.id=234, .size=sizeof(network_members_message_t)},
+                                                    {.id=NETWORK_MANAGER_ID, .size=sizeof(network_members_message_t)},
                                                     {.id=1, .size=sizeof(state_message_t)}, 
                                                     {.id=2, .size=sizeof(state_message_t)},
                                                     {.id=3, .size=sizeof(state_message_t)},
@@ -46,14 +48,15 @@ static message_assignment_t message_assignment[] = {
                                                     {.id=6, .size=sizeof(state_message_t)},
                                                     {.id=7, .size=sizeof(state_message_t)},
                                                     {.id=8, .size=sizeof(state_message_t)},
-                                                    {.id=9, .size=sizeof(state_message_t)},
-                                                    {.id=10, .size=sizeof(state_message_t)},
+                                                    //{.id=9, .size=sizeof(state_message_t)},
+                                                    //{.id=10, .size=sizeof(state_message_t)},
                                                     //{.id=3, .size=sizeof(state_message_t)},
                                                     {.id=20, .size=sizeof(trajectory_message_t)},
                                                     {.id=21, .size=sizeof(trajectory_message_t)},
                                                     {.id=100, .size=sizeof(state_message_t)},
                                                     {.id=200, .size=sizeof(target_positions_message_t)}
                                                    };
+
 /*{{.id=1, .size=sizeof(state_message_t)}, 
                                                     {.id=2, .size=sizeof(state_message_t)},
                                                     {.id=20, .size=sizeof(trajectory_message_t)},

@@ -26,7 +26,7 @@ void aggregate_merge(volatile uint8_t *agg_is_valid, uint8_t *agg_local, uint8_t
 	*agg_is_valid = 0;
 
         // we can only add one agent per round. use the one with the highest message size
-	if (get_max_size_message(agg_rx) > get_max_size_message(agg_rx)) {
+	if (get_max_size_message(agg_rx) > get_max_size_message(agg_local)) {
           memcpy(agg_local, agg_rx, AGGREGATE_SIZE);
         }
         

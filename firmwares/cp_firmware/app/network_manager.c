@@ -14,11 +14,26 @@ void init_network_manager(network_members_message_t *state)
   state->header.type = TYPE_NETWORK_MEMBERS_MESSAGE;
 }
 
+uint8_t id_already_in_message_layer(network_members_message_t *state, uint8_t id) {
+  for (uint8_t i = 0; i < MAX_NUM_AGENTS; i++) {
+    if (id == state->message_layer_area_agent_id[i]) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 uint8_t add_new_message(network_members_message_t *state, uint8_t message_id, uint16_t max_message_size)
 {
+  // it takes two round for an AP to get notified by the network manager, that its request was succesfull.
+  // It thus ma send two request. Thats why we check if the requested id was already in the message layer.
+  if (id_already_in_message_layer(state, message_id)) {
+    return 1;
+  }
+
   // search for a message layer_area, which is not used and has a size bigger than max_message_size
   uint8_t best_area = 255;
-  for (uint8_t i = 0; i < MAX_NUM_AGENTS; i++) {
+  for (uint8_t i = 0; i < NUM_ELEMENTS(message_assignment); i++) {
     // area not not used
     if (state->message_layer_area_agent_id[i] == 0) {
       if (message_assignment[i].size >= max_message_size) {
@@ -50,7 +65,7 @@ uint8_t add_new_agent(network_members_message_t *state, uint8_t agent_id, uint8_
   }
 
   for (uint8_t i = 0; i < MAX_NUM_AGENTS; i++) {
-    if (state->ids[i] != 0) {
+    if (state->ids[i] == 0) {
       state->ids[i] = agent_id;
       state->types[i] = type;
       return 0;

@@ -678,7 +678,7 @@ class ComputingUnit:
 
         self.__network_manager_message = None
         self.__drones_in_swarm = []
-        self.__cus_in_swarm = []
+        self.__cus_in_swarm = [self.__cu_id]
 
     def run_dynamic_swarm(self, fileno):
         self.connect_to_cp()
@@ -704,34 +704,44 @@ class ComputingUnit:
             messages_rx = self.read_data_from_cp()
             messages_tx = []
 
+            counter = 0
+
             # first we try to get a message spot in the message layer
             # if this is succesfull, we go to the IDLE state.
             if state == STATE_NOTIFY_NETWORK_MANAGER:
                 for m in messages_rx:
                     if isinstance(m, NetworkMembersMessage):
+                        print(m.message_layer_area_agent_id)
                         if self.__cu_id in m.message_layer_area_agent_id:
                             self.__uart_interface.print("I got assigned an area.")
                             self.__network_manager_message = copy.deepcopy(m)
                             state = STATE_IDLE
                             break
-
-                req_message = NetworkAreaRequestMessage()
-                req_message.m_id = self.__cu_id
-                req_message.message_id = self.__cu_id
-                req_message.agent_type = 0  # 0 is cu, 1 is drone
-                req_message.max_size_message = TrajectoryReqMessage().size
-                messages_tx = [req_message]
+                if state == STATE_NOTIFY_NETWORK_MANAGER:
+                    req_message = NetworkAreaRequestMessage()
+                    req_message.m_id = self.__cu_id
+                    req_message.message_id = self.__cu_id
+                    req_message.agent_type = 0  # 0 is cu, 1 is drone
+                    req_message.max_size_message = TrajectoryMessage().size
+                    print(f"req_message.max_size_message: {req_message.max_size_message}")
+                    print(f"self.__cu_id: {self.__cu_id}")
+                    messages_tx = [req_message]
 
             # untill the first drone is into the swarm, dont do anything.
             if state == STATE_IDLE:
                 # wait until cp says all agents are ready
                 for m in messages_rx:
                     if isinstance(m, NetworkMembersMessage):
+                        print("---------------")
+                        print(m.message_layer_area_agent_id)
+                        print(m.ids)
+                        print(m.types)
                         for t in m.types:
                             if t == 1:
                                 state = STATE_SYS_RUN
                                 self.__uart_interface.print("First UAV connected")
                                 break
+                ack_message.type = TYPE_AP_ACK
                 messages_tx = [ack_message]
             elif state == STATE_SYS_RUN:
                 # check if a new agent is inside the swarm
@@ -739,7 +749,7 @@ class ComputingUnit:
                     if isinstance(m, NetworkMembersMessage):
                         for i, t in enumerate(m.types):
                             if t == 0:
-                                if m.ids[i] not in self.__drones_in_swarm:
+                                if m.ids[i] not in self.__cus_in_swarm:
                                     self.__uart_interface.print(f"CU {m.ids[i]} added to swarm")
                                     self.__computation_agent.add_new_computation_agent(m.ids[i])
                                     self.__cus_in_swarm.append(m.ids[i])
@@ -1177,9 +1187,10 @@ class ComputingUnit:
 
         b_array = []
         for m in messages:
-            assert m.m_id in self.__network_manager_message.message_layer_area_agent_id \
-                   or m.type == TYPE_DUMMY or m.type == TYPE_NETWORK_MESSAGE_AREA_REQUEST, \
-                   "you are trying to write to an message area that is not reserved"
+            if self.__network_manager_message is not None:
+                assert m.m_id in self.__network_manager_message.message_layer_area_agent_id \
+                       or m.type == TYPE_DUMMY or m.type == TYPE_NETWORK_MESSAGE_AREA_REQUEST, \
+                            "you are trying to write to an message area that is not reserved"
             b_array += m.to_bytes()
         self.uart_interface.send_to_uart(b_array)
 
@@ -1225,6 +1236,9 @@ class ComputingUnit:
             cooperative_normal_vector_noise=0,
             width_band=self.__ARGS.width_band
         )
+
+        if self.__ARGS.dynamic_swarm:
+            self.__ARGS.computing_agent_ids = [self.__cu_id]
 
         self.computation_agent = da.ComputationAgent(ID=self.__cu_id,
                                                      slot_group_planned_trajectory_id=self.__message_type_trajectory_id,
