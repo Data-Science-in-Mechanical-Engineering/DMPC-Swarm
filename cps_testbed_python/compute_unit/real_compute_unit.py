@@ -81,6 +81,8 @@ TYPE_EMTPY_MESSAGE = 11
 TYPE_START_SYNC_MOVEMENT = 12
 TYPE_SYNC_MOVEMENT_MESSAGE = 13
 TYPE_TARGET_POSITIONS_MESSAGE = 14
+TYPE_NETWORK_MEMBERS_MESSAGE = 15
+TYPE_NETWORK_MESSAGE_AREA_REQUEST = 16
 TYPE_DUMMY = 255
 
 # crazyflie status flags
@@ -527,6 +529,7 @@ class NetworkMembersMessage(message.MessageType):
         super().__init__(["type", "id", "ids", "types", "message_layer_area_agent_id"],
                          [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", MAX_NUM_AGENTS), ("uint8_t", MAX_NUM_AGENTS),
                           ("uint8_t", MAX_NUM_AGENTS)])
+        self.set_content({"type": np.array([TYPE_NETWORK_MEMBERS_MESSAGE], dtype=self.get_data_type("type"))})
 
     @property
     def type(self):
@@ -547,6 +550,45 @@ class NetworkMembersMessage(message.MessageType):
     @property
     def message_layer_area_agent_id(self):
         return self.get_content("message_layer_area_agent_id")
+
+
+class NetworkAreaRequestMessage(message.MessageType):
+    def __init__(self):
+        super().__init__(["type", "id", "message_id", "agent_type", "max_size_message"],
+                         [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint16_t", 1)])
+        self.set_content({"type": np.array([TYPE_NETWORK_MESSAGE_AREA_REQUEST], dtype=self.get_data_type("type"))})
+
+    @property
+    def m_id(self):
+        return self.get_content("id")[0]
+
+    @m_id.setter
+    def m_id(self, mid):
+        self.set_content({"id": np.array([mid], dtype=self.get_data_type("id"))})
+
+    @property
+    def message_id(self):
+        return self.get_content("message_id")[0]
+
+    @message_id.setter
+    def message_id(self, mid):
+        self.set_content({"message_id": np.array([mid], dtype=self.get_data_type("message_id"))})
+
+    @property
+    def agent_type(self):
+        return self.get_content("agent_type")[0]
+
+    @agent_type.setter
+    def agent_type(self, mid):
+        self.set_content({"agent_type": np.array([mid], dtype=self.get_data_type("agent_type"))})
+
+    @property
+    def max_size_message(self):
+        return self.get_content("max_size_message")[0]
+
+    @max_size_message.setter
+    def max_size_message(self, mid):
+        self.set_content({"max_size_message": np.array([mid], dtype=self.get_data_type("max_size_message"))})
 
 
 class SyncMovementMessage(message.MessageType):
@@ -634,7 +676,9 @@ class ComputingUnit:
 
         self.__round_nmbr = 0
 
+        self.__network_manager_message = None
         self.__drones_in_swarm = []
+        self.__cus_in_swarm = []
 
     def run_dynamic_swarm(self, fileno):
         self.connect_to_cp()
@@ -649,31 +693,62 @@ class ComputingUnit:
         ack_message.own_id = self.__cu_id
         ack_message.round_mbr = 0
 
-        STATE_IDLE = 0
+        STATE_NOTIFY_NETWORK_MANAGER = 0
+        STATE_IDLE = 1
         STATE_SYS_RUN = 3
 
-        state = STATE_IDLE
+        state = STATE_NOTIFY_NETWORK_MANAGER
 
         while True:
             new_round = False
             messages_rx = self.read_data_from_cp()
             messages_tx = []
 
+            # first we try to get a message spot in the message layer
+            # if this is succesfull, we go to the IDLE state.
+            if state == STATE_NOTIFY_NETWORK_MANAGER:
+                for m in messages_rx:
+                    if isinstance(m, NetworkMembersMessage):
+                        if self.__cu_id in m.message_layer_area_agent_id:
+                            self.__uart_interface.print("I got assigned an area.")
+                            self.__network_manager_message = copy.deepcopy(m)
+                            state = STATE_IDLE
+                            break
+
+                req_message = NetworkAreaRequestMessage()
+                req_message.m_id = self.__cu_id
+                req_message.message_id = self.__cu_id
+                req_message.agent_type = 0  # 0 is cu, 1 is drone
+                req_message.max_size_message = TrajectoryReqMessage().size
+                messages_tx = [req_message]
+
             # untill the first drone is into the swarm, dont do anything.
             if state == STATE_IDLE:
                 # wait until cp says all agents are ready
                 for m in messages_rx:
-                    if isinstance(m, StateMessage):
-                        state = STATE_SYS_RUN
-                        self.__uart_interface.print("First UAV connected")
+                    if isinstance(m, NetworkMembersMessage):
+                        for t in m.types:
+                            if t == 1:
+                                state = STATE_SYS_RUN
+                                self.__uart_interface.print("First UAV connected")
+                                break
                 messages_tx = [ack_message]
             elif state == STATE_SYS_RUN:
                 # check if a new agent is inside the swarm
                 for m in messages_rx:
-                    if isinstance(m, StateMessage):
-                        if m.m_id not in self.__drones_in_swarm:
-                            self.__computation_agent.add_new_agent(m.m_id)
-                            self.__drones_in_swarm.append(m.m_id)
+                    if isinstance(m, NetworkMembersMessage):
+                        for i, t in enumerate(m.types):
+                            if t == 0:
+                                if m.ids[i] not in self.__drones_in_swarm:
+                                    self.__uart_interface.print(f"CU {m.ids[i]} added to swarm")
+                                    self.__computation_agent.add_new_computation_agent(m.ids[i])
+                                    self.__cus_in_swarm.append(m.ids[i])
+
+                            elif t == 1:
+                                if m.ids[i] not in self.__drones_in_swarm:
+                                    self.__uart_interface.print(f"Drone {m.ids[i]} added to swarm")
+                                    self.__computation_agent.add_new_agent(m.ids[i])
+                                    self.__drones_in_swarm.append(m.ids[i])
 
                 messages_tx = self.dmpc_step(messages_rx)
 
@@ -1081,6 +1156,10 @@ class ComputingUnit:
                 message_rec = SyncMovementMessage()
             elif type == TYPE_TARGET_POSITIONS_MESSAGE:
                 message_rec = TargetPositionsMessage()
+            elif type == TYPE_NETWORK_MEMBERS_MESSAGE:
+                message_rec = NetworkMembersMessage()
+            elif type == TYPE_NETWORK_MESSAGE_AREA_REQUEST:
+                message_rec = NetworkAreaRequestMessage()
             else:
                 message_rec = MetadataMessage()
             message_rec.set_content_bytes(data[data_idx:data_idx+message_rec.size])
@@ -1098,6 +1177,9 @@ class ComputingUnit:
 
         b_array = []
         for m in messages:
+            assert m.m_id in self.__network_manager_message.message_layer_area_agent_id \
+                   or m.type == TYPE_DUMMY or m.type == TYPE_NETWORK_MESSAGE_AREA_REQUEST, \
+                   "you are trying to write to an message area that is not reserved"
             b_array += m.to_bytes()
         self.uart_interface.send_to_uart(b_array)
 
