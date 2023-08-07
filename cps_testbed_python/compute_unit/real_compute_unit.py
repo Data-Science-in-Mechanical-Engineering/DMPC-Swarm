@@ -522,80 +522,31 @@ class MetadataMessage(message.MessageType):
         self.set_content({"round_mbr": np.array([round_mbr], dtype=self.get_data_type("round_mbr"))})
 
 
-class NetworkMemberChanged(message.MessageType):
-    def __init__(self):
-        super().__init__(["type", "id", "agent_id", "agent_type"],
-                         [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1)])
-
-    @property
-    def type(self):
-        return self.get_content("type")[0]
-
-    @type.setter
-    def type(self, type):
-        self.set_content({"type": np.array([type], dtype=self.get_data_type("type"))})
-
-    @property
-    def m_id(self):
-        return self.get_content("id")[0]
-
-    @m_id.setter
-    def m_id(self, mid):
-        self.set_content({"id": np.array([mid], dtype=self.get_data_type("id"))})
-
-    @property
-    def agent_id(self):
-        return self.get_content("agent_id")[0]
-
-    @agent_id.setter
-    def agent_id(self, agent_id):
-        self.set_content({"agent_id": np.array([agent_id], dtype=self.get_data_type("agent_id"))})
-
-    @property
-    def agent_type(self):
-        return self.get_content("agent_type")[0]
-
-    @agent_type.setter
-    def agent_type(self, agent_type):
-        self.set_content({"agent_type": np.array([agent_type], dtype=self.get_data_type("agent_type"))})
-
-
 class NetworkMembersMessage(message.MessageType):
     def __init__(self):
-        super().__init__(["type", "id", "agent_ids", "agent_types"],
-                         [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", MAX_NUM_AGENTS), ("uint8_t", MAX_NUM_AGENTS)])
+        super().__init__(["type", "id", "ids", "types", "message_layer_area_agent_id"],
+                         [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", MAX_NUM_AGENTS), ("uint8_t", MAX_NUM_AGENTS),
+                          ("uint8_t", MAX_NUM_AGENTS)])
 
     @property
     def type(self):
         return self.get_content("type")[0]
 
-    @type.setter
-    def type(self, type):
-        self.set_content({"type": np.array([type], dtype=self.get_data_type("type"))})
-
     @property
     def m_id(self):
         return self.get_content("id")[0]
 
-    @m_id.setter
-    def m_id(self, mid):
-        self.set_content({"id": np.array([mid], dtype=self.get_data_type("id"))})
+    @property
+    def ids(self):
+        return self.get_content("ids")
 
     @property
-    def agent_ids(self):
-        return self.get_content("agent_id")
-
-    @agent_ids.setter
-    def agent_id(self, agent_ids):
-        self.set_content({"agent_ids": np.array(agent_ids, dtype=self.get_data_type("agent_ids"))})
+    def types(self):
+        return self.get_content("types")
 
     @property
-    def agent_types(self):
-        return self.get_content("agent_types")
-
-    @agent_types.setter
-    def agent_type(self, agent_types):
-        self.set_content({"agent_types": np.array(agent_types, dtype=self.get_data_type("agent_type"))})
+    def message_layer_area_agent_id(self):
+        return self.get_content("message_layer_area_agent_id")
 
 
 class SyncMovementMessage(message.MessageType):
