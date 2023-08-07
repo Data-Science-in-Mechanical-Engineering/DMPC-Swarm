@@ -36,7 +36,9 @@ static const uint8_t shutdown_node = 35;
 
 // ids of message slots
 // corresponding sizes (in bytes) of message slots
-static message_assignment_t message_assignment[] = {{.id=1, .size=sizeof(state_message_t)}, 
+static message_assignment_t message_assignment[] = {
+                                                    {.id=234, .size=sizeof(network_members_message_t)},
+                                                    {.id=1, .size=sizeof(state_message_t)}, 
                                                     {.id=2, .size=sizeof(state_message_t)},
                                                     {.id=3, .size=sizeof(state_message_t)},
                                                     {.id=4, .size=sizeof(state_message_t)},
@@ -78,7 +80,7 @@ static message_assignment_t message_assignment[] = {{.id=1, .size=sizeof(state_m
 
 
 #define NUM_PLANTS				NUM_ELEMENTS(plants)
-#define MX_GENERATION_SIZE 20 // + initiator
+#define MX_GENERATION_SIZE 21  // + initiator
 
 
 // Possible values (Gpi_Radio_Mode):

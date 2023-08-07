@@ -174,32 +174,34 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
     ap_message_t *tx_messages[NUM_ELEMENTS(message_assignment)];
     uint16_t size_tx_messages = communication_starts_callback(tx_messages);
     
-    // write aggregate (currently not used)
-    //set_flag_in_agg(agg_input, plant_idx);
-    //set_node_in_agg(agg_input, 0, TOS_NODE_ID);
-    //set_prio_in_agg(agg_input, 0, 1);
-    mixer_write_agg(agg_input);
     // write into mixer
     for (uint16_t tx_message_idx = 0; tx_message_idx < size_tx_messages; tx_message_idx++) {
       // when the agent does not want to send anything, it sends a TYPE_DUMMY
-      if (tx_messages[tx_message_idx]->header.type != TYPE_DUMMY) {
+      if (tx_messages[tx_message_idx]->header.type != TYPE_DUMMY 
+          || tx_messages[tx_message_idx]->header.type != TYPE_NETWORK_MESSAGE_AREA_REQUEST) {
         // the id of the message in the message layer is written in the header.
-
         message_layer_set_message(get_message_area_idx(&network_members_message, tx_messages[tx_message_idx]->header.id), 
             (uint8_t *) tx_messages[tx_message_idx]);
       }
+
+      // write into aggregate that the ap wants to reserve a new area in the message layer.
+      if (tx_messages[tx_message_idx]->header.type == TYPE_NETWORK_MESSAGE_AREA_REQUEST) {
+        agg_input[0] = tx_messages[tx_message_idx]->network_area_request_message.id;
+        agg_input[1] = tx_messages[tx_message_idx]->network_area_request_message.type;
+        agg_set_max_size_message(agg_input, tx_messages[tx_message_idx]->network_area_request_message.max_size_message);
+      }
     }
+
+    mixer_write_agg(agg_input);
 
     if (is_network_manager) {
+      // index 0 is always the network manager message.
       message_layer_set_message(0, (uint8_t *) &network_manager_state);
     }
-
-
 
     // arm mixer
     // start first round with infinite scan
     // -> nodes join next available round, does not require simultaneous boot-up
-    //mixer_write_agg(agg_input);
     mixer_arm(((MX_INITIATOR_ID == TOS_NODE_ID) ? MX_ARM_INITIATOR : 0) | ((1 == round) ? MX_ARM_INFINITE_SCAN : 0));
 
     // poll such that mixer round starts at the correct time.
@@ -224,14 +226,14 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
     // Just for Debug
     SET_COM_GPIO1();
 
-    // read received data
+    // read received data to AP
     uint32_t msgs_not_decoded = 0;
     uint32_t msgs_weak = 0;
     uint32_t control_msg_decoded = 0;
     uint16_t messages_received_idx = 0;
     for (uint16_t i = 0; i < NUM_ELEMENTS(message_assignment); i++) {
       // write data in array, when message was received
-      messages_received_idx += message_layer_get_message(message_assignment[i].id, (uint8_t *) &mixer_messages_received[messages_received_idx]);
+      messages_received_idx += message_layer_get_message(i, (uint8_t *) &mixer_messages_received[messages_received_idx]);
     }
     // synchronize to the initiator node
     init_message_t init_message;
@@ -253,6 +255,14 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
     // process received data (e.g. send it to AP) and finish, if the callback says so.
     if (communication_finished_callback(mixer_messages_received, messages_received_idx)) {
       break;
+    }
+
+    // now process first received message if the first received messge is from the network manager (we have received it), update our local one.
+    // the AP does not receive our local one, because for its algrorithms it might be necessary to know if it has received the current
+    // state of the network manager. For the CP this is not important, because as long as we are in the network, the message areas,
+    // we write to, will always be the network areas, we reserved, even if we do not receive the network managers message.
+    if (mixer_messages_received[0].header.type == TYPE_NETWORK_MEMBERS_MESSAGE) {
+      memcpy(&network_members_message, &mixer_messages_received[0], sizeof(network_members_message_t));
     }
 
     // read and process aggregate

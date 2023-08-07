@@ -71,13 +71,14 @@ typedef struct __attribute__((packed)) init_message_t_tag
 #define TYPE_SYNC_MOVEMENT_MESSAGE TRANSFORM_TYPE(7)
 #define TYPE_TARGET_POSITIONS_MESSAGE TRANSFORM_TYPE(8)
 #define TYPE_NETWORK_MEMBERS_MESSAGE TRANSFORM_TYPE(9)
+#define TYPE_NETWORK_MESSAGE_AREA_REQUEST TRANSFORM_TYPE(10)
 
 #define MESSAGES_SIZES(type) message_sizes(type)
 
 #define MAXIMUM_NUMBER_MESSAGES 100 // maximum number expected for one AP-CP communication round
 
 #define MAX_NUM_DRONES 10
-#define MAX_NUM_AGENTS 10
+#define MAX_NUM_AGENTS 15
 
 typedef struct __attribute__((packed)) trajectory_message_t_tag
 {
@@ -137,6 +138,15 @@ typedef struct __attribute__((packed)) network_members_message_t_tag
         uint8_t message_layer_area_agent_id[MAX_NUM_AGENTS];  // which message id belongs which network assignement (0 is an empty field)
 } network_members_message_t;
 
+typedef struct __attribute__((packed)) network_area_request_message_t_tag
+{
+        message_t header;
+	uint8_t id;       // message id, of the message, which wants to reserve a message area
+        uint8_t type;    // corresponding type of the agent (if this is unequal to 255, the network manager is informed, that the message belongs to
+                                 // an agent with type type. It then informs all other members that a new agent is in the network)
+        uint16_t max_size_message; // maximum size of message.
+} network_area_request_message_t;
+
 
 // write all possible messages here. This allows us to quickly transform the data from bytes to usefull structs.
 typedef union ap_message_t_tag
@@ -150,6 +160,7 @@ typedef union ap_message_t_tag
 	sync_movement_message_t sync_movement_message;
         target_positions_message_t target_positions_message;
         network_members_message_t network_members_message;
+        network_area_request_message_t network_area_request_message;
 } ap_message_t;
 
 
