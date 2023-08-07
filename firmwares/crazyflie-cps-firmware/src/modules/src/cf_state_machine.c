@@ -15,6 +15,11 @@
 #include "debug.h"
 #include "math.h"
 
+#if START_FROM_HAND
+static uint32_t was_low = 0;
+#endif
+static uint32_t wait_for_launch = 0;
+
 void init_cf_state_machine(cf_state_machine_handle *hstate_machine,
 							void (*round_finished)(uint32_t),
 							void (*wait_cf_to_start)(),
@@ -117,7 +122,7 @@ static void set_new_target_pos(cf_state_machine_handle *hstate_machine)
 	float offset = (hstate_machine->id-1) * 3.1415926535f / 4;
 	target_pos[0] = (CIRCLE_RADIUS)*cosf(hstate_machine->current_target_angle + offset);
 	target_pos[1] = (CIRCLE_RADIUS)*sinf(hstate_machine->current_target_angle + offset);
-	target_pos[2] = 1.0f+ hstate_machine->id*0.05f;
+	target_pos[2] = 1.0f+ hstate_machine->id*0.00f;
 	hstate_machine->current_target_quant[0] = QUANTIZE_POSITION(target_pos[0]);
 	hstate_machine->current_target_quant[1] = QUANTIZE_POSITION(target_pos[1]);
 	hstate_machine->current_target_quant[2] = QUANTIZE_POSITION(target_pos[2]);
@@ -194,6 +199,7 @@ static uint16_t process_IDLE_STATE(cf_state_machine_handle *hstate_machine, ap_m
 			#endif
 			#ifdef DYNAMIC_SWARM
 			hstate_machine->state = WAIT_FOR_LAUNCH_STATE;
+			wait_for_launch = 0;
 			#endif
 			return 1;
 		}
@@ -210,12 +216,16 @@ static uint16_t process_WAIT_FOR_LAUNCH_STATE(cf_state_machine_handle *hstate_ma
 	hstate_machine->get_cf_state(state);
 
 #if START_FROM_HAND
-	if (state[2] > 1.0f && hstate_machine->mocap_system_active()) {
+	if (state[2] < 0.1f) {
+		was_low += 1;
+	}
+	if (state[2] > 1.0f && (hstate_machine->mocap_system_active()) && was_low > 50) {
 		hstate_machine->state = VERTICAL_LAUNCH_STATE;
 
 	}
 #else
-	if (hstate_machine->mocap_system_active()) {
+	wait_for_launch += 1;
+	if (hstate_machine->mocap_system_active() && wait_for_launch > 5) {
 		hstate_machine->state = VERTICAL_LAUNCH_STATE;
 
 	}
@@ -234,7 +244,7 @@ static uint16_t process_VERTICAL_LAUNCH_STATE(cf_state_machine_handle *hstate_ma
 
 	uint8_t status = hstate_machine->cf_launch_status();
 	if (status == STATUS_IDLE) {
-		hstate_machine->launch_cf(state[0], state[1], 1.0f+hstate_machine->id*0.05f);
+		hstate_machine->launch_cf(state[0], state[1], 1.0f+hstate_machine->id*0.00f);
 
 		// init the last field of hstate_machine, the current trajectory. This field is only needed, if the CU requests the trajectory.
 		// it is saved in the statemachine and not requested evertime, because then, we need to do all the quantizations again.
@@ -244,7 +254,7 @@ static uint16_t process_VERTICAL_LAUNCH_STATE(cf_state_machine_handle *hstate_ma
 		}
 		hstate_machine->current_traj.init_state[0] = QUANTIZE_POSITION(state[0]);
 		hstate_machine->current_traj.init_state[1] = QUANTIZE_POSITION(state[1]);
-		hstate_machine->current_traj.init_state[2] = QUANTIZE_POSITION(1.0f+hstate_machine->id*0.05f);
+		hstate_machine->current_traj.init_state[2] = QUANTIZE_POSITION(1.0f+hstate_machine->id*0.00f);
 
 		hstate_machine->current_traj.init_state[3] = QUANTIZE_VELOCITY(0.0f);
 		hstate_machine->current_traj.init_state[4] = QUANTIZE_VELOCITY(0.0f);

@@ -69,6 +69,7 @@ typedef struct __attribute__((packed)) init_message_t_tag
 #define TYPE_EMTPY_MESSAGE TRANSFORM_TYPE(5)
 #define TYPE_START_SYNC_MOVEMENT TRANSFORM_TYPE(6)   // when this message is sent, the drones make a synchronized wave movement
 #define TYPE_SYNC_MOVEMENT_MESSAGE TRANSFORM_TYPE(7)
+#define TYPE_TARGET_POSITIONS_MESSAGE TRANSFORM_TYPE(8)
 
 #define MESSAGES_SIZES(type) message_sizes(type)
 
@@ -110,6 +111,7 @@ typedef struct __attribute__((packed)) empty_message_t_tag
 {
     message_t header;
 	uint8_t cu_id;
+	uint8_t prios[MAX_NUM_DRONES];
 } empty_message_t;
 
 typedef struct __attribute__((packed)) sync_movement_message_t_tag
@@ -117,6 +119,13 @@ typedef struct __attribute__((packed)) sync_movement_message_t_tag
         message_t header;
         uint16_t angle;
 } sync_movement_message_t;
+
+typedef struct __attribute__((packed)) target_positions_message_t_tag
+{
+        message_t header;
+		uint8_t ids[MAX_NUM_DRONES];
+        uint16_t target_positions[3 * MAX_NUM_DRONES];
+} target_positions_message_t;
 
 
 // write all possible messages here. This allows us to quickly transform the data from bytes to usefull structs.

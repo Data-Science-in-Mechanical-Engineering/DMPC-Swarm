@@ -34,6 +34,8 @@ uint16_t message_sizes(uint8_t type)
         return sizeof(metadata_message_t);
     case TYPE_SYNC_MOVEMENT_MESSAGE:
         return sizeof(sync_movement_message_t);
+	case TYPE_TARGET_POSITIONS_MESSAGE:
+		return sizeof(target_positions_message_t);
     case TYPE_AP_DATA_REQ:
         return 0;
     default:

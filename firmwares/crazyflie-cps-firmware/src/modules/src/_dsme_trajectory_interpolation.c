@@ -161,22 +161,22 @@ static void trajIntTask(void *param)
                     current_setpoint_pos[1] = y_state[0];
                     current_setpoint_pos[2] = z_state[0];
                     if (CF_DIST(current_pos, current_setpoint_pos) > 0.5f) {
-                        x_state[0] = current_pos[0];
-                        y_state[0] = current_pos[1];
-                        z_state[0] = current_pos[2];
+                        //x_state[0] = current_pos[0];
+                        //y_state[0] = current_pos[1];
+                        //z_state[0] = current_pos[2];
 
-                        x_state[1] = 0.0f;
-                        y_state[1] = 0.0f;
-                        z_state[1] = 0.0f;
+                        //x_state[1] = 0.0f;
+                        //y_state[1] = 0.0f;
+                        //z_state[1] = 0.0f;
 
-                        x_state[2] = 0.0f;
-                        y_state[2] = 0.0f;
-                        z_state[2] = 0.0f;
+                        //x_state[2] = 0.0f;
+                        //y_state[2] = 0.0f;
+                        //z_state[2] = 0.0f;
 
                         for (uint8_t idx = 0; idx < LENGTH_TRAJECTORY; idx++) {
-                            current_trajectory.x_coeff[idx] = 0;
-                            current_trajectory.y_coeff[idx] = 0;
-                            current_trajectory.z_coeff[idx] = 0;
+                            //current_trajectory.x_coeff[idx] = 0;
+                            //current_trajectory.y_coeff[idx] = 0;
+                            //current_trajectory.z_coeff[idx] = 0;
                         }
                     }
                 }

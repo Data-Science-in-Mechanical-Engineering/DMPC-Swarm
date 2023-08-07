@@ -421,6 +421,8 @@ static bool updateQueuedMeasurements(const uint32_t tick)
       break;
     case MeasurementTypeSweepAngle:
       kalmanCoreUpdateWithSweepAngles(&coreData, &m.data.sweepAngle, tick, &sweepOutlierFilterState);
+      //emStopTaskEnqueueInput(1);
+      spiSlaveMoCapSystemConnectedCallback(1);
       doneUpdate = true;
       break;
     case MeasurementTypeGyroscope:

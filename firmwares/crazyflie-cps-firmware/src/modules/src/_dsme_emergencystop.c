@@ -22,7 +22,7 @@
 static xQueueHandle watchdogQueue;
 static void emStopTask(void *);
 static bool isInit = false;
-static const portTickType waitTimeInTicks = pdMS_TO_TICKS(500);
+static const portTickType waitTimeInTicks = pdMS_TO_TICKS(2000);
 
 // Mem-alloc for the queue and task using the Macro of static_mem.h, which is provided by Crazyflie
 STATIC_MEM_QUEUE_ALLOC(watchdogQueue, 5, sizeof(uint8_t));

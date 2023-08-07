@@ -41,7 +41,7 @@
 #define STATUS_LANDING 6
 #define STATUS_LANDED 7
 
-#define START_FROM_HAND 1
+#define START_FROM_HAND 0
 
 #define CF_ABS(X) ((X)>0 ? (X):-(X))
 #define CF_MAX(X, Y) (((X)>(Y)) ? (X):(Y))
@@ -54,13 +54,16 @@
 #define MAX_VELOCITY 5.0f
 #define MAX_ACCELERATION 5.0f
 
-#define DEQUANTIZE(X, MAX_VAL) ((MAX_VAL*2.0f/((((uint32_t) 1)<<16) - 1)) * X - MAX_VAL)
+#define ROUND_VALUE(X) (((X) - (int) (X)) > 0.5f ? ((X) + 1) : (X))
+#define INT16_MAX_ ((((uint32_t) 1)<<15) - 1)
+
+#define DEQUANTIZE(X, MAX_VAL) (((float) (((float) (X)) - INT16_MAX_) / INT16_MAX_) * MAX_VAL)  //((MAX_VAL*2.0f/((((uint32_t) 1)<<16) - 1)) * X - MAX_VAL)
 #define DEQUANTIZE_INPUT(X) DEQUANTIZE(X, MAX_INPUT)
 #define DEQUANTIZE_POSITION(X) DEQUANTIZE(X, MAX_POSITION)
 #define DEQUANTIZE_VELOCITY(X) DEQUANTIZE(X, MAX_VELOCITY)
 #define DEQUANTIZE_ACCELERATION(X) DEQUANTIZE(X, MAX_ACCELERATION)
 
-#define QUANTIZE(X, MAX_VAL) ((uint16_t) ((X + MAX_VAL)/(2*MAX_VAL)*((float) (((uint32_t) 1)<<16) - 1)))
+#define QUANTIZE(X, MAX_VAL) ((uint16_t) (ROUND_VALUE((X) / (MAX_VAL) * INT16_MAX_) + INT16_MAX_))   //((uint16_t) ((X + MAX_VAL)/(2*MAX_VAL)*((float) (((uint32_t) 1)<<16) - 1)))
 #define QUANTIZE_POSITION(X) QUANTIZE(X, MAX_POSITION)
 #define QUANTIZE_VELOCITY(X) QUANTIZE(X, MAX_VELOCITY)
 #define QUANTIZE_ACCELERATION(X) QUANTIZE(X, MAX_ACCELERATION)
