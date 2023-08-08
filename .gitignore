@@ -30,7 +30,6 @@
 *.dylib
 
 *.list
-*.mk
 *.bin
 
 # Executables
