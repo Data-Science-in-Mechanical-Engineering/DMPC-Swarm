@@ -1283,7 +1283,7 @@ class ComputingUnit:
                                                      setpoint_creator=self.__ARGS.setpoint_creator,
                                                      slot_group_setpoints_id=self.__slot_group_setpoints_id,
                                                      weight_band=self.__ARGS.weight_band,
-                                                     send_setpoints=self.__cu_id == self.__ARGS.computing_agent_ids[0],
+                                                     send_setpoints=self.__cu_id == 20,
                                                      save_snapshot_times=self.__ARGS.save_snapshot_times
                                                      )
 

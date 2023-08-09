@@ -59,13 +59,13 @@ def define_ARGS():
     parser.add_argument('--use_qpsolvers', default=True, type=bool,
                         help='Select, whether qpsolver is used for data planning')
 
-    parser.add_argument('--alpha_1', default=0, type=bool,
+    parser.add_argument('--alpha_1', default=1, type=bool,
                         help='Weight in event-trigger')
     parser.add_argument('--alpha_2', default=0, type=bool,
                         help='Weight in event-trigger')
-    parser.add_argument('--alpha_3', default=1, type=bool,
+    parser.add_argument('--alpha_3', default=0, type=bool,
                         help='Weight in event-trigger')
-    parser.add_argument('--alpha_4', default=0, type=bool,
+    parser.add_argument('--alpha_4', default=1, type=bool,
                         help='Weight in event-trigger')
 
     parser.add_argument('--remove_redundant_constraints', default=False, type=bool,
@@ -85,8 +85,8 @@ def define_ARGS():
 
     parser.add_argument("--save_snapshot_times", default=[150], type=any, help="")
 
-    parser.add_argument("--message_loss_period_start", default=150, type=int, help="")
-    parser.add_argument("--message_loss_period_end", default=200, type=int, help="")
+    parser.add_argument("--message_loss_period_start", default=150000, type=int, help="")
+    parser.add_argument("--message_loss_period_end", default=20000, type=int, help="")
 
     ARGS = parser.parse_args()
 

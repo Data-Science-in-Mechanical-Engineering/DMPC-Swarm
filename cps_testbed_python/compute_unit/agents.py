@@ -403,6 +403,9 @@ class ComputationAgent(net.Agent):
         self.__trajectory_tracker.add_unique_information(m_id, trajectory_content)
         self.__trajectory_tracker.set_deprecated(m_id)
 
+        if self.__system_state == NORMAL:
+            self.__system_state = INFORMATION_DEPRECATED
+
         self.__agents_ids.append(m_id)
         self.__num_agents = len(self.__agents_ids)
         self.__agents_prios[m_id] = m_id
