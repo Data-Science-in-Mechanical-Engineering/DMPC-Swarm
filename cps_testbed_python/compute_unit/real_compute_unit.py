@@ -736,7 +736,6 @@ class ComputingUnit:
         while True:
             new_round = False
             messages_rx = self.read_data_from_cp()
-            print(messages_rx)
             messages_tx = []
 
             counter = 0
@@ -746,7 +745,6 @@ class ComputingUnit:
             if state == STATE_NOTIFY_NETWORK_MANAGER:
                 for m in messages_rx:
                     if isinstance(m, NetworkMembersMessage):
-                        print(m.message_layer_area_agent_id)
                         if self.__cu_id in m.message_layer_area_agent_id:
                             self.__uart_interface.print("I got assigned an area.")
                             self.__network_manager_message = copy.deepcopy(m)
@@ -758,8 +756,6 @@ class ComputingUnit:
                     req_message.message_id = self.__cu_id
                     req_message.agent_type = 0  # 0 is cu, 1 is drone
                     req_message.max_size_message = TrajectoryMessage().size
-                    print(f"req_message.max_size_message: {req_message.max_size_message}")
-                    print(f"self.__cu_id: {self.__cu_id}")
                     messages_tx = [req_message]
 
             # untill the first drone is into the swarm, dont do anything.
@@ -815,9 +811,13 @@ class ComputingUnit:
                         for cu in self.__cus_in_swarm:
                             if not cu in m.ids:
                                 self.__computation_agent.remove_computation_agent(cu)
+                                self.__cus_in_swarm.remove(cu)
                         for drone in self.__drones_in_swarm:
                             if not drone in m.ids:
-                                self.__computation_agent.remove()
+                                self.__computation_agent.remove_agent(drone)
+                                self.__drones_in_swarm.remove(drone)
+                                print(f"Removed drone {drone}")
+
 
 
                 # only if we want to leave and are sure that we still are eligible to send, then
@@ -930,7 +930,6 @@ class ComputingUnit:
             m_temp.round_mbr = 0
             messages_tx.append(m_temp)
         elif isinstance(traj_message.content, da.TrajectoryMessageContent):
-            print(traj_message)
             m_temp = TrajectoryMessage()
             m_temp.m_id = traj_message.ID
             m_temp.trajectory = traj_message.content.coefficients.coefficients if traj_message.content.coefficients.valid else traj_message.content.coefficients.alternative_trajectory

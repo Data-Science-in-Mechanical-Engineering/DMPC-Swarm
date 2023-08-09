@@ -407,6 +407,7 @@ class ComputationAgent(net.Agent):
             self.__system_state = INFORMATION_DEPRECATED
 
         self.__agents_ids.append(m_id)
+        self.__agents_ids.sort()
         self.__num_agents = len(self.__agents_ids)
         self.__agents_prios[m_id] = m_id
 
@@ -419,8 +420,11 @@ class ComputationAgent(net.Agent):
 
     def remove_agent(self, m_id):
         self.__trajectory_tracker.delete_information(m_id)
-        self.__agents_ids.pop(m_id)
         self.__agents_prios.pop(m_id)
+        self.__agents_ids.remove(m_id)
+        self.__agents_ids.sort()
+
+        self.__num_agents = len(self.__agents_ids)
 
     def add_new_computation_agent(self, m_id):
         self.__computing_agents_ids.append(m_id)
@@ -438,7 +442,6 @@ class ComputationAgent(net.Agent):
         self.__computing_agents_ids.sort()
         self.__num_computing_agents = len(self.__computing_agents_ids)
         self.__comp_agent_prio = self.__computing_agents_ids.index(self.ID)
-        print(f"self.__comp_agent_prio {self.__comp_agent_prio}")
 
         self.__send_setpoints = self.ID == self.__computing_agents_ids[0]
 
@@ -503,8 +506,6 @@ class ComputationAgent(net.Agent):
             message: Message
                 message to send.
         """
-        print(message)
-        # print(message.slot_group_id)
         if message is None:
             return
         if message.slot_group_id == self.__slot_group_ack_id:
@@ -812,8 +813,6 @@ class ComputationAgent(net.Agent):
                 #ordered_indexes = self.order_agents_by_priority()
                 ordered_indexes = np.argsort(-np.array(self.__prio_consensus))  # self.order_agents_by_priority()#
                 self.__current_agent = ordered_indexes[self.__comp_agent_prio]
-                print(f" self.__current_agent {self.__current_agent}")
-                print(f" ordered_indexes {ordered_indexes}")
                 current_id = self.__agents_ids[self.__current_agent]
                 self.__num_trigger_times[current_id] += 1
                 self.__selected_UAVs[-1] = current_id
