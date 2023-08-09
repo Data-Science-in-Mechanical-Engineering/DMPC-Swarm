@@ -410,6 +410,8 @@ class ComputationAgent(net.Agent):
         # first every agent should fly to the origin.
         self.__setpoint_creator.add_drone(m_id, np.array([0.0, 0.0, 1.0]))
 
+        self.__current_target_positions[m_id] = np.array([0.0, 0.0, 1.0])
+
         self.__num_trigger_times[m_id] = 0
 
     def add_new_computation_agent(self, m_id):
@@ -486,6 +488,8 @@ class ComputationAgent(net.Agent):
             message: Message
                 message to send.
         """
+        print(message)
+        # print(message.slot_group_id)
         if message is None:
             return
         if message.slot_group_id == self.__slot_group_ack_id:
