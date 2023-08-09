@@ -70,12 +70,15 @@ typedef struct __attribute__((packed)) init_message_t_tag
 #define TYPE_START_SYNC_MOVEMENT TRANSFORM_TYPE(6)   // when this message is sent, the drones make a synchronized wave movement
 #define TYPE_SYNC_MOVEMENT_MESSAGE TRANSFORM_TYPE(7)
 #define TYPE_TARGET_POSITIONS_MESSAGE TRANSFORM_TYPE(8)
+#define TYPE_NETWORK_MEMBERS_MESSAGE TRANSFORM_TYPE(9)
+#define TYPE_NETWORK_MESSAGE_AREA_REQUEST TRANSFORM_TYPE(10)
 
 #define MESSAGES_SIZES(type) message_sizes(type)
 
 #define MAXIMUM_NUMBER_MESSAGES 100 // maximum number expected for one AP-CP communication round
 
 #define MAX_NUM_DRONES 10
+#define MAX_NUM_AGENTS 15
 
 typedef struct __attribute__((packed)) trajectory_message_t_tag
 {
@@ -85,7 +88,7 @@ typedef struct __attribute__((packed)) trajectory_message_t_tag
 	uint16_t trajectory_start_time;    // trajectory start time in rounds
 	uint8_t drone_id; // to which drone the trajectory belongs
 	uint8_t calculated_by;
-    uint8_t prios[MAX_NUM_DRONES];
+        uint8_t prios[MAX_NUM_DRONES];
 } trajectory_message_t;
 
 typedef struct __attribute__((packed)) state_message_t_tag
@@ -95,23 +98,23 @@ typedef struct __attribute__((packed)) state_message_t_tag
 	uint8_t status;
 	uint16_t current_target[3];
 	uint8_t target_position_idx;
-    uint16_t trajectory_start_time;    // trajectory start time in rounds
+        uint16_t trajectory_start_time;    // trajectory start time in rounds
 	uint8_t drone_id; // to which drone the trajectory belongs
 	uint8_t calculated_by;
 } state_message_t;
 
 typedef struct __attribute__((packed)) trajectory_req_message_t_tag
 {
-    message_t header;
+        message_t header;
 	uint8_t drone_id;
 	uint8_t cu_id;
 } trajectory_req_message_t;
 
 typedef struct __attribute__((packed)) empty_message_t_tag
 {
-    message_t header;
+        message_t header;
 	uint8_t cu_id;
-	uint8_t prios[MAX_NUM_DRONES];
+        uint8_t prios[MAX_NUM_DRONES];
 } empty_message_t;
 
 typedef struct __attribute__((packed)) sync_movement_message_t_tag
@@ -123,9 +126,26 @@ typedef struct __attribute__((packed)) sync_movement_message_t_tag
 typedef struct __attribute__((packed)) target_positions_message_t_tag
 {
         message_t header;
-		uint8_t ids[MAX_NUM_DRONES];
+	uint8_t ids[MAX_NUM_DRONES];
         uint16_t target_positions[3 * MAX_NUM_DRONES];
 } target_positions_message_t;
+
+typedef struct __attribute__((packed)) network_members_message_t_tag
+{
+        message_t header;
+	uint8_t ids[MAX_NUM_AGENTS];      // agents that are in the network (0, is an empty field)                  
+        uint8_t types[MAX_NUM_AGENTS];    // corresponding type of the agent 
+        uint8_t message_layer_area_agent_id[MAX_NUM_AGENTS];  // which message id belongs which network assignement (0 is an empty field)
+} network_members_message_t;
+
+typedef struct __attribute__((packed)) network_area_request_message_t_tag
+{
+        message_t header;
+	uint8_t id;       // message id, of the message, which wants to reserve a message area
+        uint8_t type;    // corresponding type of the agent (if this is unequal to 255, the network manager is informed, that the message belongs to
+                                 // an agent with type type. It then informs all other members that a new agent is in the network)
+        uint16_t max_size_message; // maximum size of message.
+} network_area_request_message_t;
 
 
 // write all possible messages here. This allows us to quickly transform the data from bytes to usefull structs.
@@ -136,8 +156,11 @@ typedef union ap_message_t_tag
 	state_message_t state_message;
 	trajectory_message_t trajectory_message;
 	trajectory_req_message_t trajectory_req_message;
-    empty_message_t empty_message;
+        empty_message_t empty_message;
 	sync_movement_message_t sync_movement_message;
+        target_positions_message_t target_positions_message;
+        network_members_message_t network_members_message;
+        network_area_request_message_t network_area_request_message;
 } ap_message_t;
 
 
@@ -149,7 +172,7 @@ typedef struct ap_com_handle_tag
 	void (*ap_send)(uint8_t *, uint16_t);
 	void (*ap_receive)(uint8_t *, uint16_t);
 	void (*rx_wait)();
-    void (*tx_wait)();
+        void (*tx_wait)();
 } ap_com_handle;
 
 void init_ap_com(ap_com_handle *hap_com, void (*ap_send_p)(uint8_t *, uint16_t), void (*ap_receive_p)(uint8_t *, uint16_t), void (*rx_wait_p)(), void (*tx_wait_p)());

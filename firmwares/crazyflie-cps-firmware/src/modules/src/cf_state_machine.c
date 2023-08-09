@@ -271,7 +271,7 @@ static uint16_t process_VERTICAL_LAUNCH_STATE(cf_state_machine_handle *hstate_ma
 		hstate_machine->current_target_angle = 1.5f*3.1415926535f;
 	}
 	if (status == STATUS_LAUNCHED) {
-		hstate_machine->state = SYS_RUN_STATE;
+		hstate_machine->state = RESERVE_MESSAGE_LAYER_AREA_STATE;
 	}
 
 	// dont send anything yet.
@@ -280,121 +280,43 @@ static uint16_t process_VERTICAL_LAUNCH_STATE(cf_state_machine_handle *hstate_ma
 	return 1;
 }
 
-/**
- * @returns length of data in tx_data
- */
-static uint16_t process_AP_READY_STATE(cf_state_machine_handle *hstate_machine, ap_message_t **rx_data, uint16_t size, ap_message_t *tx_data)
+static uint16_t process_RESERVE_MESSAGE_LAYER_AREA_STATE(cf_state_machine_handle *hstate_machine, ap_message_t **rx_data, uint16_t size, ap_message_t *tx_data)
 {
-	// iterate through array
+	// check if network manager reserved the area, we needed.
+	uint8_t got_area = 0;
 	for (uint16_t i = 0; i < size; i++) {
 		switch (rx_data[i]->header.type)
 		{
-			case TYPE_DRONE_STATE:
-				break;
-			case TYPE_TRAJECTORY:
-				break;
-			case TRANSFORM_TYPE(TYPE_LAUNCH_DRONES):
-				break;
-			// if CF receives this from the CP somehow the CP restarted.
-			case TYPE_METADATA:
-			case TYPE_CP_ACK:
-				hstate_machine->id = rx_data[i]->header.id;
-				hstate_machine->state = SYS_READY_STATE;
-				tx_data->header.type = TYPE_AP_ACK;
-				tx_data->header.id = hstate_machine->id;
-				return 1;
-			default:
-				break;
-		}
-	}
-	float state[9];
-	hstate_machine->get_cf_state(state);
-	tx_data->header.type = TYPE_DRONE_STATE;
-	tx_data->header.id = hstate_machine->id;
-	quantize_state(&tx_data->state_message, state);
-	tx_data->state_message.status = STATUS_IDLE;
-	state_message_write_target_pos((state_message_t *) tx_data, hstate_machine);
-	state_message_write_traj_metadata((state_message_t *) tx_data, hstate_machine);
-	return 1;
-}
-
-/**
- * @returns length of data in tx_data
- */
-static uint16_t process_SYS_READY_STATE(cf_state_machine_handle *hstate_machine, ap_message_t **rx_data, uint16_t size, ap_message_t *tx_data)
-{
-	// iterate through array
-	for (uint16_t i = 0; i < size; i++) {
-		switch (rx_data[i]->header.type)
-		{
-			case TYPE_DRONE_STATE:
-				break;
-			case TYPE_TRAJECTORY:
-				break;
-			case TYPE_LAUNCH_DRONES:
-				hstate_machine->state = LAUNCH_STATE;
-				break;
-			default:
-				break;
-		}
-	}
-	float state[9];
-	hstate_machine->get_cf_state(state);
-	tx_data->header.type = TYPE_DRONE_STATE;
-	tx_data->header.id = hstate_machine->id;
-	quantize_state(&tx_data->state_message, state);
-	tx_data->state_message.status = STATUS_IDLE;
-	state_message_write_target_pos((state_message_t *) tx_data, hstate_machine);
-	state_message_write_traj_metadata((state_message_t *) tx_data, hstate_machine);
-	return 1;
-}
-
-static uint16_t process_LAUNCH_STATE(cf_state_machine_handle *hstate_machine, ap_message_t **rx_data, uint16_t size, ap_message_t *tx_data)
-{
-	// iterate through array
-	uint16_t num_launched_drones = 0;
-	uint8_t land_drones = 0;
-	for (uint16_t i = 0; i < size; i++) {
-		switch (rx_data[i]->header.type)
-		{
-			case TYPE_DRONE_STATE:
-				// count how many drones have launched
-				if (rx_data[i]->state_message.status == STATUS_LAUNCHED) {
-					num_launched_drones++;
+			case TYPE_NETWORK_MEMBERS_MESSAGE:
+				for (uint8_t j = 0; j < MAX_NUM_AGENTS; j++) {
+					if (rx_data[i]->network_members_message.message_layer_area_agent_id[j] == hstate_machine->id) {
+						got_area = 1;
+					}
 				}
-				break;
-			case TYPE_SYS_SHUTDOWN:
-				land_drones = 1;
 				break;
 			// ignore others
 			default:
 				break;
 		}
 	}
-
-	uint8_t status = hstate_machine->cf_launch_status();
-	if (status == STATUS_IDLE) {
-		float init_states[3];
-		hstate_machine->init_position(init_states, hstate_machine->id-1);
-		hstate_machine->launch_cf(init_states[0], init_states[1], init_states[2]);
-	}
-	float state[9];
-	hstate_machine->get_cf_state(state);
-	tx_data->header.type = TYPE_DRONE_STATE;
-	tx_data->header.id = hstate_machine->id;
-	quantize_state(&tx_data->state_message, state);
-	tx_data->state_message.status = status;
-	state_message_write_target_pos((state_message_t *) tx_data, hstate_machine);
-	state_message_write_traj_metadata((state_message_t *) tx_data, hstate_machine);
-
-	if (num_launched_drones == hstate_machine->num_drones) {
+	if (got_area) {
 		hstate_machine->state = SYS_RUN_STATE;
-	}
-	if (land_drones) {
-		hstate_machine->state = SYS_SHUTDOWN_STATE;
+		float state[9];
+		hstate_machine->get_cf_state(state);
+		tx_data->header.type = TYPE_DRONE_STATE;
+		tx_data->header.id = hstate_machine->id;
+		quantize_state(&tx_data->state_message, state);
+		tx_data->state_message.status = STATUS_FLYING;
+		state_message_write_target_pos((state_message_t *) tx_data, hstate_machine);
+		state_message_write_traj_metadata((state_message_t *) tx_data, hstate_machine);
+	} else {
+		tx_data->header.type = TYPE_NETWORK_MESSAGE_AREA_REQUEST;
+		tx_data->header.id = hstate_machine->id;
+		tx_data->network_area_request_message.id = hstate_machine->id;
+		tx_data->network_area_request_message.max_size_message = sizeof(state_message_t);
+		tx_data->network_area_request_message.type = 1;
 	}
 	return 1;
-
 }
 
 static uint16_t process_SYS_RUN_STATE(cf_state_machine_handle *hstate_machine, ap_message_t **rx_data, uint16_t size, ap_message_t *tx_data, uint32_t *round_nmbr)
@@ -633,23 +555,8 @@ void run_cf_state_machine(cf_state_machine_handle *hstate_machine)
 			case VERTICAL_LAUNCH_STATE:
 				tx_size = process_VERTICAL_LAUNCH_STATE(hstate_machine, rx_data, rx_size, tx_data);
 				break;
-			case AP_READY_STATE:
-				tx_size = process_AP_READY_STATE(hstate_machine, rx_data, rx_size, tx_data);
-				if (i%10 == 0) {
-					//DEBUG_PRINT("AP_READY_STATE!%u\n", i);
-				}
-				break;
-			case SYS_READY_STATE:
-				if (i%10 == 0) {
-					//DEBUG_PRINT("SYS_READY_STATE!\n");
-				}
-				tx_size = process_SYS_READY_STATE(hstate_machine, rx_data, rx_size, tx_data);
-				break;
-			case LAUNCH_STATE:
-				if (i%10 == 0) {
-					//DEBUG_PRINT("Launching!\n");
-				}
-				tx_size = process_LAUNCH_STATE(hstate_machine, rx_data, rx_size, tx_data);
+			case RESERVE_MESSAGE_LAYER_AREA_STATE:
+				tx_size = process_RESERVE_MESSAGE_LAYER_AREA_STATE(hstate_machine, rx_data, rx_size, tx_data);
 				break;
 			case SYS_RUN_STATE:
 				tx_size = process_SYS_RUN_STATE(hstate_machine, rx_data, rx_size, tx_data, &round_nmbr);

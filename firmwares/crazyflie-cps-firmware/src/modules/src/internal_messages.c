@@ -15,8 +15,6 @@
 
 #include <string.h>
 
-#include "debug.h"
-
 static uint8_t buffer[1024];
 
 uint16_t message_sizes(uint8_t type)
@@ -34,8 +32,12 @@ uint16_t message_sizes(uint8_t type)
         return sizeof(metadata_message_t);
     case TYPE_SYNC_MOVEMENT_MESSAGE:
         return sizeof(sync_movement_message_t);
-	case TYPE_TARGET_POSITIONS_MESSAGE:
-		return sizeof(target_positions_message_t);
+    case TYPE_TARGET_POSITIONS_MESSAGE:
+        return sizeof(target_positions_message_t);
+    case TYPE_NETWORK_MEMBERS_MESSAGE:
+        return sizeof(network_members_message_t);
+	case TYPE_NETWORK_MESSAGE_AREA_REQUEST:
+        return sizeof(network_area_request_message_t);
     case TYPE_AP_DATA_REQ:
         return 0;
     default:

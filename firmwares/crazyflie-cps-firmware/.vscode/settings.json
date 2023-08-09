@@ -11,6 +11,7 @@
         "static_mem.h": "c",
         "watchdog.h": "c",
         "_dsme_spi_slave.h": "c",
-        "internal_messages.h": "c"
+        "internal_messages.h": "c",
+        "stm32f4xx.h": "c"
     }
 }
