@@ -109,7 +109,7 @@ class UartInterface():
         """ TRY EVERY AVAILABLE PORT """
         for port in ports:
             try:
-                s = serial.Serial(port=port, baudrate=baudrate, timeout=0.5)
+                s = serial.Serial(port=port, baudrate=baudrate, timeout=1.0)
                 init_message = self.read_from_uart(s)
                 print(f"{port}: {len(init_message)}")
                 if init_message is None:

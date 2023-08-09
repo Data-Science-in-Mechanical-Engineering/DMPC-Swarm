@@ -124,7 +124,7 @@ class SetpointCreator:
 		dpos = (max_pos - min_pos) / 2 * 0.8
 		mean = (min_pos + max_pos) / 2 + offset
 		if name_testbed == "Vicon":
-			angle = 2 * math.pi * (self.__round) / 50.0 + 2 * math.pi * drone_id / 10 + math.pi
+			angle = 2 * math.pi * (self.__round) / 50.0 + 2 * math.pi * drone_id / 3 + math.pi
 			mean[2] = 0.8
 		else:
 			angle = 2 * math.pi * (self.__round) / 50.0 + 2 * math.pi * drone_id / 2 + math.pi
