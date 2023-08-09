@@ -36,8 +36,10 @@ uint16_t message_sizes(uint8_t type)
         return sizeof(target_positions_message_t);
     case TYPE_NETWORK_MEMBERS_MESSAGE:
         return sizeof(network_members_message_t);
-	case TYPE_NETWORK_MESSAGE_AREA_REQUEST:
+    case TYPE_NETWORK_MESSAGE_AREA_REQUEST:
         return sizeof(network_area_request_message_t);
+    case TYPE_NETWORK_MESSAGE_AREA_FREE:
+         return sizeof(network_area_free_message_t);
     case TYPE_AP_DATA_REQ:
         return 0;
     default:
@@ -117,4 +119,6 @@ uint16_t receive_data_from(ap_com_handle *hap_com, ap_message_t **messages)
 	hap_com->ap_receive(hap_com->raw_data_buffer, size);
 	return raw_data_to_messages(hap_com->raw_data_buffer, messages, size);
 }
+
+
 

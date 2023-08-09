@@ -43,6 +43,7 @@ void init_cf_state_machine(cf_state_machine_handle *hstate_machine,
 	hstate_machine->round_length_s = -1.0f;
 	hstate_machine->id = (uint8_t) -1u;
 	hstate_machine->round_finished = round_finished;
+	hstate_machine->wants_to_leave = 0;
 	hstate_machine->wait_cf_to_start = wait_cf_to_start;
 	hstate_machine->cp_connected_callback = cp_connected_callback;
 	hstate_machine->get_cf_state = get_cf_state;

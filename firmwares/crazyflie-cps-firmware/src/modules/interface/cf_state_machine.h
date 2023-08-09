@@ -109,6 +109,7 @@ typedef struct cf_state_machine_handle_tag
 	uint16_t current_target_quant[3]; //save this, such that we do not have to calculate it everytime.
 	float current_target[3];
 	float current_target_angle;
+	uint8_t wants_to_leave;
 	void (*round_finished)();
 	void (*wait_cf_to_start)();
 	void (*cp_connected_callback)(uint8_t);
