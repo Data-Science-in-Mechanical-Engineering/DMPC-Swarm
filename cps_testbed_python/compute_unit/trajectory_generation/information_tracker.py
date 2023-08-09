@@ -22,6 +22,9 @@ class InformationTracker:
 		else:
 			self.__information_list[key].set_content(content)
 
+	def delete_information(self, key):
+		self.__information_list.pop(key)
+
 	def add_unique_information(self, key, content):
 		if key not in self.__information_list.keys():
 			self.__information_list[key] = Information(content)

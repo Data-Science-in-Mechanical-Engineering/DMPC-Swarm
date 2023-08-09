@@ -50,12 +50,17 @@ static message_assignment_t message_assignment[] = {
                                                     {.id=8, .size=sizeof(state_message_t)},
                                                     //{.id=9, .size=sizeof(state_message_t)},
                                                     //{.id=10, .size=sizeof(state_message_t)},
-                                                    //{.id=3, .size=sizeof(state_message_t)},
                                                     {.id=20, .size=sizeof(trajectory_message_t)},
                                                     {.id=21, .size=sizeof(trajectory_message_t)},
                                                     {.id=100, .size=sizeof(state_message_t)},
                                                     {.id=200, .size=sizeof(target_positions_message_t)}
                                                    };
+
+// with this, one can define messages, which are reserved for the whole system beforehand in the message_area.
+// for the swarm, we reserve one for the shutdown-message and one for the target positions.
+static message_assignment_t constant_message_assignment[] = {
+                                                    {.id=100, .size=sizeof(state_message_t)}, 
+                                                    {.id=200, .size=sizeof(target_positions_message_t)}};
 
 /*{{.id=1, .size=sizeof(state_message_t)}, 
                                                     {.id=2, .size=sizeof(state_message_t)},
@@ -77,7 +82,7 @@ static message_assignment_t message_assignment[] = {
 
 	#define MX_ROUND_LENGTH				90 // in #slots
 	#define ROUND_PERIOD				GPI_TICK_MS_TO_HYBRID2(ROUND_LENGTH_MS)
-	#define MX_SLOT_LENGTH				GPI_TICK_US_TO_HYBRID2(1400) //GPI_TICK_US_TO_HYBRID2(1100)
+	#define MX_SLOT_LENGTH				GPI_TICK_US_TO_HYBRID2(1500) //GPI_TICK_US_TO_HYBRID2(1100)
 #endif
 
 

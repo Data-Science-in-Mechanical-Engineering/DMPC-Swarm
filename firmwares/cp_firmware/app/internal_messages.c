@@ -32,6 +32,10 @@ uint16_t message_sizes(uint8_t type)
         return sizeof(target_positions_message_t);
     case TYPE_NETWORK_MEMBERS_MESSAGE:
         return sizeof(network_members_message_t);
+    case TYPE_NETWORK_MESSAGE_AREA_REQUEST:
+        return sizeof(network_area_request_message_t);
+    case TYPE_NETWORK_MESSAGE_AREA_FREE:
+         return sizeof(network_area_free_message_t);
     case TYPE_AP_DATA_REQ:
         return 0;
     default:

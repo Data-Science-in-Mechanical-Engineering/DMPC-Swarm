@@ -55,6 +55,11 @@ void init_cp_os(uint16_t (*receive_data_from_AP_p)(ap_message_t **),
 
   if (is_network_manager) {
     init_network_manager(&network_manager_state);
+
+    // directly add the constant message areas to the network manager
+    for (uint8_t i = 0; i < NUM_ELEMENTS(constant_message_assignment); i++) {
+      add_new_message(&network_manager_state, constant_message_assignment[i].id, constant_message_assignment[i].size);
+    }
   }
 
   for (uint16_t i = 0; i < NUM_PLANTS; i++) {
@@ -178,10 +183,13 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
     for (uint16_t tx_message_idx = 0; tx_message_idx < size_tx_messages; tx_message_idx++) {
       // when the agent does not want to send anything, it sends a TYPE_DUMMY
       if (tx_messages[tx_message_idx]->header.type != TYPE_DUMMY 
-          || tx_messages[tx_message_idx]->header.type != TYPE_NETWORK_MESSAGE_AREA_REQUEST) {
+          && tx_messages[tx_message_idx]->header.type != TYPE_NETWORK_MESSAGE_AREA_REQUEST) {
         // the id of the message in the message layer is written in the header.
-        message_layer_set_message(get_message_area_idx(&network_members_message, tx_messages[tx_message_idx]->header.id), 
-            (uint8_t *) tx_messages[tx_message_idx]);
+        uint8_t idx = get_message_area_idx(&network_members_message, tx_messages[tx_message_idx]->header.id);
+        if (idx != 255) {
+          message_layer_set_message(idx, 
+              (uint8_t *) tx_messages[tx_message_idx]);
+        }
       }
 
       // write into aggregate that the ap wants to reserve a new area in the message layer.
@@ -267,6 +275,15 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
     // we write to, will always be the network areas, we reserved, even if we do not receive the network managers message.
     if (mixer_messages_received[0].header.type == TYPE_NETWORK_MEMBERS_MESSAGE) {
       memcpy(&network_members_message, &mixer_messages_received[0], sizeof(network_members_message_t));
+    }
+
+    // check if an agent wants to leave the network
+    if (is_network_manager) {
+      for (uint8_t i = 0; i < messages_received_idx; i++) {
+        if (mixer_messages_received[i].header.type == TYPE_NETWORK_MESSAGE_AREA_FREE) {
+          remove_agent(&network_manager_state, mixer_messages_received[i].header.id);
+        }
+      }
     }
 
     // read and process aggregate

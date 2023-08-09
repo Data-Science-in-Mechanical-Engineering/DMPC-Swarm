@@ -417,6 +417,11 @@ class ComputationAgent(net.Agent):
 
         self.__num_trigger_times[m_id] = 0
 
+    def remove_agent(self, m_id):
+        self.__trajectory_tracker.delete_information(m_id)
+        self.__agents_ids.pop(m_id)
+        self.__agents_prios.pop(m_id)
+
     def add_new_computation_agent(self, m_id):
         self.__computing_agents_ids.append(m_id).sort()
         self.__num_computing_agents = len(self.__computing_agents_ids)
@@ -428,9 +433,11 @@ class ComputationAgent(net.Agent):
         if m_id not in self.__computing_agents_ids:
             return
 
-        self.__computing_agents_ids.remove(m_id)
+        self.__computing_agents_ids.remove(m_id).sort()
         self.__num_computing_agents = len(self.__computing_agents_ids)
         self.__comp_agent_prio = self.__computing_agents_ids.index(self.ID)
+
+        self.__send_setpoints = self.ID == self.__computing_agents_ids[0]
 
     def get_prio(self, slot_group_id):
         """returns the priority for the schedulder, because the system is not event triggered, it just returns zero
@@ -811,8 +818,9 @@ class ComputationAgent(net.Agent):
 
                 # if the information about the agent is not unique do not calculate something, because we will calculate
                 # something wrong. Same is true if we have not received the members message.
+                # if the agent is remove but was scheduled for recalculation in the last round, do nothing.
                 if not self.__trajectory_tracker.get_information(current_id).is_unique \
-                        or not received_network_members_message:
+                        or not received_network_members_message or not self.__current_agent in self.__agents_ids:
                     prios = self.calc_prio()
                     self.__last_received_messages = {self.ID: EmtpyContent(prios)}
                 else:

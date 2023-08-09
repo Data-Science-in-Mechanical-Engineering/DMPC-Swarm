@@ -784,6 +784,8 @@ class ComputingUnit:
                         received_network_members_message = True
                         print("-----------------------")
                         print(m.message_layer_area_agent_id)
+
+                        # check if there is a new agent in the swarm
                         for i, t in enumerate(m.types):
                             if m.ids[i] == 0:
                                 continue
@@ -798,6 +800,15 @@ class ComputingUnit:
                                     self.__uart_interface.print(f"Drone {m.ids[i]} added to swarm")
                                     self.__computation_agent.add_new_agent(m.ids[i])
                                     self.__drones_in_swarm.append(m.ids[i])
+
+                        # check if an agent has left the swarm
+                        for cu in self.__cus_in_swarm:
+                            if not cu in m.ids:
+                                self.__computation_agent.remove_computation_agent(cu)
+                        for drone in self.__drones_in_swarm:
+                            if not drone in m.ids:
+                                self.__computation_agent.remove()
+
 
                 # only if we want to leave and are sure that we still are eligible to send, then
                 # send that we want to leave
