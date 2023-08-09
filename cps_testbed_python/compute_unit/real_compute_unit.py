@@ -704,6 +704,16 @@ class ComputingUnit:
 
         self.__wants_to_leave = False   # we set this true, if the CU wants to leave the swarm.
 
+    def run(self, fileno):
+        """ This is the main state machine of the computing unit. """
+
+        """ SETUP """
+
+        if self.__ARGS.dynamic_swarm:
+            self.run_dynamic_swarm(fileno)
+        else:
+            assert False
+
     def run_dynamic_swarm(self, fileno):
         self.connect_to_cp()
 
@@ -814,7 +824,7 @@ class ComputingUnit:
                 # send that we want to leave
                 if self.__wants_to_leave:
                     if received_network_members_message:
-                        free_message = SyncMovementMessage()
+                        free_message = NetworkAreaFreeMessage()
                         free_message.m_id = self.__cu_id
                         messages_tx = [free_message]
                     else:
@@ -899,6 +909,8 @@ class ComputingUnit:
             
             if round_mbr is not None:
                 self.__round_nmbr = round_mbr
+                if round_mbr > 200 and self.__cu_id == 21:
+                    self.__wants_to_leave = True
 
         for m in messages_parsed:
             self.__computation_agent.send_message(m)
@@ -983,6 +995,8 @@ class ComputingUnit:
                 message_rec = NetworkMembersMessage()
             elif type == TYPE_NETWORK_MESSAGE_AREA_REQUEST:
                 message_rec = NetworkAreaRequestMessage()
+            elif type == TYPE_NETWORK_MESSAGE_AREA_FREE:
+                message_rec = NetworkAreaFreeMessage()
             else:
                 message_rec = MetadataMessage()
             message_rec.set_content_bytes(data[data_idx:data_idx+message_rec.size])

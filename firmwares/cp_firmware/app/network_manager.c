@@ -79,7 +79,7 @@ uint8_t add_new_agent(network_members_message_t *state, uint8_t agent_id, uint8_
 void remove_agent(network_members_message_t *state, uint8_t agent_id) {
   for (uint8_t i = 0; i < MAX_NUM_AGENTS; i++) {
     if (state->message_layer_area_agent_id[i] == agent_id) {
-      state->message_layer_area_agent_id[i] == 0;
+      state->message_layer_area_agent_id[i] = 0;
     }
     if (state->ids[i] == agent_id) {
       state->ids[i] = 0;

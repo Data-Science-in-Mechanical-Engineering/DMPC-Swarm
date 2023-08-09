@@ -423,7 +423,8 @@ class ComputationAgent(net.Agent):
         self.__agents_prios.pop(m_id)
 
     def add_new_computation_agent(self, m_id):
-        self.__computing_agents_ids.append(m_id).sort()
+        self.__computing_agents_ids.append(m_id)
+        self.__computing_agents_ids.sort()
         self.__num_computing_agents = len(self.__computing_agents_ids)
         self.__comp_agent_prio = self.__computing_agents_ids.index(self.ID)
 
@@ -433,9 +434,11 @@ class ComputationAgent(net.Agent):
         if m_id not in self.__computing_agents_ids:
             return
 
-        self.__computing_agents_ids.remove(m_id).sort()
+        self.__computing_agents_ids.remove(m_id)
+        self.__computing_agents_ids.sort()
         self.__num_computing_agents = len(self.__computing_agents_ids)
         self.__comp_agent_prio = self.__computing_agents_ids.index(self.ID)
+        print(f"self.__comp_agent_prio {self.__comp_agent_prio}")
 
         self.__send_setpoints = self.ID == self.__computing_agents_ids[0]
 
@@ -809,6 +812,8 @@ class ComputationAgent(net.Agent):
                 #ordered_indexes = self.order_agents_by_priority()
                 ordered_indexes = np.argsort(-np.array(self.__prio_consensus))  # self.order_agents_by_priority()#
                 self.__current_agent = ordered_indexes[self.__comp_agent_prio]
+                print(f" self.__current_agent {self.__current_agent}")
+                print(f" ordered_indexes {ordered_indexes}")
                 current_id = self.__agents_ids[self.__current_agent]
                 self.__num_trigger_times[current_id] += 1
                 self.__selected_UAVs[-1] = current_id
@@ -820,7 +825,7 @@ class ComputationAgent(net.Agent):
                 # something wrong. Same is true if we have not received the members message.
                 # if the agent is remove but was scheduled for recalculation in the last round, do nothing.
                 if not self.__trajectory_tracker.get_information(current_id).is_unique \
-                        or not received_network_members_message or not self.__current_agent in self.__agents_ids:
+                        or not received_network_members_message or not self.__agents_ids[self.__current_agent] in self.__agents_ids:
                     prios = self.calc_prio()
                     self.__last_received_messages = {self.ID: EmtpyContent(prios)}
                 else:
