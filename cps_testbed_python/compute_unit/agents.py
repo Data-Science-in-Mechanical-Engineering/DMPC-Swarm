@@ -418,9 +418,11 @@ class ComputationAgent(net.Agent):
         self.__num_trigger_times[m_id] = 0
 
     def add_new_computation_agent(self, m_id):
-        self.__computing_agents_ids.append(m_id)
+        self.__computing_agents_ids.append(m_id).sort()
         self.__num_computing_agents = len(self.__computing_agents_ids)
         self.__comp_agent_prio = self.__computing_agents_ids.index(self.ID)
+
+        self.__send_setpoints = self.ID == self.__computing_agents_ids[0]
 
     def remove_computation_agent(self, m_id):
         if m_id not in self.__computing_agents_ids:
@@ -620,7 +622,7 @@ class ComputationAgent(net.Agent):
                 self.print(f"New setpoints: {self.__received_setpoints}")
             pass
 
-    def round_finished(self, round_nmbr=None):
+    def round_finished(self, round_nmbr=None, received_network_members_message=True):
         """this function has to be called at the end of the round to tell the agent that the communication round is
         finished"""
         self.__selected_UAVs.append(-1)
@@ -808,8 +810,9 @@ class ComputationAgent(net.Agent):
                 self.starting_times = self.__agents_starting_times
 
                 # if the information about the agent is not unique do not calculate something, because we will calculate
-                # something wrong
-                if not self.__trajectory_tracker.get_information(current_id).is_unique:
+                # something wrong. Same is true if we have not received the members message.
+                if not self.__trajectory_tracker.get_information(current_id).is_unique \
+                        or not received_network_members_message:
                     prios = self.calc_prio()
                     self.__last_received_messages = {self.ID: EmtpyContent(prios)}
                 else:

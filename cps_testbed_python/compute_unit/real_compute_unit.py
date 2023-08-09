@@ -83,6 +83,7 @@ TYPE_SYNC_MOVEMENT_MESSAGE = 13
 TYPE_TARGET_POSITIONS_MESSAGE = 14
 TYPE_NETWORK_MEMBERS_MESSAGE = 15
 TYPE_NETWORK_MESSAGE_AREA_REQUEST = 16
+TYPE_NETWORK_MESSAGE_AREA_FREE = 17
 TYPE_DUMMY = 255
 
 # crazyflie status flags
@@ -595,6 +596,21 @@ class NetworkAreaRequestMessage(message.MessageType):
         self.set_content({"max_size_message": np.array([mid], dtype=self.get_data_type("max_size_message"))})
 
 
+class NetworkAreaFreeMessage(message.MessageType):
+    def __init__(self):
+        super().__init__(["type", "id"],
+                         [("uint8_t", 1), ("uint8_t", 1)])
+        self.set_content({"type": np.array([TYPE_NETWORK_MESSAGE_AREA_FREE], dtype=self.get_data_type("type"))})
+
+    @property
+    def m_id(self):
+        return self.get_content("id")[0]
+
+    @m_id.setter
+    def m_id(self, mid):
+        self.set_content({"id": np.array([mid], dtype=self.get_data_type("id"))})
+
+
 class SyncMovementMessage(message.MessageType):
     def __init__(self):
         super().__init__(["type", "id", "angle"],
@@ -686,6 +702,8 @@ class ComputingUnit:
         self.__drones_in_swarm = []
         self.__cus_in_swarm = [self.__cu_id]
 
+        self.__wants_to_leave = False   # we set this true, if the CU wants to leave the swarm.
+
     def run_dynamic_swarm(self, fileno):
         self.connect_to_cp()
 
@@ -751,9 +769,19 @@ class ComputingUnit:
                 ack_message.type = TYPE_AP_ACK
                 messages_tx = [ack_message]
             elif state == STATE_SYS_RUN:
+                # if we want to leave the swarm, then check if we are in it, if not, then finish.
+                if self.__wants_to_leave:
+                    for m in messages_rx:
+                        if isinstance(m, NetworkMembersMessage):
+                            if not self.__cu_id in m.ids:
+                                print("Left the swarm, shutting down.")
+                                exit(0)
+
                 # check if a new agent is inside the swarm
+                received_network_members_message = False
                 for m in messages_rx:
                     if isinstance(m, NetworkMembersMessage):
+                        received_network_members_message = True
                         print("-----------------------")
                         print(m.message_layer_area_agent_id)
                         for i, t in enumerate(m.types):
@@ -771,7 +799,19 @@ class ComputingUnit:
                                     self.__computation_agent.add_new_agent(m.ids[i])
                                     self.__drones_in_swarm.append(m.ids[i])
 
-                messages_tx = self.dmpc_step(messages_rx)
+                # only if we want to leave and are sure that we still are eligible to send, then
+                # send that we want to leave
+                if self.__wants_to_leave:
+                    if received_network_members_message:
+                        free_message = SyncMovementMessage()
+                        free_message.m_id = self.__cu_id
+                        messages_tx = [free_message]
+                    else:
+                        # do not sent anything (send dummy), because we are not sure of we are eligible to send
+                        ack_message.type = TYPE_DUMMY
+                        messages_tx = [ack_message]
+                else:
+                    messages_tx = self.dmpc_step(messages_rx, received_network_members_message)
 
             # send data to CP
             self.write_data_to_cp(messages_tx)
@@ -794,7 +834,7 @@ class ComputingUnit:
         # time.sleep(102e-3)  # the cp sleeps a short time, thus, we may have to sleep a bit longer
         self.write_data_to_cp([ack_message])
 
-    def dmpc_step(self, messages_rx):
+    def dmpc_step(self, messages_rx, received_network_members_message):
         messages_parsed = []
         messages_tx = []
         num_all_targets_reached = 0
@@ -853,7 +893,7 @@ class ComputingUnit:
             self.__computation_agent.send_message(m)
         # TRAJECTORY COMPUTATION
         self.uart_interface.print("NEW ROUND " + str(round_mbr))
-        self.__computation_agent.round_finished(round_mbr)  # calculate a new trajectory
+        self.__computation_agent.round_finished(round_mbr, received_network_members_message)  # calculate a new trajectory
         # read data from computing agent.
         traj_message = self.__computation_agent.get_message(self.__message_type_trajectory_id)
         if traj_message is None:
@@ -893,267 +933,15 @@ class ComputingUnit:
             messages_tx.append(m_temp)
 
         setpoint_message = self.__computation_agent.get_message(self.__slot_group_setpoints_id)
-        if setpoint_message is not None:
+        # only if we have received the network members message, we know that this cus is eligible to send
+        # its setpoint_message
+        if setpoint_message is not None and received_network_members_message:
             m_temp = TargetPositionsMessage()
             m_temp.m_id = 200
             m_temp.target_positions = setpoint_message.content.setpoints
             messages_tx.append(m_temp)
 
         return messages_tx
-
-    def run(self, fileno):
-        """ This is the main state machine of the computing unit. """
-
-        """ SETUP """
-
-        if self.__ARGS.dynamic_swarm:
-            self.run_dynamic_swarm(fileno)
-
-        # SETUP THE USER INPUT THREAD TO REGISTER KEYBOARD INPUTS
-        if self.__cu_id == np.min(self.__ARGS.computing_agent_ids):
-            user_input_thread = UI(fileno)
-            user_input_thread.start()
-
-
-        statusCodes = {0: "IDLE", 1: "AP_READY", 2: "SYS_READY", 3: "LAUNCH", 4: "SYS_RUN", 5: "SYS_SHUTDOWN"}
-        STATE_IDLE = 0
-        STATE_SYS_READY = 1
-        STATE_LAUNCH = 2
-        STATE_SYNC_MOVEMENT = 5
-        STATE_SYS_RUN = 3
-        STATE_SYS_SHUTDOWN = 4
-
-        state = STATE_IDLE
-
-        start = time.time()
-        sys_rdy_time = None
-        launch_time = None
-        user_input_timeout = 5
-
-        """ DEFINE FREQUENTLY USED MESSAGES """
-        ack_message = message.MixerMessage(message_type="TYPE_AP_ACK", agent_ID=self.__cu_id, data=np.array([1], dtype=np.uint8))
-        start_drones_message = message.MixerMessage(message_type="TYPE_LAUNCH_DRONES",
-                                                    agent_ID=self.__cu_id + 1,
-                                                    data=np.array([1], dtype=np.uint8))
-        start_system_message = message.MixerMessage(message_type="TYPE_SYS_RUN",
-                                                    agent_ID=self.__cu_id + 1, data=np.array([1], dtype=np.uint8))
-        shutdown_message = message.MixerMessage(agent_ID=self.__cu_id + 1,
-                                                message_type="TYPE_SHUTDOWN")
-
-        # connect to CP
-        self.uart_interface.initialize()  # initialize communication with CP
-        ack_message = MetadataMessage()
-        ack_message.type = TYPE_AP_ACK
-        ack_message.m_id = self.__cu_id
-        ack_message.num_computing_units = 0
-        ack_message.num_drones = 0
-        ack_message.round_length_ms = 200
-        ack_message.own_id = self.__cu_id
-        ack_message.round_mbr = 0
-        """# because UART has no master/slave, if we send and the CP is not ready, the message will get lost.
-        # thus the CP first sends a 2 byte request and we wait till we receive this request
-        while np.frombuffer(self.uart_interface.read_from_uart_raw(2), dtype=np.uint16)[0] != 0:
-            pass
-        # sleep a short time to give CP time to start listening
-        time.sleep(100e-6)"""
-        #time.sleep(102e-3)  # the cp sleeps a short time, thus, we may have to sleep a bit longer
-        self.write_data_to_cp([ack_message])
-
-        sync_movement_angle = 0
-        run_time = 0
-        """ STATE MACHINE """
-        while True:
-            new_round = False
-            messages_rx = self.read_data_from_cp()
-            messages_tx = []
-
-            if state == STATE_IDLE:
-                # wait until cp says all agents are ready
-                for m in messages_rx:
-                    if isinstance(m, MetadataMessage):
-                        if m.type == TYPE_ALL_AGENTS_READY:
-                            state = STATE_SYS_READY
-                            self.__uart_interface.print("All agents ready!")
-                messages_tx = [ack_message]
-
-            elif state == STATE_SYS_READY:
-                if self.__cu_id == np.min(self.__ARGS.computing_agent_ids):
-                    # wait till user says launch or aborts
-                    if user_input_thread.state != state and user_input_thread.user_input != 0:
-                        self.uart_interface.print("Launch drones?")
-                        # sleep a short time such that the console prints and then the input starts. Sometimes they
-                        # collide and cause a failure.
-                        time.sleep(0.01)
-                        user_input_thread.start_user_input(state)
-                        messages_tx = [ack_message]
-
-                    if user_input_thread.state == state and user_input_thread.user_input == 1:
-                        self.uart_interface.print("SENDING LAUNCH DRONES MESSAGE")
-                        ack_message.type = TYPE_LAUNCH_DRONES
-                        messages_tx = [ack_message]
-                        state = STATE_LAUNCH
-                    elif user_input_thread.state == state and user_input_thread.user_input == 2:
-                        self.uart_interface.print("SENDING SHUTDOWN MESSAGE")
-                        ack_message.type = TYPE_SYS_SHUTDOWN
-                        messages_tx = [ack_message]
-                        state = STATE_SYS_SHUTDOWN
-                    else:
-                        messages_tx = [ack_message]
-                else:
-                    # if an agent is launching,change state
-                    for m in messages_rx:
-                        if isinstance(m, StateMessage):
-                            if m.status == STATUS_LAUNCHED or m.status == STATUS_LAUNCHING:
-                                state = STATE_LAUNCH
-                                ack_message.type = TYPE_LAUNCH_DRONES
-                                self.uart_interface.print("Drones are launching")
-                        elif isinstance(m, MetadataMessage):
-                            if m.type == TYPE_LAUNCH_DRONES:
-                                state = STATE_LAUNCH
-                                ack_message.type = TYPE_LAUNCH_DRONES
-                                self.uart_interface.print("Drones launched")
-                    messages_tx = [ack_message]
-            elif state == STATE_LAUNCH:
-                # count how many drones said they have launched. If the number of launched drones is equal to
-                # number of drones
-                num_drones = self.__ARGS.num_drones
-                num_launched_drones = 0
-                for m in messages_rx:
-                    if isinstance(m, StateMessage):
-                        if m.status == STATUS_LAUNCHED:
-                            num_launched_drones += 1
-
-                if num_launched_drones == num_drones:
-                    self.uart_interface.print("All drones launched sucessfully.")
-                    if self.__sync_movement:
-                        state = STATE_SYNC_MOVEMENT
-                        sync_movement_angle = 0
-                    else:
-                        state = STATE_SYS_RUN
-                # continue sending the launch message or start the sync movement
-                ack_message.type = TYPE_LAUNCH_DRONES if state != STATE_SYNC_MOVEMENT else TYPE_START_SYNC_MOVEMENT
-                messages_tx = [ack_message]
-            elif state == STATE_SYNC_MOVEMENT:
-                m_temp = SyncMovementMessage()
-                m_temp.m_id = self.__cu_id
-                m_temp.angle = sync_movement_angle
-                messages_tx = [m_temp]
-                sync_movement_angle += 1
-            elif state == STATE_SYS_RUN:
-                start = time.time()
-                messages_parsed = []
-                num_all_targets_reached = 0
-                for m in messages_rx:
-                    if self.__loose_messages:
-                        if (not (m.m_id == self.__cu_id or m.m_id == self.__ARGS.drone_ids[self.__cu_idx])) and (run_time > 0 and run_time < 10):
-                            pass
-                            #continue
-                    m_temp = None
-                    round_mbr = None
-                    if isinstance(m, EmptyMessage):
-                        content_temp = da.EmtpyContent(empty=0)
-                        m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
-                                             content=content_temp)
-                    elif isinstance(m, StateMessage):
-                        content_temp = da.StateMessageContent(state=m.state, target_position=m.current_target,
-                                                              trajectory_start_time=m.trajectory_start_time/self.__ARGS.communication_freq_hz,
-                                                              trajectory_calculated_by=m.calculated_by,
-                                                              target_position_idx=m.target_position_idx,
-                                                              coefficients=None, init_state=None)
-                        m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_drone_state,
-                                             content=content_temp)
-                        if m.status == STATUS_ALL_TARGETS_REACHED:
-                            num_all_targets_reached += 1
-                    elif isinstance(m, TrajectoryMessage):
-                        content_temp = da.TrajectoryMessageContent(id=m.drone_id, coefficients=tg.TrajectoryCoefficients(coefficients=m.trajectory, valid=True, alternative_trajectory=None),
-                                                                   init_state=m.init_state,
-                                                                   trajectory_start_time=m.trajectory_start_time/self.__ARGS.communication_freq_hz,
-                                                                   trajectory_calculated_by=m.calculated_by, prios=m.prios[0:num_drones])
-                        m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
-                                             content=content_temp)
-                    elif isinstance(m, TrajectoryReqMessage):
-                        content_temp = da.RecoverInformationNotifyContent(cu_id=m.cu_id, drone_id=m.drone_id)
-                        m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
-                                             content=content_temp)
-                    elif isinstance(m, MetadataMessage):
-                        round_mbr = m.round_mbr
-                        if m.type == TYPE_SYS_SHUTDOWN:
-                            state = STATE_SYS_SHUTDOWN
-                    messages_parsed.append(m_temp)
-
-                for m in messages_parsed:
-                    self.__computation_agent.send_message(m)
-                # TRAJECTORY COMPUTATION
-                self.uart_interface.print("NEW ROUND " + str(round_mbr))
-                self.__computation_agent.round_finished(round_mbr)  # calculate a new trajectory
-                print("round_finished")
-                # read data from computing agent.
-                traj_message = self.__computation_agent.get_message(self.__message_type_trajectory_id)
-                if traj_message is None:
-                    m_temp = MetadataMessage()
-                    m_temp.type = TYPE_DUMMY
-                    m_temp.m_id = self.__cu_id
-                    m_temp.num_computing_units = 0
-                    m_temp.num_drones = 0
-                    m_temp.round_length_ms = 200
-                    m_temp.own_id = self.__cu_id
-                    m_temp.round_mbr = 0
-                    messages_tx.append(m_temp)
-                elif isinstance(traj_message.content, da.TrajectoryMessageContent):
-                    m_temp = TrajectoryMessage()
-                    m_temp.m_id = traj_message.ID
-                    m_temp.trajectory = traj_message.content.coefficients.coefficients if traj_message.content.coefficients.valid else traj_message.content.coefficients.alternative_trajectory
-                    m_temp.init_state = traj_message.content.init_state
-                    m_temp.trajectory_start_time = int(round(traj_message.content.trajectory_start_time * self.__ARGS.communication_freq_hz))
-                    m_temp.calculated_by = traj_message.content.trajectory_calculated_by
-                    m_temp.drone_id = traj_message.content.id
-                    m_temp.prios = traj_message.content.prios
-                    messages_tx.append(m_temp)
-                elif isinstance(traj_message.content, da.EmtpyContent):
-                    m_temp = EmptyMessage()
-                    m_temp.m_id = traj_message.ID
-                    m_temp.cu_id = self.__cu_id
-                    messages_tx.append(m_temp)
-                    print("Empty")
-                elif isinstance(traj_message.content, da.RecoverInformationNotifyContent):
-                    m_temp = TrajectoryReqMessage()
-                    m_temp.m_id = traj_message.ID
-                    m_temp.drone_id = traj_message.content.drone_id
-                    m_temp.cu_id = traj_message.content.cu_id
-                    print(f"Requesting new trajectory! {m_temp.drone_id}, {traj_message.content.drone_id}, {m_temp.cu_id}")
-                    messages_tx.append(m_temp)
-
-                # all drones have reached all targets, send a land message
-                if num_all_targets_reached == self.__ARGS.num_drones or self.__computation_agent.all_targets_reached:
-                    state = STATE_SYS_SHUTDOWN
-                run_time += 1
-            elif state == STATE_SYS_SHUTDOWN:
-                print("Shutdown")
-                num_landed_drones = 0
-                for m in messages_rx:
-                    if isinstance(m, StateMessage):
-                        if m.status == STATUS_LANDED:
-                            num_landed_drones += 1
-                print(f"num_landed_drones: {num_landed_drones}")
-                if num_landed_drones == self.__ARGS.num_drones:
-                    state = STATE_SYS_READY
-                    user_input_thread.state = STATE_SYS_SHUTDOWN
-
-                ack_message.type = TYPE_SYS_SHUTDOWN
-                messages_tx.append(ack_message)
-
-            """# because UART has no master/slave, if we send and the CP is not ready, the message will get lost.
-            # thus the CP first sends a 2 byte request and we wait till we receive this request
-            while np.frombuffer(self.uart_interface.read_from_uart_raw(2), dtype=np.uint16)[0] != 0:
-                pass
-            # sleep a short time to give CP time to start listening
-            time.sleep(100e-6)"""
-            # send data to CP
-            self.write_data_to_cp(messages_tx)
-
-            if state == STATE_SYS_RUN:
-                self.__computation_agent.round_started()
-
 
     def init_uart_interface(self, baudrate):
         """ initializes the UART interface for MIXER communication """
