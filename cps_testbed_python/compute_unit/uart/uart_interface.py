@@ -59,8 +59,6 @@ class UartInterface():
         self.serial_port.write(uart_message)
         #print(time.time()-start)
 
-
-
     def initialize(self):
         """ initializes the UART communication to the CP"""
 

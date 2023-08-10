@@ -47,6 +47,7 @@ typedef struct __attribute__((packed)) metadata_message_t_tag
         uint16_t round_length_ms;   // currently unused, TODO change it
         uint8_t own_id;
         uint16_t round_nmbr;
+        uint8_t is_initiator;
 } metadata_message_t;
 
 typedef struct __attribute__((packed)) init_message_t_tag

@@ -468,9 +468,10 @@ class TargetPositionsMessage(message.MessageType):
 
 class MetadataMessage(message.MessageType):
     def __init__(self):
-        super().__init__(["type", "id", "num_computing_units", "num_drones", "round_length_ms", "own_id", "round_mbr"],
+        super().__init__(["type", "id", "num_computing_units", "num_drones", "round_length_ms", "own_id", "round_mbr",
+                          "is_initiator"],
                          [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint16_t", 1),
-                          ("uint8_t", 1), ("uint16_t", 1)])
+                          ("uint8_t", 1), ("uint16_t", 1), ("uint8_t", 1)])
 
     @property
     def type(self):
@@ -527,6 +528,14 @@ class MetadataMessage(message.MessageType):
     @round_mbr.setter
     def round_mbr(self, round_mbr):
         self.set_content({"round_mbr": np.array([round_mbr], dtype=self.get_data_type("round_mbr"))})
+
+    @property
+    def is_initiator(self):
+        return self.get_content("is_initiator")[0]
+
+    @is_initiator.setter
+    def is_initiator(self, v):
+        self.set_content({"is_initiator": np.array([v], dtype=self.get_data_type("is_initiator"))})
 
 
 class NetworkMembersMessage(message.MessageType):
@@ -656,13 +665,14 @@ class ComputingUnit:
     calculation and an uart interface for communication. The Computing Unit communicates with the computation agent
     by using the net.Message class. For the UART communication, the message.MixerMessage class is used. """
 
-    def __init__(self, ARGS, cu_id, sync_movement=False, loose_messages=False, baudrate=921600):
+    def __init__(self, ARGS, cu_id, is_initiator=False, sync_movement=False, loose_messages=False, baudrate=921600):
         self.__ARGS = ARGS
         if self.__ARGS.dynamic_swarm:
             self.__ARGS.computing_agent_ids = [cu_id]
         if cu_id not in ARGS.computing_agent_ids:
             raise ValueError('cu_id not in ARGS computation agent IDs')
         self.__cu_id = cu_id
+        self.__is_initiator = is_initiator
         self.__sync_movement = sync_movement
         self.__loose_messages = loose_messages
         self.__message_type_trajectory_id = 0
@@ -735,6 +745,7 @@ class ComputingUnit:
         ack_message.round_length_ms = 200
         ack_message.own_id = self.__cu_id
         ack_message.round_mbr = 0
+        ack_message.is_initiator = 1 if self.__is_initiator else 0
 
         STATE_NOTIFY_NETWORK_MANAGER = 0
         STATE_IDLE = 1
@@ -760,6 +771,7 @@ class ComputingUnit:
                             self.__network_manager_message = copy.deepcopy(m)
                             state = STATE_IDLE
                             break
+
                 if state == STATE_NOTIFY_NETWORK_MANAGER:
                     req_message = NetworkAreaRequestMessage()
                     req_message.m_id = self.__cu_id
@@ -817,11 +829,14 @@ class ComputingUnit:
 
                 # check if a new agent is inside the swarm
                 received_network_members_message = False
+                print(messages_rx)
                 for m in messages_rx:
                     if isinstance(m, NetworkMembersMessage):
                         received_network_members_message = True
                         print("-----------------------")
                         print(m.message_layer_area_agent_id)
+                        print(m.ids)
+                        print(m.types)
 
                         # check if there is a new agent in the swarm
                         for i, t in enumerate(m.types):
@@ -885,6 +900,7 @@ class ComputingUnit:
         ack_message.round_length_ms = 200
         ack_message.own_id = self.__cu_id
         ack_message.round_mbr = 0
+        ack_message.is_initiator = 1 if self.__is_initiator else 0
         # time.sleep(102e-3)  # the cp sleeps a short time, thus, we may have to sleep a bit longer
         self.write_data_to_cp([ack_message])
 
@@ -961,6 +977,7 @@ class ComputingUnit:
             m_temp.round_length_ms = 200
             m_temp.own_id = self.__cu_id
             m_temp.round_mbr = 0
+            m_temp.is_initiator = 0
             messages_tx.append(m_temp)
         elif isinstance(traj_message.content, da.TrajectoryMessageContent):
             m_temp = TrajectoryMessage()
@@ -1128,7 +1145,7 @@ class ComputingUnit:
                                                      setpoint_creator=self.__ARGS.setpoint_creator,
                                                      slot_group_setpoints_id=self.__slot_group_setpoints_id,
                                                      weight_band=self.__ARGS.weight_band,
-                                                     send_setpoints=self.__cu_id == 20,
+                                                     send_setpoints=self.__is_initiator, # self.__cu_id == 20,
                                                      save_snapshot_times=self.__ARGS.save_snapshot_times
                                                      )
 

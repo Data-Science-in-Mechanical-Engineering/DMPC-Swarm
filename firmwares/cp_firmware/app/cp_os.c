@@ -49,18 +49,9 @@ void init_cp_os(uint16_t (*receive_data_from_AP_p)(ap_message_t **),
   communication_starts_callback = communication_starts_callback_p;
   TOS_NODE_ID = id;
   ap_connected = m_ap_connnected;
-  is_network_manager = m_is_network_manager;
 
   init_network_manager(&network_members_message);
 
-  if (is_network_manager) {
-    init_network_manager(&network_manager_state);
-
-    // directly add the constant message areas to the network manager
-    for (uint8_t i = 0; i < NUM_ELEMENTS(constant_message_assignment); i++) {
-      add_new_message(&network_manager_state, constant_message_assignment[i].id, constant_message_assignment[i].size);
-    }
-  }
 
   for (uint16_t i = 0; i < NUM_PLANTS; i++) {
     if (plants[i] == TOS_NODE_ID)
@@ -93,6 +84,19 @@ void run()
   if (ap_connected) {
     wait_for_AP(&ap_pkt);
   }
+  is_network_manager = ap_pkt.metadata_message.is_initiator;
+
+  init_network_manager(&network_members_message);
+
+  if (is_network_manager) {
+    init_network_manager(&network_manager_state);
+
+    // directly add the constant message areas to the network manager
+    for (uint8_t i = 0; i < NUM_ELEMENTS(constant_message_assignment); i++) {
+      add_new_message(&network_manager_state, constant_message_assignment[i].id, constant_message_assignment[i].size);
+    }
+  }
+
   round = 1;
   // t_ref for first round is now (-> start as soon as possible)
   t_ref = gpi_tick_hybrid();
@@ -102,6 +106,7 @@ void run()
     ap_message_t tx_pkt;
     tx_pkt.header.type = TYPE_ALL_AGENTS_READY;
     tx_pkt.header.id = (uint8_t) TOS_NODE_ID;
+    tx_pkt.metadata_message.is_initiator = ap_pkt.metadata_message.is_initiator;
     send_data_to_AP(&tx_pkt, 1);
   }
   run_normal_operation();
@@ -110,9 +115,11 @@ void run()
 void wait_for_AP(ap_message_t *AP_pkt)
 {
    ap_message_t tx_pkt;
+   ap_message_t *rx_pkt;
+   rx_pkt = AP_pkt;  // just to init the pointer.
    uint8_t ap_ready = 0;
    AP_pkt->header.type = TYPE_ERROR;
-   while (AP_pkt->header.type != TYPE_AP_ACK) {
+   while (rx_pkt->header.type != TYPE_AP_ACK) {
       NRF_P0->OUTSET = BV(25);
 
       // send metadata to AP
@@ -127,8 +134,8 @@ void wait_for_AP(ap_message_t *AP_pkt)
       gpi_milli_sleep(100);
 
       // try to receive data from AP.
-      AP_pkt->header.type = TYPE_ERROR;
-      uint16_t length_received = receive_data_from_AP(&AP_pkt);
+      rx_pkt->header.type = TYPE_ERROR;
+      uint16_t length_received = receive_data_from_AP(&rx_pkt);
       /*while(1){
       gpi_milli_sleep(500);
       NRF_P0->OUTCLR = BV(25);
@@ -140,6 +147,7 @@ void wait_for_AP(ap_message_t *AP_pkt)
       NRF_P0->OUTCLR = BV(25);
       gpi_milli_sleep(50);
    }
+   memcpy(AP_pkt, rx_pkt, sizeof(metadata_message_t));
 }
 
 void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16_t), uint16_t (*communication_starts_callback)(ap_message_t**))
