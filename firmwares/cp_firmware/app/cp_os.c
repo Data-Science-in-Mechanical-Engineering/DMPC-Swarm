@@ -160,13 +160,12 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
     memset(agg_input, 0, AGGREGATE_SIZE);
 
     // Initiator sends initiator packet. Currently it only holds the round number
-    if (MX_INITIATOR_ID == TOS_NODE_ID)
-    {
+    //if (MX_INITIATOR_ID == TOS_NODE_ID)
+    if (is_network_manager) {
       init_pkt.round = round;
                            
       // NOTE: we specified that the control packet uses index 0 and data packets use
       // indexes > 0. 
-
       mixer_write(0, &init_pkt, sizeof(init_message_t));
     }
     SET_COM_GPIO1();
@@ -214,19 +213,19 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
     // arm mixer
     // start first round with infinite scan
     // -> nodes join next available round, does not require simultaneous boot-up
-    mixer_arm(((MX_INITIATOR_ID == TOS_NODE_ID) ? MX_ARM_INITIATOR : 0) | ((1 == round) ? MX_ARM_INFINITE_SCAN : 0));
+    // mixer_arm(((MX_INITIATOR_ID == TOS_NODE_ID) ? MX_ARM_INITIATOR : 0) | ((1 == round) ? MX_ARM_INFINITE_SCAN : 0));
+    mixer_arm(((is_network_manager) ? MX_ARM_INITIATOR : 0) | ((1 == round) ? MX_ARM_INFINITE_SCAN : 0));
 
     // poll such that mixer round starts at the correct time.
     // delay initiator a bit
     // -> increase probability that all nodes are ready when initiator starts the round
     // -> avoid problems in view of limited t_ref accuracy
     SET_COM_GPIO1();
-    if (MX_INITIATOR_ID == TOS_NODE_ID)
-    {
+    // if (MX_INITIATOR_ID == TOS_NODE_ID)
+    if (is_network_manager) {
       while (gpi_tick_compare_hybrid(gpi_tick_hybrid(), MIXER_OFFSET(t_ref, ROUND_PERIOD) + MIXER_INITIATOR_DELAY) < 0);
     }
-    else
-    {
+    else {
       while (gpi_tick_compare_hybrid(gpi_tick_hybrid(), MIXER_OFFSET(t_ref, ROUND_PERIOD)) < 0);
     }
     CLR_COM_GPIO1();      
@@ -275,15 +274,60 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
     // we write to, will always be the network areas, we reserved, even if we do not receive the network managers message.
     if (mixer_messages_received[0].header.type == TYPE_NETWORK_MEMBERS_MESSAGE) {
       memcpy(&network_members_message, &mixer_messages_received[0], sizeof(network_members_message_t));
+
+      // if the countdown reached 0 and we are the new network manager, set ourself as networkm manager or do not set ourself
+      if (network_members_message.manager_wants_to_leave_network_in == 0 && network_members_message.id_new_network_manager != 0) {
+        if (network_members_message.id_new_network_manager==TOS_NODE_ID) {
+          is_network_manager = 1;
+        
+          init_network_manager(&network_manager_state);
+          memcpy(&network_manager_state, &network_members_message, sizeof(network_members_message_t));
+
+          // we are now the network manager, stop the request for it.
+          network_manager_state.id_new_network_manager = 0;
+        } else {
+          // we are not network manager anymore.
+          if (is_network_manager) {
+            is_network_manager = 0;
+          }
+        }
+      } else {
+        // if we have not received it, then countdown -1
+        if (network_members_message.id_new_network_manager != 0) {
+          network_members_message.manager_wants_to_leave_network_in -= 1;
+        }
+      }
     }
 
     // check if an agent wants to leave the network
     if (is_network_manager) {
       for (uint8_t i = 0; i < messages_received_idx; i++) {
-        if (mixer_messages_received[i].header.type == TYPE_NETWORK_MESSAGE_AREA_FREE) {
-          remove_agent(&network_manager_state, mixer_messages_received[i].header.id);
+        // if this node is the agents that wants to leave, start countdown and assign a new agent
+        if (mixer_messages_received[i].header.id == TOS_NODE_ID 
+            && mixer_messages_received[i].header.type == TYPE_NETWORK_MESSAGE_AREA_FREE
+            && !network_manager_state.id_new_network_manager) {
+          for (uint8_t i = 0; i < MAX_NUM_AGENTS; i++) {
+            // search for another CU.
+            if (network_manager_state.types[i] == 0 && network_manager_state.ids[i] != TOS_NODE_ID) {
+              network_manager_state.id_new_network_manager = network_manager_state.ids[i];
+              break;
+            } 
+          }
+          
+          network_manager_state.manager_wants_to_leave_network_in = 5; 
+        } else {
+          // only if the network manager does not want to leave the network, remove agents from the network.
+          // Otherwise, the new manager might not notice the changes in the network, if it misses the message.
+          if (!network_manager_state.id_new_network_manager && mixer_messages_received[i].header.type == TYPE_NETWORK_MESSAGE_AREA_FREE) {
+            remove_agent(&network_manager_state, mixer_messages_received[i].header.id);
+          }
         }
       }
+
+      if (network_manager_state.id_new_network_manager) {
+        network_manager_state.manager_wants_to_leave_network_in -= 1;
+      }
+
     }
 
     // read and process aggregate
@@ -294,7 +338,7 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
       uint16_t max_size_message = 0;
       aggregate_read(agg_rx, &id, &type, &max_size_message);
       // if id is not 0, then a new message is registered
-      if (id != 0) {
+      if (id != 0 && !network_manager_state.id_new_network_manager) {
         // if the type is 255, then an already existing agent wants to reserve an other message area.
         if (type != 255) {
           add_new_agent(&network_manager_state, id, type, max_size_message);

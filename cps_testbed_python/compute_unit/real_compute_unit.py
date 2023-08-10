@@ -531,9 +531,10 @@ class MetadataMessage(message.MessageType):
 
 class NetworkMembersMessage(message.MessageType):
     def __init__(self):
-        super().__init__(["type", "id", "ids", "types", "message_layer_area_agent_id"],
+        super().__init__(["type", "id", "ids", "types", "message_layer_area_agent_id", "manager_wants_to_leave_network_in",
+                          "id_new_network_manager"],
                          [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", MAX_NUM_AGENTS), ("uint8_t", MAX_NUM_AGENTS),
-                          ("uint8_t", MAX_NUM_AGENTS)])
+                          ("uint8_t", MAX_NUM_AGENTS), ("uint8_t", 1), ("uint8_t", 1)])
         self.set_content({"type": np.array([TYPE_NETWORK_MEMBERS_MESSAGE], dtype=self.get_data_type("type"))})
 
     @property
@@ -555,6 +556,14 @@ class NetworkMembersMessage(message.MessageType):
     @property
     def message_layer_area_agent_id(self):
         return self.get_content("message_layer_area_agent_id")
+
+    @property
+    def manager_wants_to_leave_network_in(self):
+        return self.get_content("manager_wants_to_leave_network_in")[0]
+
+    @property
+    def id_new_network_manager(self):
+        return self.get_content("id_new_network_manager")[0]
 
 
 class NetworkAreaRequestMessage(message.MessageType):
@@ -733,12 +742,13 @@ class ComputingUnit:
 
         state = STATE_NOTIFY_NETWORK_MANAGER
 
+        counter = 0
         while True:
             new_round = False
             messages_rx = self.read_data_from_cp()
             messages_tx = []
 
-            counter = 0
+            counter += 1
 
             # first we try to get a message spot in the message layer
             # if this is succesfull, we go to the IDLE state.
@@ -760,13 +770,20 @@ class ComputingUnit:
 
             # untill the first drone is into the swarm, dont do anything.
             if state == STATE_IDLE:
+                received_network_members_message = 0
                 # wait until cp says all agents are ready
+                print(messages_rx)
                 for m in messages_rx:
+                    if (isinstance(m, MetadataMessage)):
+                        print(m.type)
                     if isinstance(m, NetworkMembersMessage):
+                        received_network_members_message = 1
                         print("---------------")
                         print(m.message_layer_area_agent_id)
                         print(m.ids)
                         print(m.types)
+                        print(m.manager_wants_to_leave_network_in)
+                        print(m.id_new_network_manager)
                         for t in m.types:
                             if t == 1:
                                 state = STATE_SYS_RUN
@@ -774,6 +791,21 @@ class ComputingUnit:
                                 break
                 ack_message.type = TYPE_AP_ACK
                 messages_tx = [ack_message]
+                if counter is not None:
+                    if counter > 100 and self.__cu_id == 20:
+                        self.__wants_to_leave = True
+
+                # only if we want to leave and are sure that we still are eligible to send, then
+                # send that we want to leave
+                if self.__wants_to_leave:
+                    if received_network_members_message:
+                        free_message = NetworkAreaFreeMessage()
+                        free_message.m_id = self.__cu_id
+                        messages_tx = [free_message]
+                    else:
+                        # do not sent anything (send dummy), because we are not sure of we are eligible to send
+                        ack_message.type = TYPE_DUMMY
+                        messages_tx = [ack_message]
             elif state == STATE_SYS_RUN:
                 # if we want to leave the swarm, then check if we are in it, if not, then finish.
                 if self.__wants_to_leave:
@@ -837,7 +869,8 @@ class ComputingUnit:
             # send data to CP
             self.write_data_to_cp(messages_tx)
 
-            self.__computation_agent.round_started()
+            if state == STATE_SYS_RUN:
+                self.__computation_agent.round_started()
 
     def connect_to_cp(self):
         """ DEFINE FREQUENTLY USED MESSAGES """
@@ -909,7 +942,7 @@ class ComputingUnit:
             
             if round_mbr is not None:
                 self.__round_nmbr = round_mbr
-                if round_mbr > 200 and self.__cu_id == 21:
+                if round_mbr > 100 and self.__cu_id == 20:
                     self.__wants_to_leave = True
 
         for m in messages_parsed:
