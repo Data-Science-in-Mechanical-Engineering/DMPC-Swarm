@@ -392,8 +392,8 @@ class ComputationAgent(net.Agent):
 
         coeff = tg.TrajectoryCoefficients(None,
                                           False,
-                                          np.zeros((self.__prediction_horizon * int(self.__communication_delta_t /
-                                                                             self.__trajectory_generator_options.optimization_variable_sample_time),
+                                          np.zeros((self.__prediction_horizon * int(round(self.__communication_delta_t /
+                                                                             self.__trajectory_generator_options.optimization_variable_sample_time)),
                                                     3)))
 
         trajectory_content = TrajectoryContent(coefficients=coeff, last_trajectory=last_trajectory,
@@ -633,6 +633,46 @@ class ComputationAgent(net.Agent):
                 self.print(f"New setpoints: {self.__received_setpoints}")
             pass
 
+    def __update_information_tracker(self):
+        # update trajectories (leads to a faster calculation)
+        delay_timesteps = self.__communication_delta_t / (self.__options.collision_constraint_sample_points[1] -
+                                                          self.__options.collision_constraint_sample_points[0])
+        delay_timesteps = int(np.round(delay_timesteps, 0))  # needs to be rounded because if of float inaccuracies
+        for i in range(0, self.__num_agents):
+            id = self.__agents_ids[i]
+            for trajectory in self.__trajectory_tracker.get_information(id).content:
+                if trajectory.init_state is None:
+                    continue
+                if trajectory.last_trajectory is None:
+                    coeff = trajectory.coefficients.coefficients if trajectory.coefficients.valid \
+                        else trajectory.coefficients.alternative_trajectory
+                    coeff_resize = np.reshape(coeff, (coeff.size,))
+
+                    delay = int(round((self.__current_time - trajectory.trajectory_start_time +
+                                       self.__communication_delta_t) / self.__communication_delta_t))
+                    if delay > self.__prediction_horizon:
+                        delay = self.__prediction_horizon  # agents will stand still at the end, so we can use this
+                    trajectory.last_trajectory = np.reshape((self.__input_trajectory_vector_matrix[delay] @ coeff_resize + \
+                                             self.__state_trajectory_vector_matrix[delay] @
+                                             trajectory.init_state), self.__last_trajectory_shape)
+
+                else:
+                    trajectory.last_trajectory = np.array(
+                        [trajectory.last_trajectory[min((j + delay_timesteps, len(trajectory.last_trajectory) - 1))]
+                         for j in range(len(trajectory.last_trajectory))])
+        # update states
+        for i in range(0, self.__num_agents):
+            id = self.__agents_ids[i]
+            for trajectory in self.__trajectory_tracker.get_information(id).content:
+                if trajectory.init_state is None:
+                    continue
+                trajectory.current_state = self.__trajectory_interpolation.interpolate(
+                    self.__current_time - trajectory.trajectory_start_time + self.__communication_delta_t,
+                    trajectory.coefficients,
+                    x0=trajectory.current_state,
+                    integration_start=self.__current_time - trajectory.trajectory_start_time)
+                print(f"Current_pos: {trajectory.current_state[0:3]}")
+
     def round_finished(self, round_nmbr=None, received_network_members_message=True):
         """this function has to be called at the end of the round to tell the agent that the communication round is
         finished"""
@@ -657,6 +697,7 @@ class ComputationAgent(net.Agent):
             self.__number_rounds = self.__number_rounds + 1
             self.__last_received_messages = {self.ID: EmtpyContent([])}
             self.__current_time = self.__current_time + self.__communication_delta_t
+            self.__update_information_tracker()
             return
 
 
@@ -750,40 +791,8 @@ class ComputationAgent(net.Agent):
         self.__num_trajectory_messages_received = 0
         assert self.__num_trajectory_messages_received <= len(self.__computing_agents_ids)
 
-        # update trajectories (leads to a faster calculation)
-        delay_timesteps = self.__communication_delta_t / (self.__options.collision_constraint_sample_points[1] -
-                                                          self.__options.collision_constraint_sample_points[0])
-        delay_timesteps = int(np.round(delay_timesteps, 0))  # needs to be rounded because if of float inaccuracies
-        for i in range(0, self.__num_agents):
-            id = self.__agents_ids[i]
-            for trajectory in self.__trajectory_tracker.get_information(id).content:
-                if trajectory.last_trajectory is None:
-                    coeff = trajectory.coefficients.coefficients if trajectory.coefficients.valid \
-                        else trajectory.coefficients.alternative_trajectory
-                    coeff_resize = np.reshape(coeff, (coeff.size,))
+        self.__update_information_tracker()
 
-                    delay = int(round((self.__current_time - trajectory.trajectory_start_time +
-                                       self.__communication_delta_t) / self.__communication_delta_t))
-                    if delay > self.__prediction_horizon:
-                        delay = self.__prediction_horizon  # agents will stand still at the end, so we can use this
-                    trajectory.last_trajectory = np.reshape((self.__input_trajectory_vector_matrix[delay] @ coeff_resize + \
-                                             self.__state_trajectory_vector_matrix[delay] @
-                                             trajectory.init_state), self.__last_trajectory_shape)
-
-                else:
-                    trajectory.last_trajectory = np.array(
-                        [trajectory.last_trajectory[min((j + delay_timesteps, len(trajectory.last_trajectory) - 1))]
-                         for j in range(len(trajectory.last_trajectory))])
-        # update states
-        for i in range(0, self.__num_agents):
-            id = self.__agents_ids[i]
-            for trajectory in self.__trajectory_tracker.get_information(id).content:
-                trajectory.current_state = self.__trajectory_interpolation.interpolate(
-                    self.__current_time - trajectory.trajectory_start_time + self.__communication_delta_t,
-                    trajectory.coefficients,
-                    x0=trajectory.current_state,
-                    integration_start=self.__current_time - trajectory.trajectory_start_time)
-                print(f"Current_pos: {trajectory.current_state[0:3]}")
         # calculate current state of all agents
         for i in range(0, self.__num_agents):
             id = self.__agents_ids[i]
@@ -809,43 +818,49 @@ class ComputationAgent(net.Agent):
                 prios = self.calc_prio()
                 self.__last_received_messages = {self.ID: EmtpyContent(prios)}
             else:
-                # select next agent
-                #ordered_indexes = self.order_agents_by_priority()
-                ordered_indexes = np.argsort(-np.array(self.__prio_consensus))  # self.order_agents_by_priority()#
-                self.__current_agent = ordered_indexes[self.__comp_agent_prio]
-                current_id = self.__agents_ids[self.__current_agent]
-                self.__num_trigger_times[current_id] += 1
-                self.__selected_UAVs[-1] = current_id
-
-                self.ordered_indexes = ordered_indexes
-                self.starting_times = self.__agents_starting_times
-
-                # if the information about the agent is not unique do not calculate something, because we will calculate
-                # something wrong. Same is true if we have not received the members message.
-                # if the agent is remove but was scheduled for recalculation in the last round, do nothing.
-                if not self.__trajectory_tracker.get_information(current_id).is_unique \
-                        or not received_network_members_message or not self.__agents_ids[self.__current_agent] in self.__agents_ids:
+                # if an agent leaves, the prios might still be using the old swarm setup,
+                # then, do calculate nothing.
+                if len(self.__prio_consensus) > len(self.__agents_ids):
                     prios = self.calc_prio()
                     self.__last_received_messages = {self.ID: EmtpyContent(prios)}
                 else:
-                    # solve optimization problem
-                    calc_coeff = self.__calculate_trajectory(current_id=current_id, ordered_indexes=ordered_indexes)
-                    self.__total_num_optimizer_runs += 1
-                    if calc_coeff.valid:
-                        self.__num_succ_optimizer_runs += 1
+                    # select next agent
+                    # ordered_indexes = self.order_agents_by_priority()
+                    ordered_indexes = np.argsort(-np.array(self.__prio_consensus))  # self.order_agents_by_priority()#
+                    self.__current_agent = ordered_indexes[self.__comp_agent_prio]
+                    current_id = self.__agents_ids[self.__current_agent]
+                    self.__num_trigger_times[current_id] += 1
+                    self.__selected_UAVs[-1] = current_id
 
-                    prios = self.calc_prio()
-                    self.__last_received_messages = {
-                        self.ID: TrajectoryMessageContent(coefficients=calc_coeff,
-                                                          init_state=self.__agent_state[current_id],
-                                                          trajectory_start_time=self.__current_time + self.__communication_delta_t,
-                                                          trajectory_calculated_by=self.ID,
-                                                          id=current_id, prios=prios)}
-                    self.print('Distance to target for Agent ' + str(current_id) + ': ' + str(np.linalg.norm(
-                        self.__agent_state[current_id][0:3] - self.__current_target_positions[current_id])) + " m.")
-                    self.print(f"agent_state: {self.__agent_state[current_id][0:3]}, setpoint: {self.__current_target_positions[current_id]}")
-                    self.print(
-                        'Optimization for Agent ' + str(current_id) + ' took ' + str(time.time() - start_time) + ' s.')
+                    self.ordered_indexes = ordered_indexes
+                    self.starting_times = self.__agents_starting_times
+
+                    # if the information about the agent is not unique do not calculate something, because we will calculate
+                    # something wrong. Same is true if we have not received the members message.
+                    # if the agent is remove but was scheduled for recalculation in the last round, do nothing.
+                    if not self.__trajectory_tracker.get_information(current_id).is_unique \
+                            or not received_network_members_message or not self.__agents_ids[self.__current_agent] in self.__agents_ids:
+                        prios = self.calc_prio()
+                        self.__last_received_messages = {self.ID: EmtpyContent(prios)}
+                    else:
+                        # solve optimization problem
+                        calc_coeff = self.__calculate_trajectory(current_id=current_id, ordered_indexes=ordered_indexes)
+                        self.__total_num_optimizer_runs += 1
+                        if calc_coeff.valid:
+                            self.__num_succ_optimizer_runs += 1
+
+                        prios = self.calc_prio()
+                        self.__last_received_messages = {
+                            self.ID: TrajectoryMessageContent(coefficients=calc_coeff,
+                                                              init_state=self.__agent_state[current_id],
+                                                              trajectory_start_time=self.__current_time + self.__communication_delta_t,
+                                                              trajectory_calculated_by=self.ID,
+                                                              id=current_id, prios=prios)}
+                        self.print('Distance to target for Agent ' + str(current_id) + ': ' + str(np.linalg.norm(
+                            self.__agent_state[current_id][0:3] - self.__current_target_positions[current_id])) + " m.")
+                        self.print(f"agent_state: {self.__agent_state[current_id][0:3]}, setpoint: {self.__current_target_positions[current_id]}")
+                        self.print(
+                            'Optimization for Agent ' + str(current_id) + ' took ' + str(time.time() - start_time) + ' s.')
 
         elif self.__system_state == INFORMATION_DEPRECATED:
             # send an emtpy message such that other agents know this is not a lost message
@@ -907,7 +922,6 @@ class ComputationAgent(net.Agent):
                           f"/CU{self.ID}setpoints{int(self.__current_time / self.__communication_delta_t)}.p", 'wb') \
                         as out_file:
                     pickle.dump(self.__setpoint_history, out_file)
-
 
     def __calculate_trajectory(self, current_id, ordered_indexes):
         # calulate number of timesteps, the alternative data need to be delayed
