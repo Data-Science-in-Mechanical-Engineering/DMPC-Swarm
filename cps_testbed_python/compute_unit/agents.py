@@ -685,21 +685,6 @@ class ComputationAgent(net.Agent):
         start_time = time.time()
         if round_nmbr is not None:
             self.__current_time = round_nmbr * self.__communication_delta_t
-        # until the we have no received data from the drone agents not send (we do not have the initial state)
-        all_init_states_known = True
-        for trajectory_information in self.__trajectory_tracker.get_all_information().values():
-            for trajectory in trajectory_information.content:
-                if trajectory.init_state is None:
-                    all_init_states_known = False
-                    break
-        if not all_init_states_known:
-            self.__messages_rec = {}
-            self.__number_rounds = self.__number_rounds + 1
-            self.__last_received_messages = {self.ID: EmtpyContent([])}
-            self.__current_time = self.__current_time + self.__communication_delta_t
-            self.__update_information_tracker()
-            return
-
 
         # if information is not unique at this point, we know that one drone was not able to verify that it got the
         # trajectory (because the acknowledge-message was lost). This means that at this point the trajectories saved
@@ -733,29 +718,6 @@ class ComputationAgent(net.Agent):
                 self.__trajectory_tracker.add_unique_information(trajectory.id, new_content)
             else:
                 self.__trajectory_tracker.add_information(trajectory.id, new_content)
-            """if self.__ack_message.content.messages_received[(trajectory.id, message_id, self.__slot_group_planned_trajectory_id)]:
-                two_cus_sended = False
-                for information in self.__trajectory_tracker.get_information(trajectory.id).content:
-                    if information.trajectory_start_time == trajectory.trajectory_start_time:
-                        two_cus_sended = True
-                        if information.trajectory_calculated_by < trajectory.trajectory_calculated_by:
-                            new_content = TrajectoryContent(coefficients=trajectory.coefficients,
-                                                            last_trajectory=None,
-                                                            agent_state=trajectory.init_state,
-                                                            trajectory_start_time=trajectory.trajectory_start_time,
-                                                            id=trajectory.id,
-                                                            trajectory_calculated_by=trajectory.trajectory_calculated_by)
-                            self.__trajectory_tracker.add_unique_information(new_content.id, new_content)
-
-                if not two_cus_sended:
-                    new_content = TrajectoryContent(coefficients=trajectory.coefficients,
-                                                    last_trajectory=None,
-                                                    init_state=trajectory.init_state,
-                                                    trajectory_start_time=trajectory.trajectory_start_time, id=trajectory.id,
-                                                    trajectory_calculated_by=trajectory.trajectory_calculated_by)
-                    self.__trajectory_tracker.add_unique_information(new_content.id, new_content)
-            else:
-                self.__trajectory_tracker.add_information(trajectory.id, trajectory)"""
 
         for message_id, trajectory in self.__last_received_messages.items():
             if not (isinstance(trajectory, TrajectoryMessageContent) or isinstance(trajectory, EmtpyContent)):
@@ -792,6 +754,21 @@ class ComputationAgent(net.Agent):
         assert self.__num_trajectory_messages_received <= len(self.__computing_agents_ids)
 
         self.__update_information_tracker()
+
+        # until the we have no received data from the drone agents not send (we do not have the initial state)
+        all_init_states_known = True
+        for trajectory_information in self.__trajectory_tracker.get_all_information().values():
+            for trajectory in trajectory_information.content:
+                if trajectory.init_state is None:
+                    all_init_states_known = False
+                    break
+        if not all_init_states_known:
+            # self.__update_information_tracker()
+            self.__messages_rec = {}
+            self.__number_rounds = self.__number_rounds + 1
+            self.__last_received_messages = {self.ID: EmtpyContent([])}
+            self.__current_time = self.__current_time + self.__communication_delta_t
+            return
 
         # calculate current state of all agents
         for i in range(0, self.__num_agents):

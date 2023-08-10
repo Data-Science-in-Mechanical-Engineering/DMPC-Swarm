@@ -139,19 +139,19 @@ class SetpointCreator:
 			min_pos = np.array(self.__testbeds[name_testbed][0])
 			max_pos = np.array(self.__testbeds[name_testbed][1])
 			offset = np.array(self.__testbeds[name_testbed][2])
-			dpos = [1.0, 1.0, 1.0]
+			dpos = [1.3, 1.3, 1.3]
 			mean = (min_pos + max_pos) / 2 + offset
 			if name_testbed == "Vicon":
 				angle = 2 * math.pi * (self.__round) / 50.0 + 2 * math.pi * drone_id / 3 + math.pi
 				mean[2] = 1.5
 			else:
 				angle = 2 * math.pi * (self.__round) / 50.0 + 2 * math.pi * drone_id / 2 + math.pi
-			return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean - np.array([0.2, 0.2, -0.2*drone_id])
+			return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean + np.array([0.2, 0.2, +0.2*drone_id])
 		else:
 			if drone_id == 1:
-				return np.array([1.5, -0.4, 1.2])
+				return np.array([1.5, -1.1, 1.2])
 			if drone_id == 3:
-				return np.array([1.5, 0.4, 1.2])
+				return np.array([1.1, -1.5, 1.2])
 
 	def generate_new_message_loss_crash_setpoint(self, drone_id):
 		if drone_id > 2:
