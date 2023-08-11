@@ -1263,6 +1263,8 @@ class ComputationAgent(net.Agent):
                     current_pos[agent_id] - self.__current_target_positions[agent_id]) > self.__options.r_min * 0.9:
                 all_agents_close_to_target = False
         if all_agents_close_to_target:
+            for agent_id in self.__agents_ids:
+                self.__high_level_setpoints[agent_id] = self.__current_target_positions[agent_id]
             return
 
         if self.__recalculate_setpoints:

@@ -958,7 +958,7 @@ class ComputingUnit:
             
             if round_mbr is not None:
                 self.__round_nmbr = round_mbr
-                if round_mbr > 100 and self.__cu_id == 20:
+                if round_mbr > 200 and self.__cu_id == 20 and self.__is_initiator:
                     self.__wants_to_leave = True
 
         for m in messages_parsed:
