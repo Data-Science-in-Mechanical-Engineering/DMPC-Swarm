@@ -47,6 +47,7 @@ typedef struct __attribute__((packed)) metadata_message_t_tag
         uint16_t round_length_ms;   // currently unused, TODO change it
         uint8_t own_id;
         uint16_t round_nmbr;
+        uint8_t is_initiator;
 } metadata_message_t;
 
 typedef struct __attribute__((packed)) init_message_t_tag
@@ -137,6 +138,8 @@ typedef struct __attribute__((packed)) network_members_message_t_tag
 	uint8_t ids[MAX_NUM_AGENTS];      // agents that are in the network (0, is an empty field)                  
         uint8_t types[MAX_NUM_AGENTS];    // corresponding type of the agent 
         uint8_t message_layer_area_agent_id[MAX_NUM_AGENTS];  // which message id belongs which network assignement (0 is an empty field)
+        uint8_t manager_wants_to_leave_network_in;  // countdown untill manager_wants to leave.
+        uint8_t id_new_network_manager;    // if 0, the network manager does not assign a new network manager (it does not want to leave).
 } network_members_message_t;
 
 typedef struct __attribute__((packed)) network_area_request_message_t_tag
