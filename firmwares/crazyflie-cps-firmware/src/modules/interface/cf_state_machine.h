@@ -41,7 +41,7 @@
 #define STATUS_LANDING 6
 #define STATUS_LANDED 7
 
-#define START_FROM_HAND 0
+#define START_FROM_HAND 1
 
 #define CF_ABS(X) ((X)>0 ? (X):-(X))
 #define CF_MAX(X, Y) (((X)>(Y)) ? (X):(Y))

@@ -163,6 +163,7 @@ static uint16_t process_IDLE_STATE(cf_state_machine_handle *hstate_machine, ap_m
 			hstate_machine->round_length_s = rx_data[0]->metadata_message.round_length_ms / 1000.0f;
 			tx_data->header.type = TYPE_AP_ACK;
 			tx_data->header.id = hstate_machine->id;
+			tx_data->metadata_message.is_initiator = 0;
 
 			// set current target to first one
 			hstate_machine->target_position_idx = 0;
@@ -220,7 +221,7 @@ static uint16_t process_WAIT_FOR_LAUNCH_STATE(cf_state_machine_handle *hstate_ma
 	if (state[2] < 0.1f) {
 		was_low += 1;
 	}
-	if (state[2] > 1.0f && (hstate_machine->mocap_system_active()) && was_low > 50) {
+	if (state[2] > 1.8f && (hstate_machine->mocap_system_active()) && was_low > 50) {
 		hstate_machine->state = VERTICAL_LAUNCH_STATE;
 
 	}
@@ -245,7 +246,7 @@ static uint16_t process_VERTICAL_LAUNCH_STATE(cf_state_machine_handle *hstate_ma
 
 	uint8_t status = hstate_machine->cf_launch_status();
 	if (status == STATUS_IDLE) {
-		hstate_machine->launch_cf(state[0], state[1], 1.0f+hstate_machine->id*0.00f);
+		hstate_machine->launch_cf(state[0], state[1], 2.3f+hstate_machine->id*0.00f);
 
 		// init the last field of hstate_machine, the current trajectory. This field is only needed, if the CU requests the trajectory.
 		// it is saved in the statemachine and not requested evertime, because then, we need to do all the quantizations again.
@@ -255,7 +256,7 @@ static uint16_t process_VERTICAL_LAUNCH_STATE(cf_state_machine_handle *hstate_ma
 		}
 		hstate_machine->current_traj.init_state[0] = QUANTIZE_POSITION(state[0]);
 		hstate_machine->current_traj.init_state[1] = QUANTIZE_POSITION(state[1]);
-		hstate_machine->current_traj.init_state[2] = QUANTIZE_POSITION(1.0f+hstate_machine->id*0.00f);
+		hstate_machine->current_traj.init_state[2] = QUANTIZE_POSITION(2.3f+hstate_machine->id*0.00f);
 
 		hstate_machine->current_traj.init_state[3] = QUANTIZE_VELOCITY(0.0f);
 		hstate_machine->current_traj.init_state[4] = QUANTIZE_VELOCITY(0.0f);
@@ -328,6 +329,8 @@ static uint16_t process_SYS_RUN_STATE(cf_state_machine_handle *hstate_machine, a
 	uint8_t land_drones = 0;
 	//uint8_t updated = 0;
 	cf_trajectory *current_traj;
+	uint8_t has_left = 0;
+	uint8_t received_network_member_message = 0;
 	for (uint16_t i = 0; i < size; i++) {
 		switch (rx_data[i]->header.type)
 		{
@@ -382,14 +385,52 @@ static uint16_t process_SYS_RUN_STATE(cf_state_machine_handle *hstate_machine, a
 				break;
 			case TYPE_METADATA:
 				*round_nmbr = rx_data[i]->metadata_message.round_nmbr;
+				#if START_FROM_HAND
+				if (rx_data[i]->metadata_message.round_nmbr > 470) {
+					hstate_machine->wants_to_leave = 1;
+				}
+				#endif
 				break;
 			case TYPE_START_SYNC_MOVEMENT:
 				hstate_machine->state = SYNC_MOVEMENT_STATE;
+				break;
+			case TYPE_NETWORK_MEMBERS_MESSAGE:
+				received_network_member_message = 1;
+				if (hstate_machine->wants_to_leave) {
+					has_left = 1;
+					for (uint8_t j=0; j < MAX_NUM_AGENTS; j++) {
+						if (rx_data[i]->network_members_message.message_layer_area_agent_id[j] == hstate_machine->id) {
+							has_left = 0;
+							break;
+						}
+					}
+				}
 				break;
 			// ignore others
 			default:
 				break;
 		}
+	}
+
+	// if drone has left, do not send anything.
+	if (has_left) {
+		hstate_machine->state = SYS_SHUTDOWN_STATE;
+		tx_data->header.id = hstate_machine->id;
+		tx_data->header.type = TYPE_DUMMY;
+		return 1;
+	}
+
+	if (hstate_machine->wants_to_leave) {
+		if (received_network_member_message) {
+			tx_data->header.id = hstate_machine->id;
+			tx_data->header.type = TYPE_NETWORK_MESSAGE_AREA_FREE;
+			return 1;
+		}
+		// send nothing, because we are not sure, if we are still in the network.
+		hstate_machine->state = SYS_SHUTDOWN_STATE;
+		tx_data->header.id = hstate_machine->id;
+		tx_data->header.type = TYPE_DUMMY;
+		return 1;
 	}
 
 	// first message we send is the current state.
