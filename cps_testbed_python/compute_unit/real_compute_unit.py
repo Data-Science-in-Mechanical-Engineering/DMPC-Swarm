@@ -468,9 +468,10 @@ class TargetPositionsMessage(message.MessageType):
 
 class MetadataMessage(message.MessageType):
     def __init__(self):
-        super().__init__(["type", "id", "num_computing_units", "num_drones", "round_length_ms", "own_id", "round_mbr"],
+        super().__init__(["type", "id", "num_computing_units", "num_drones", "round_length_ms", "own_id", "round_mbr",
+                          "is_initiator"],
                          [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint16_t", 1),
-                          ("uint8_t", 1), ("uint16_t", 1)])
+                          ("uint8_t", 1), ("uint16_t", 1), ("uint8_t", 1)])
 
     @property
     def type(self):
@@ -528,12 +529,21 @@ class MetadataMessage(message.MessageType):
     def round_mbr(self, round_mbr):
         self.set_content({"round_mbr": np.array([round_mbr], dtype=self.get_data_type("round_mbr"))})
 
+    @property
+    def is_initiator(self):
+        return self.get_content("is_initiator")[0]
+
+    @is_initiator.setter
+    def is_initiator(self, v):
+        self.set_content({"is_initiator": np.array([v], dtype=self.get_data_type("is_initiator"))})
+
 
 class NetworkMembersMessage(message.MessageType):
     def __init__(self):
-        super().__init__(["type", "id", "ids", "types", "message_layer_area_agent_id"],
+        super().__init__(["type", "id", "ids", "types", "message_layer_area_agent_id", "manager_wants_to_leave_network_in",
+                          "id_new_network_manager"],
                          [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", MAX_NUM_AGENTS), ("uint8_t", MAX_NUM_AGENTS),
-                          ("uint8_t", MAX_NUM_AGENTS)])
+                          ("uint8_t", MAX_NUM_AGENTS), ("uint8_t", 1), ("uint8_t", 1)])
         self.set_content({"type": np.array([TYPE_NETWORK_MEMBERS_MESSAGE], dtype=self.get_data_type("type"))})
 
     @property
@@ -555,6 +565,14 @@ class NetworkMembersMessage(message.MessageType):
     @property
     def message_layer_area_agent_id(self):
         return self.get_content("message_layer_area_agent_id")
+
+    @property
+    def manager_wants_to_leave_network_in(self):
+        return self.get_content("manager_wants_to_leave_network_in")[0]
+
+    @property
+    def id_new_network_manager(self):
+        return self.get_content("id_new_network_manager")[0]
 
 
 class NetworkAreaRequestMessage(message.MessageType):
@@ -647,13 +665,14 @@ class ComputingUnit:
     calculation and an uart interface for communication. The Computing Unit communicates with the computation agent
     by using the net.Message class. For the UART communication, the message.MixerMessage class is used. """
 
-    def __init__(self, ARGS, cu_id, sync_movement=False, loose_messages=False, baudrate=921600):
+    def __init__(self, ARGS, cu_id, is_initiator=False, sync_movement=False, loose_messages=False, baudrate=921600):
         self.__ARGS = ARGS
         if self.__ARGS.dynamic_swarm:
             self.__ARGS.computing_agent_ids = [cu_id]
         if cu_id not in ARGS.computing_agent_ids:
             raise ValueError('cu_id not in ARGS computation agent IDs')
         self.__cu_id = cu_id
+        self.__is_initiator = is_initiator
         self.__sync_movement = sync_movement
         self.__loose_messages = loose_messages
         self.__message_type_trajectory_id = 0
@@ -704,6 +723,16 @@ class ComputingUnit:
 
         self.__wants_to_leave = False   # we set this true, if the CU wants to leave the swarm.
 
+    def run(self, fileno):
+        """ This is the main state machine of the computing unit. """
+
+        """ SETUP """
+
+        if self.__ARGS.dynamic_swarm:
+            self.run_dynamic_swarm(fileno)
+        else:
+            assert False
+
     def run_dynamic_swarm(self, fileno):
         self.connect_to_cp()
 
@@ -716,6 +745,7 @@ class ComputingUnit:
         ack_message.round_length_ms = 200
         ack_message.own_id = self.__cu_id
         ack_message.round_mbr = 0
+        ack_message.is_initiator = 1 if self.__is_initiator else 0
 
         STATE_NOTIFY_NETWORK_MANAGER = 0
         STATE_IDLE = 1
@@ -723,44 +753,49 @@ class ComputingUnit:
 
         state = STATE_NOTIFY_NETWORK_MANAGER
 
+        counter = 0
         while True:
             new_round = False
             messages_rx = self.read_data_from_cp()
-            print(messages_rx)
             messages_tx = []
 
-            counter = 0
+            counter += 1
 
             # first we try to get a message spot in the message layer
             # if this is succesfull, we go to the IDLE state.
             if state == STATE_NOTIFY_NETWORK_MANAGER:
                 for m in messages_rx:
                     if isinstance(m, NetworkMembersMessage):
-                        print(m.message_layer_area_agent_id)
                         if self.__cu_id in m.message_layer_area_agent_id:
                             self.__uart_interface.print("I got assigned an area.")
                             self.__network_manager_message = copy.deepcopy(m)
                             state = STATE_IDLE
                             break
+
                 if state == STATE_NOTIFY_NETWORK_MANAGER:
                     req_message = NetworkAreaRequestMessage()
                     req_message.m_id = self.__cu_id
                     req_message.message_id = self.__cu_id
                     req_message.agent_type = 0  # 0 is cu, 1 is drone
                     req_message.max_size_message = TrajectoryMessage().size
-                    print(f"req_message.max_size_message: {req_message.max_size_message}")
-                    print(f"self.__cu_id: {self.__cu_id}")
                     messages_tx = [req_message]
 
             # untill the first drone is into the swarm, dont do anything.
             if state == STATE_IDLE:
+                received_network_members_message = 0
                 # wait until cp says all agents are ready
+                print(messages_rx)
                 for m in messages_rx:
+                    if (isinstance(m, MetadataMessage)):
+                        print(m.type)
                     if isinstance(m, NetworkMembersMessage):
+                        received_network_members_message = 1
                         print("---------------")
                         print(m.message_layer_area_agent_id)
                         print(m.ids)
                         print(m.types)
+                        print(m.manager_wants_to_leave_network_in)
+                        print(m.id_new_network_manager)
                         for t in m.types:
                             if t == 1:
                                 state = STATE_SYS_RUN
@@ -768,6 +803,21 @@ class ComputingUnit:
                                 break
                 ack_message.type = TYPE_AP_ACK
                 messages_tx = [ack_message]
+                if counter is not None:
+                    if counter > 100 and self.__cu_id == 20:
+                        self.__wants_to_leave = True
+
+                # only if we want to leave and are sure that we still are eligible to send, then
+                # send that we want to leave
+                if self.__wants_to_leave:
+                    if received_network_members_message:
+                        free_message = NetworkAreaFreeMessage()
+                        free_message.m_id = self.__cu_id
+                        messages_tx = [free_message]
+                    else:
+                        # do not sent anything (send dummy), because we are not sure of we are eligible to send
+                        ack_message.type = TYPE_DUMMY
+                        messages_tx = [ack_message]
             elif state == STATE_SYS_RUN:
                 # if we want to leave the swarm, then check if we are in it, if not, then finish.
                 if self.__wants_to_leave:
@@ -779,11 +829,14 @@ class ComputingUnit:
 
                 # check if a new agent is inside the swarm
                 received_network_members_message = False
+                print(messages_rx)
                 for m in messages_rx:
                     if isinstance(m, NetworkMembersMessage):
                         received_network_members_message = True
                         print("-----------------------")
                         print(m.message_layer_area_agent_id)
+                        print(m.ids)
+                        print(m.types)
 
                         # check if there is a new agent in the swarm
                         for i, t in enumerate(m.types):
@@ -805,16 +858,20 @@ class ComputingUnit:
                         for cu in self.__cus_in_swarm:
                             if not cu in m.ids:
                                 self.__computation_agent.remove_computation_agent(cu)
+                                self.__cus_in_swarm.remove(cu)
                         for drone in self.__drones_in_swarm:
                             if not drone in m.ids:
-                                self.__computation_agent.remove()
+                                self.__computation_agent.remove_agent(drone)
+                                self.__drones_in_swarm.remove(drone)
+                                print(f"Removed drone {drone}")
+
 
 
                 # only if we want to leave and are sure that we still are eligible to send, then
                 # send that we want to leave
                 if self.__wants_to_leave:
                     if received_network_members_message:
-                        free_message = SyncMovementMessage()
+                        free_message = NetworkAreaFreeMessage()
                         free_message.m_id = self.__cu_id
                         messages_tx = [free_message]
                     else:
@@ -827,7 +884,8 @@ class ComputingUnit:
             # send data to CP
             self.write_data_to_cp(messages_tx)
 
-            self.__computation_agent.round_started()
+            if state == STATE_SYS_RUN:
+                self.__computation_agent.round_started()
 
     def connect_to_cp(self):
         """ DEFINE FREQUENTLY USED MESSAGES """
@@ -842,6 +900,7 @@ class ComputingUnit:
         ack_message.round_length_ms = 200
         ack_message.own_id = self.__cu_id
         ack_message.round_mbr = 0
+        ack_message.is_initiator = 1 if self.__is_initiator else 0
         # time.sleep(102e-3)  # the cp sleeps a short time, thus, we may have to sleep a bit longer
         self.write_data_to_cp([ack_message])
 
@@ -899,6 +958,8 @@ class ComputingUnit:
             
             if round_mbr is not None:
                 self.__round_nmbr = round_mbr
+                if round_mbr > 100 and self.__cu_id == 20:
+                    self.__wants_to_leave = True
 
         for m in messages_parsed:
             self.__computation_agent.send_message(m)
@@ -916,9 +977,9 @@ class ComputingUnit:
             m_temp.round_length_ms = 200
             m_temp.own_id = self.__cu_id
             m_temp.round_mbr = 0
+            m_temp.is_initiator = 0
             messages_tx.append(m_temp)
         elif isinstance(traj_message.content, da.TrajectoryMessageContent):
-            print(traj_message)
             m_temp = TrajectoryMessage()
             m_temp.m_id = traj_message.ID
             m_temp.trajectory = traj_message.content.coefficients.coefficients if traj_message.content.coefficients.valid else traj_message.content.coefficients.alternative_trajectory
@@ -983,6 +1044,8 @@ class ComputingUnit:
                 message_rec = NetworkMembersMessage()
             elif type == TYPE_NETWORK_MESSAGE_AREA_REQUEST:
                 message_rec = NetworkAreaRequestMessage()
+            elif type == TYPE_NETWORK_MESSAGE_AREA_FREE:
+                message_rec = NetworkAreaFreeMessage()
             else:
                 message_rec = MetadataMessage()
             message_rec.set_content_bytes(data[data_idx:data_idx+message_rec.size])
@@ -1082,7 +1145,7 @@ class ComputingUnit:
                                                      setpoint_creator=self.__ARGS.setpoint_creator,
                                                      slot_group_setpoints_id=self.__slot_group_setpoints_id,
                                                      weight_band=self.__ARGS.weight_band,
-                                                     send_setpoints=self.__cu_id == 20,
+                                                     send_setpoints=self.__is_initiator, # self.__cu_id == 20,
                                                      save_snapshot_times=self.__ARGS.save_snapshot_times
                                                      )
 

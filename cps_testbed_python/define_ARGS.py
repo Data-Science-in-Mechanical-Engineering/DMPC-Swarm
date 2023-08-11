@@ -42,7 +42,7 @@ def define_ARGS():
     parser.add_argument('--sim_id', default=0, type=int, help='ID of simulation, used for random generator seed')
     parser.add_argument('--INIT_XYZS', default={}, type=dict, help='Initial drone positions')
     parser.add_argument('--INIT_TARGETS', default={}, type=dict, help='Initial target positions')
-    parser.add_argument('--testbeds', default={"Vicon": ([-1.8, -1.8, 0.3], [1.8, 1.8, 3.0], [0, 0, 0]),
+    parser.add_argument('--testbeds', default={"Vicon": ([-1.7, -1.7, 0.3], [1.7, 1.7, 3.0], [0, 0, 0]),
                                                "Mobile": ([-0.7, -0.7, 0.5], [0.7, 0.7, 1.1], [100, 0, 0])},
                         type=dict, help='Testbeds of the system. Format: name: (min, max, offset)')
     parser.add_argument('--pos_offset', default={}, type=dict, help='Corresponding spatial offsets for drones')
@@ -110,7 +110,7 @@ def define_ARGS():
         ARGS.max_positions[key] = np.array(ARGS.testbeds[testbed][1]) + offset
         print(f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
 
-    ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=sc.CIRCLE_DYNAMIC)
+    ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=sc.DEMO_CIRCLE)
     """
     testbed = cuboid.Cuboid(np.array([0.4, 0.4, 0.3]), np.array([ARGS.testbed_size[0], 0, 0]),
                             np.array([0, ARGS.testbed_size[1], 0]),
