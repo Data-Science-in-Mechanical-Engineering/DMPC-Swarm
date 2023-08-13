@@ -7,15 +7,16 @@ from compute_unit.trajectory_generation.statespace_model import TripleIntegrator
 import copy
 import numpy as np
 from dataclasses import dataclass
-from compute_unit.trajectory_generation.information_tracker import InformationTracker, Information, TrajectoryContent
+from compute_unit.trajectory_generation.information_tracker import InformationTracker, TrajectoryContent
 import time
-import compute_unit.trajectory_generation.high_level_planner as hlp
 
 from compute_unit import real_compute_unit
 
 import random
 
 import pickle
+
+import cu_animator as cu_animator
 
 NORMAL = 0
 INFORMATION_DEPRECATED = 1
@@ -153,7 +154,8 @@ class ComputationAgent(net.Agent):
                  agent_dodge_distance=0.5, slot_group_setpoints_id=100000, send_setpoints=False, use_given_init_pos=False,
                  use_optimized_constraints=True, weight_band=1.0,
                  save_snapshot_times=[], snapshot_saving_path="",
-                 simulate_quantization=False):
+                 simulate_quantization=False,
+                 show_animation=False):
         """
 
         Parameters
@@ -386,6 +388,14 @@ class ComputationAgent(net.Agent):
         self.__setpoint_history = []
         
         self.__simulate_quantization = simulate_quantization
+
+        self.__show_animation = show_animation
+        if show_animation:
+            self.__data_pipeline = cu_animator.DataPipeline()
+            # self.__animation_thread = threading.Thread(target=cu_animator.animate, args=(self.__data_pipeline,),
+                                                       # daemon=True)
+            # self.__animation_thread.start()
+            print("mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm")
 
     def add_new_agent(self, m_id):
         last_trajectory = None
@@ -672,6 +682,12 @@ class ComputationAgent(net.Agent):
                     x0=trajectory.current_state,
                     integration_start=self.__current_time - trajectory.trajectory_start_time)
                 print(f"Current_pos: {trajectory.current_state[0:3]}")
+
+        if self.__show_animation:
+            trajectories = {}
+            for i in range(0, self.__num_agents):
+                trajectories[self.__agents_ids[i]] = self.__trajectory_tracker.get_information(self.__agents_ids[i]).content[0].last_trajectory
+            self.__data_pipeline.set_trajectories(trajectories, self.__current_target_positions, self.__received_setpoints)
 
     def round_finished(self, round_nmbr=None, received_network_members_message=True):
         """this function has to be called at the end of the round to tell the agent that the communication round is
@@ -1263,6 +1279,7 @@ class ComputationAgent(net.Agent):
                     current_pos[agent_id] - self.__current_target_positions[agent_id]) > self.__options.r_min * 0.9:
                 all_agents_close_to_target = False
         if all_agents_close_to_target:
+            self.__high_level_setpoints = {}
             for agent_id in self.__agents_ids:
                 self.__high_level_setpoints[agent_id] = self.__current_target_positions[agent_id]
             return

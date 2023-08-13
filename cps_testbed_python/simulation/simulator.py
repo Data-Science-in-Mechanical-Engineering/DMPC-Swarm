@@ -276,7 +276,8 @@ class Simulation:
                                                       pos_offset=self.__ARGS.pos_offset,
                                                       weight_band=self.__ARGS.weight_band,
                                                       simulate_quantization=self.__ARGS.simulate_quantization,
-                                                      save_snapshot_times=self.__ARGS.save_snapshot_times)
+                                                      save_snapshot_times=self.__ARGS.save_snapshot_times,
+                                                      show_animation=i==self.__ARGS.num_drones)
                 prio += 1
             else:
                 computing_agent = cus[i - self.__ARGS.num_drones]
