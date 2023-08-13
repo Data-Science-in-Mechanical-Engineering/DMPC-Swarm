@@ -945,6 +945,10 @@ class ComputingUnit:
                 content_temp = da.RecoverInformationNotifyContent(cu_id=m.cu_id, drone_id=m.drone_id)
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
+            elif isinstance(m. NetworkAreaFreeMessage):
+                content_temp = da.EmtpyContent([])
+                m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
+                                     content=content_temp)
             elif isinstance(m, TargetPositionsMessage):
                 content_temp = da.SetpointMessageContent(setpoints=m.target_positions)
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__slot_group_setpoints_id, content=content_temp)
@@ -1146,7 +1150,8 @@ class ComputingUnit:
                                                      slot_group_setpoints_id=self.__slot_group_setpoints_id,
                                                      weight_band=self.__ARGS.weight_band,
                                                      send_setpoints=self.__is_initiator, # self.__cu_id == 20,
-                                                     save_snapshot_times=self.__ARGS.save_snapshot_times
+                                                     save_snapshot_times=self.__ARGS.save_snapshot_times,
+                                                     show_animation=True
                                                      )
 
     def send_socket(self, message: message.MixerMessage):

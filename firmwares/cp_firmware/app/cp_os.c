@@ -32,6 +32,10 @@ static uint8_t ap_connected;
 
 static uint8_t is_network_manager;
 
+static uint8_t leave_network[MAX_NUM_AGENTS] = {0};
+
+static uint8_t received_member_message_last_round = 0;
+
 static network_members_message_t network_manager_state;
 static network_members_message_t network_members_message;
 
@@ -185,17 +189,32 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
     // e.g. read data from application processor (or do something else)
     ap_message_t *tx_messages[NUM_ELEMENTS(message_assignment)];
     uint16_t size_tx_messages = communication_starts_callback(tx_messages);
+
+    // check, if the area should be freed.
+    for (uint16_t tx_message_idx = 0; tx_message_idx < size_tx_messages; tx_message_idx++) {
+        if (tx_messages[tx_message_idx]->header.type == TYPE_NETWORK_MESSAGE_AREA_FREE) {
+          uint8_t idx = get_message_area_idx(&network_members_message, tx_messages[tx_message_idx]->header.id);
+          leave_network[idx] = 1;
+        }
+    }
+
     
     // write into mixer
     for (uint16_t tx_message_idx = 0; tx_message_idx < size_tx_messages; tx_message_idx++) {
+
       // when the agent does not want to send anything, it sends a TYPE_DUMMY
       if (tx_messages[tx_message_idx]->header.type != TYPE_DUMMY 
           && tx_messages[tx_message_idx]->header.type != TYPE_NETWORK_MESSAGE_AREA_REQUEST) {
         // the id of the message in the message layer is written in the header.
         uint8_t idx = get_message_area_idx(&network_members_message, tx_messages[tx_message_idx]->header.id);
-        if (idx != 255) {
-          message_layer_set_message(idx, 
-              (uint8_t *) tx_messages[tx_message_idx]);
+        
+        // only if the area should not be freed or if it should be freed and we recenved the member message last round,
+        // then send (otherwise we do not know if the message area was freed already)
+        if (received_member_message_last_round || !leave_network[idx]) {
+          if (idx != 255) {
+            message_layer_set_message(idx, 
+                (uint8_t *) tx_messages[tx_message_idx]);
+          }
         }
       }
 
@@ -241,6 +260,8 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
     // ATTENTION: don't delay after the polling loop (-> print before)
     t_ref = mixer_start();
     NRF_P0->OUTSET = BV(25);
+
+    received_member_message_last_round = 0;
       
     // Just for Debug
     SET_COM_GPIO1();
@@ -281,6 +302,7 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
     // state of the network manager. For the CP this is not important, because as long as we are in the network, the message areas,
     // we write to, will always be the network areas, we reserved, even if we do not receive the network managers message.
     if (mixer_messages_received[0].header.type == TYPE_NETWORK_MEMBERS_MESSAGE) {
+      received_member_message_last_round = 1;
       memcpy(&network_members_message, &mixer_messages_received[0], sizeof(network_members_message_t));
 
       // if the countdown reached 0 and we are the new network manager, set ourself as networkm manager or do not set ourself
