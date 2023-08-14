@@ -65,8 +65,9 @@ if __name__ == "__main__":
 		trajectories = data["trajectories"]
 		for i, key in enumerate(trajectories):
 			t = trajectories[key]
-			ax.plot(t[:, 0], t[:, 1], color=colors[i%len(colors)])
-			ax.scatter([t[0, 0]], [t[0, 1]], color=colors[i%len(colors)])
+			if t is not None:
+				ax.plot(t[:, 0], t[:, 1], color=colors[i%len(colors)])
+				ax.scatter([t[0, 0]], [t[0, 1]], color=colors[i%len(colors)])
 
 		target_positions = data["target_positions"]
 		if target_positions is not None:

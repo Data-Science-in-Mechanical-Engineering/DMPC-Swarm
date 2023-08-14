@@ -857,6 +857,7 @@ class ComputingUnit:
                         # check if an agent has left the swarm
                         for cu in self.__cus_in_swarm:
                             if not cu in m.ids:
+                                print(f"Removing CU {cu}")
                                 self.__computation_agent.remove_computation_agent(cu)
                                 self.__cus_in_swarm.remove(cu)
                         for drone in self.__drones_in_swarm:
@@ -945,7 +946,7 @@ class ComputingUnit:
                 content_temp = da.RecoverInformationNotifyContent(cu_id=m.cu_id, drone_id=m.drone_id)
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
-            elif isinstance(m. NetworkAreaFreeMessage):
+            elif isinstance(m, NetworkAreaFreeMessage):
                 content_temp = da.EmtpyContent([])
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)

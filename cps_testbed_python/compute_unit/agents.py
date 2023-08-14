@@ -186,7 +186,7 @@ class ComputationAgent(net.Agent):
         self.__comp_agent_prio = computing_agents_ids.index(ID)
         self.__slot_group_planned_trajectory_id = slot_group_planned_trajectory_id
         self.__slot_group_setpoints_id = slot_group_setpoints_id
-        self.__send_setpoints = send_setpoints
+        # self.__send_setpoints = send_setpoints
         self.__slot_group_drone_state = slot_group_drone_state
         self.__slot_group_state_id = slot_group_state_id
         self.__slot_group_ack_id = slot_group_ack_id
@@ -390,12 +390,11 @@ class ComputationAgent(net.Agent):
         self.__simulate_quantization = simulate_quantization
 
         self.__show_animation = show_animation
-        if show_animation:
-            self.__data_pipeline = cu_animator.DataPipeline()
+        self.__data_pipeline = cu_animator.DataPipeline()
             # self.__animation_thread = threading.Thread(target=cu_animator.animate, args=(self.__data_pipeline,),
                                                        # daemon=True)
             # self.__animation_thread.start()
-            print("mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm")
+        print("mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm")
 
     def add_new_agent(self, m_id):
         last_trajectory = None
@@ -442,7 +441,7 @@ class ComputationAgent(net.Agent):
         self.__num_computing_agents = len(self.__computing_agents_ids)
         self.__comp_agent_prio = self.__computing_agents_ids.index(self.ID)
 
-        self.__send_setpoints = self.ID == self.__computing_agents_ids[0]
+        # self.__send_setpoints = self.ID == self.__computing_agents_ids[0]
 
     def remove_computation_agent(self, m_id):
         if m_id not in self.__computing_agents_ids:
@@ -452,8 +451,9 @@ class ComputationAgent(net.Agent):
         self.__computing_agents_ids.sort()
         self.__num_computing_agents = len(self.__computing_agents_ids)
         self.__comp_agent_prio = self.__computing_agents_ids.index(self.ID)
-
-        self.__send_setpoints = self.ID == self.__computing_agents_ids[0]
+        print("computing_agents_ids")
+        print(self.__computing_agents_ids)
+        # self.__send_setpoints = self.ID == self.__computing_agents_ids[0]
 
     def get_prio(self, slot_group_id):
         """returns the priority for the schedulder, because the system is not event triggered, it just returns zero
@@ -683,11 +683,22 @@ class ComputationAgent(net.Agent):
                     integration_start=self.__current_time - trajectory.trajectory_start_time)
                 print(f"Current_pos: {trajectory.current_state[0:3]}")
 
-        if self.__show_animation:
+        print("Show")
+        print(self.__show_animation)
+        print(self.__send_setpoints)
+        if self.__show_animation and self.__send_setpoints:
             trajectories = {}
+            current_target_positions = {}
+            received_setpoints = {}
             for i in range(0, self.__num_agents):
                 trajectories[self.__agents_ids[i]] = self.__trajectory_tracker.get_information(self.__agents_ids[i]).content[0].last_trajectory
-            self.__data_pipeline.set_trajectories(trajectories, self.__current_target_positions, self.__received_setpoints)
+                if self.__current_target_positions is not None:
+                    if self.__agents_ids[i] in self.__current_target_positions:
+                        current_target_positions[self.__agents_ids[i]] = self.__current_target_positions[self.__agents_ids[i]]
+                if self.__received_setpoints is not None:
+                    if self.__agents_ids[i] in self.__received_setpoints:
+                        received_setpoints[self.__agents_ids[i]] = self.__received_setpoints[self.__agents_ids[i]]
+            self.__data_pipeline.set_trajectories(trajectories, current_target_positions, received_setpoints)
 
     def round_finished(self, round_nmbr=None, received_network_members_message=True):
         """this function has to be called at the end of the round to tell the agent that the communication round is
@@ -1482,6 +1493,10 @@ class ComputationAgent(net.Agent):
     def num_succ_optimizer_runs(self):
         return self.__num_succ_optimizer_runs
 
+    @property
+    def __send_setpoints(self):
+        return self.ID == self.__computing_agents_ids[0]
+
     def get_trajectory_tracker(self):
         return self.__trajectory_tracker
 
@@ -1907,6 +1922,7 @@ class RemoteDroneAgent(net.Agent):
     @property
     def all_targets_reached(self):
         return self.__all_targets_reached
+
 
 def unit_vector(vector):
     """ Returns the unit vector of the vector.  """
