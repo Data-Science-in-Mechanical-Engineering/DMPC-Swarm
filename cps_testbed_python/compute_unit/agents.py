@@ -571,7 +571,7 @@ class ComputationAgent(net.Agent):
                     self.__recalculate_setpoints = True
 
             for trajectory in self.__trajectory_tracker.get_information(message.ID).content:
-                if np.linalg.norm(trajectory.current_state[0:3] - message.content.state[0:3]) > self.__state_feedback_trigger_dist and False:
+                if np.linalg.norm(trajectory.current_state[0:3] - message.content.state[0:3]) > self.__state_feedback_trigger_dist:
                     print(f"{message.ID}: {trajectory.current_state} {message.content.state[0:3]}")
                     self.__state_feedback_triggered.append(message.ID)
                     # trajectory.current_state = np.zeros(trajectory.current_state.shape)
@@ -778,6 +778,11 @@ class ComputationAgent(net.Agent):
                 if trajectory.init_state is None:
                     all_init_states_known = False
                     break
+        targets = self.get_targets()
+        for agent_id in targets:
+            if targets[agent_id] is None:
+                all_init_states_known = False
+                break
         if not all_init_states_known:
             # self.__update_information_tracker()
             self.__messages_rec = {}
@@ -962,8 +967,8 @@ class ComputationAgent(net.Agent):
                         dynamic_target_points[i] = self.__current_target_positions[id]
                         if j == self.__comp_agent_prio: # or i == self. ?
                             index = i
-                        self.__agents_prios[id] = self.__agents_prios[id] if np.linalg.norm(
-                            dynamic_target_points[i] - dynamic_trajectories[i][-1]) > 2 * self.__options.r_min else -1
+                        self.__agents_prios[id] = 0 # self.__agents_prios[id] if np.linalg.norm(
+                            # dynamic_target_points[i] - dynamic_trajectories[i][-1]) > 2 * self.__options.r_min else -1
                         dynamic_coop_prio[i] = self.__agents_prios[id]
 
                         age_trajectory = (self.__current_time - trajectory.trajectory_start_time) / (
@@ -1157,6 +1162,11 @@ class ComputationAgent(net.Agent):
             if self.__received_setpoints is not None:
                 if own_id in self.__received_setpoints:
                     target_pos = self.__received_setpoints[own_id]
+            if target_pos is None:
+                print("ffffffffffffffffffffff")
+                print(self.__received_setpoints)
+                print(self.get_targets()[own_id])
+                assert False, f"{self.__received_setpoints}, {self.get_targets()[own_id]}"
             d_target = target_pos - copy.deepcopy(self.__trajectory_tracker.get_information(own_id).content[0].current_state[0:3])
 
             dist_to_target = np.linalg.norm(d_target)
@@ -1523,7 +1533,7 @@ class RemoteDroneAgent(net.Agent):
 
     def __init__(self, ID, slot_group_planned_trajectory_id, init_position, target_position, communication_delta_t,
                  trajectory_generator_options, prediction_horizon, other_drones_ids, target_positions, order_interpolation=4,
-                 slot_group_state_id=None, slot_group_ack_id=100000, state_feedback_trigger_dist=0.3,
+                 slot_group_state_id=None, slot_group_ack_id=100000, state_feedback_trigger_dist=0.5,
                  use_demo_setpoints=True, load_cus_round_nmbr=0,
                  trajectory_start_time=0,
                  trajectory_cu_id=-1):

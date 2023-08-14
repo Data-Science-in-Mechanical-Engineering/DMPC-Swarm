@@ -122,12 +122,18 @@ def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
 	plt.show()
 
 if __name__ == "__main__":
-	plot_comparison(10, 0, ignore_message_loss=False, quant=False)
+	# plot_comparison(10, 0, ignore_message_loss=False, quant=False)
 
+	ignore_message_loss = True
+	message_loss_prob = 0.1
+	num_cus = 7
+	simulate_quantization = False
 	path = "../../../batch_simulation_results/" \
-										  "dmpc/dmpc_simulation_results_imlFalse_0_1cus_"
+										  "dmpc/" \
+		   f"dmpc_simulation_results_iml{ignore_message_loss}_{int(100 * message_loss_prob + 1e-7)}_{num_cus}cus_{'quant' if simulate_quantization else ''}"
+
 	plot_states = False
-	num_drones = 15
+	num_drones = 10
 	files = [os.path.join(path, f) for f in os.listdir(path) if f.startswith(f"simulation_result-{num_drones}_drones_simnr_")]
 	num_crashed = 0
 	num_optimizer_runs = 0
@@ -137,7 +143,7 @@ if __name__ == "__main__":
 		result = p.load(open(f, "rb"))
 		if result["crashed"][0]:
 			num_crashed += 1
-			fig = plt.figure()
+			"""fig = plt.figure()
 			ax = plt.axes(projection='3d')
 			p1 = None
 			p2 = None
@@ -165,7 +171,7 @@ if __name__ == "__main__":
 			print(p1)
 			print(p2)
 			ax.scatter([p1[0]], [p1[1]], [p1[2]])
-			ax.scatter([p2[0]], [p2[1]], [p2[2]])
+			ax.scatter([p2[0]], [p2[1]], [p2[2]])"""
 
 		if result["num_targets_reached"][0] != num_drones:
 			print(result["num_targets_reached"][0])

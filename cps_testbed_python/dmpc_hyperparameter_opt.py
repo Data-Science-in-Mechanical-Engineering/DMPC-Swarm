@@ -248,6 +248,8 @@ if __name__ == "__main__":
 
 	parser.add_argument("--simulate_quantization", default=True, type=bool, help="")
 
+	parser.add_argument("--show_animation", default=True, type=bool, help="")
+
 	ARGS = parser.parse_args()
 
 	ARGS.drone_ids = list(ARGS.drones.keys())
