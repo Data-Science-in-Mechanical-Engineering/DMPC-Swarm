@@ -10,6 +10,8 @@ import compute_unit.uart.message as message
 
 import copy
 
+import os
+
 
 def parallel_simulation_wrapper(computation_unit):
     computation_unit.run()
@@ -723,6 +725,9 @@ class ComputingUnit:
 
         self.__wants_to_leave = False   # we set this true, if the CU wants to leave the swarm.
 
+        if os.path.exists(f"../../experiment_measurements/ShutdownCU{self.__cu_id}.txt"):
+            os.remove(f"../../experiment_measurements/ShutdownCU{self.__cu_id}.txt")
+
     def run(self, fileno):
         """ This is the main state machine of the computing unit. """
 
@@ -784,10 +789,7 @@ class ComputingUnit:
             if state == STATE_IDLE:
                 received_network_members_message = 0
                 # wait until cp says all agents are ready
-                print(messages_rx)
                 for m in messages_rx:
-                    if (isinstance(m, MetadataMessage)):
-                        print(m.type)
                     if isinstance(m, NetworkMembersMessage):
                         received_network_members_message = 1
                         print("---------------")
@@ -833,10 +835,6 @@ class ComputingUnit:
                 for m in messages_rx:
                     if isinstance(m, NetworkMembersMessage):
                         received_network_members_message = True
-                        print("-----------------------")
-                        print(m.message_layer_area_agent_id)
-                        print(m.ids)
-                        print(m.types)
 
                         # check if there is a new agent in the swarm
                         for i, t in enumerate(m.types):
@@ -857,7 +855,7 @@ class ComputingUnit:
                         # check if an agent has left the swarm
                         for cu in self.__cus_in_swarm:
                             if not cu in m.ids:
-                                print(f"Removing CU {cu}")
+                                print(f"Removed CU {cu}")
                                 self.__computation_agent.remove_computation_agent(cu)
                                 self.__cus_in_swarm.remove(cu)
                         for drone in self.__drones_in_swarm:
@@ -865,8 +863,6 @@ class ComputingUnit:
                                 self.__computation_agent.remove_agent(drone)
                                 self.__drones_in_swarm.remove(drone)
                                 print(f"Removed drone {drone}")
-
-
 
                 # only if we want to leave and are sure that we still are eligible to send, then
                 # send that we want to leave
@@ -963,8 +959,9 @@ class ComputingUnit:
             
             if round_mbr is not None:
                 self.__round_nmbr = round_mbr
-                if round_mbr > 200 and self.__cu_id == 20 and self.__is_initiator:
-                    self.__wants_to_leave = True
+            if os.path.exists(f"../../experiment_measurements/ShutdownCU{self.__cu_id}.txt"):
+                self.__wants_to_leave = True
+                os.remove(f"../../experiment_measurements/ShutdownCU{self.__cu_id}.txt")
 
         for m in messages_parsed:
             self.__computation_agent.send_message(m)

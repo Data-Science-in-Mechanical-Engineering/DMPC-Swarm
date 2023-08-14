@@ -451,8 +451,6 @@ class ComputationAgent(net.Agent):
         self.__computing_agents_ids.sort()
         self.__num_computing_agents = len(self.__computing_agents_ids)
         self.__comp_agent_prio = self.__computing_agents_ids.index(self.ID)
-        print("computing_agents_ids")
-        print(self.__computing_agents_ids)
         # self.__send_setpoints = self.ID == self.__computing_agents_ids[0]
 
     def get_prio(self, slot_group_id):
