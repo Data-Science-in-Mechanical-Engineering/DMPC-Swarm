@@ -124,9 +124,9 @@ def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
 if __name__ == "__main__":
 	# plot_comparison(10, 0, ignore_message_loss=False, quant=False)
 
-	ignore_message_loss = True
+	ignore_message_loss = False
 	message_loss_prob = 0.1
-	num_cus = 7
+	num_cus = 2
 	simulate_quantization = False
 	path = "../../../batch_simulation_results/" \
 										  "dmpc/" \
