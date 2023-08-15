@@ -377,7 +377,7 @@ class ComputationAgent(net.Agent):
 
         self.__num_trigger_times = {agent_id: 0 for agent_id in self.__agents_ids}
 
-        self.__selected_UAVs = []
+        self.__selected_UAVs = {"round": [], "selected": []}
 
         self.__time_last_deadlock = 0
 
@@ -496,6 +496,7 @@ class ComputationAgent(net.Agent):
             pass
         elif slot_group_id == self.__slot_group_setpoints_id:
             if self.__send_setpoints:
+                print("Sending setpoints")
                 setpoints = copy.deepcopy(self.__high_level_setpoints)
                 if setpoints is not None:
                     for agent_id in setpoints:
@@ -524,6 +525,9 @@ class ComputationAgent(net.Agent):
         if message.slot_group_id == self.__slot_group_planned_trajectory_id:
             self.__num_trajectory_messages_received += 1
             if isinstance(message.content, TrajectoryMessageContent):
+                print(f"message.content.id {message.content.id}")
+                print(message)
+                print(message.content)
                 message.content.init_state[0:3] += self.__pos_offset[message.content.id]
 
             if message.ID not in self.__last_received_messages:
@@ -701,8 +705,10 @@ class ComputationAgent(net.Agent):
     def round_finished(self, round_nmbr=None, received_network_members_message=True):
         """this function has to be called at the end of the round to tell the agent that the communication round is
         finished"""
-        self.__selected_UAVs.append(-1)
+        self.__selected_UAVs["selected"].append(-1)
+        self.__selected_UAVs["round"].append(round_nmbr)
         self.__last_system_state = self.__system_state
+        print(f"self.__system_state {self.__system_state}")
         self.__init_configuration = False
         self.ordered_indexes = None
         self.prios = None
@@ -780,37 +786,6 @@ class ComputationAgent(net.Agent):
 
         self.__update_information_tracker()
 
-        # until the we have no received data from the drone agents not send (we do not have the initial state)
-        all_init_states_known = True
-        for trajectory_information in self.__trajectory_tracker.get_all_information().values():
-            for trajectory in trajectory_information.content:
-                if trajectory.init_state is None:
-                    all_init_states_known = False
-                    break
-        targets = self.get_targets()
-        for agent_id in targets:
-            if targets[agent_id] is None:
-                all_init_states_known = False
-                break
-        if not all_init_states_known:
-            # self.__update_information_tracker()
-            self.__messages_rec = {}
-            self.__number_rounds = self.__number_rounds + 1
-            self.__last_received_messages = {self.ID: EmtpyContent([])}
-            self.__current_time = self.__current_time + self.__communication_delta_t
-            return
-
-        # calculate current state of all agents
-        for i in range(0, self.__num_agents):
-            id = self.__agents_ids[i]
-            if self.__trajectory_tracker.get_information(id).is_unique and not \
-                    self.__trajectory_tracker.get_information(id).is_deprecated:
-                self.__agent_state[id] = self.__trajectory_tracker.get_information(id).content[0].current_state
-                self.__agents_starting_times[id] = self.__trajectory_tracker.get_information(id).content[0].trajectory_start_time
-            else:
-                self.__agent_state[id] = None
-                self.__agents_starting_times[id] = None
-
         # if we are in the normal state and something is deprecated, switch the state
         if self.__system_state == NORMAL and not self.__trajectory_tracker.no_information_deprecated:
             self.__system_state = INFORMATION_DEPRECATED
@@ -818,6 +793,38 @@ class ComputationAgent(net.Agent):
             self.__system_state = NORMAL
 
         if self.__system_state == NORMAL:
+            # until the we have no received data from the drone agents not send (we do not have the initial state)
+            all_init_states_known = True
+            for trajectory_information in self.__trajectory_tracker.get_all_information().values():
+                for trajectory in trajectory_information.content:
+                    if trajectory.init_state is None:
+                        all_init_states_known = False
+                        break
+            targets = self.get_targets()
+            for agent_id in targets:
+                if targets[agent_id] is None:
+                    all_init_states_known = False
+                    break
+            if not all_init_states_known:
+                # self.__update_information_tracker()
+                self.__messages_rec = {}
+                self.__number_rounds = self.__number_rounds + 1
+                self.__last_received_messages = {self.ID: EmtpyContent([])}
+                self.__current_time = self.__current_time + self.__communication_delta_t
+                return
+
+            # calculate current state of all agents
+            for i in range(0, self.__num_agents):
+                id = self.__agents_ids[i]
+                if self.__trajectory_tracker.get_information(id).is_unique and not \
+                        self.__trajectory_tracker.get_information(id).is_deprecated:
+                    self.__agent_state[id] = self.__trajectory_tracker.get_information(id).content[0].current_state
+                    self.__agents_starting_times[id] = self.__trajectory_tracker.get_information(id).content[
+                        0].trajectory_start_time
+                else:
+                    self.__agent_state[id] = None
+                    self.__agents_starting_times[id] = None
+
             if self.__use_own_targets:
                 self.update_target_ids()
                 self.__current_target_positions = self.get_targets()
@@ -837,7 +844,7 @@ class ComputationAgent(net.Agent):
                     self.__current_agent = ordered_indexes[self.__comp_agent_prio]
                     current_id = self.__agents_ids[self.__current_agent]
                     self.__num_trigger_times[current_id] += 1
-                    self.__selected_UAVs[-1] = current_id
+                    self.__selected_UAVs["selected"][-1] = current_id
 
                     self.ordered_indexes = ordered_indexes
                     self.starting_times = self.__agents_starting_times
@@ -876,6 +883,7 @@ class ComputationAgent(net.Agent):
                 self.ID: EmtpyContent(prios)}
             self.__system_state = RECOVER_INFORMATION_NOTIFY
         elif self.__system_state == RECOVER_INFORMATION_NOTIFY:
+            print("RECOVER_INFORMATION_NOTIFY")
             self.__last_received_messages = {}
             for drone_id in self.__trajectory_tracker.keys:
                 if self.__trajectory_tracker.get_information(drone_id).is_deprecated:
@@ -889,10 +897,12 @@ class ComputationAgent(net.Agent):
             else:
                 self.__system_state = WAIT_FOR_UPDATE
         elif self.__system_state == WAIT_FOR_UPDATE:
+            print("WAIT_FOR_UPDATE")
             # send nothing and wait for drone to send
             self.__last_received_messages = {}
             self.__system_state = RECOVER_INFORMATION_NOTIFY
 
+        print(f"final self.__system_state {self.__system_state}")
         # self.print(self.__agent_state[current_id])
         # start time of the newly calculated data.
         self.__number_rounds = self.__number_rounds + 1

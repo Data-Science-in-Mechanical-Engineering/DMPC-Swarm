@@ -807,7 +807,7 @@ class ComputingUnit:
                 messages_tx = [ack_message]
                 if counter is not None:
                     if counter > 100 and self.__cu_id == 20:
-                        self.__wants_to_leave = True
+                        self.__wants_to_leave = False
 
                 # only if we want to leave and are sure that we still are eligible to send, then
                 # send that we want to leave
@@ -835,6 +835,12 @@ class ComputingUnit:
                 for m in messages_rx:
                     if isinstance(m, NetworkMembersMessage):
                         received_network_members_message = True
+                        print("---------------")
+                        print(m.message_layer_area_agent_id)
+                        print(m.ids)
+                        print(m.types)
+                        print(m.manager_wants_to_leave_network_in)
+                        print(m.id_new_network_manager)
 
                         # check if there is a new agent in the swarm
                         for i, t in enumerate(m.types):

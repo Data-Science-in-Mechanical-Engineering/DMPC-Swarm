@@ -90,6 +90,7 @@ void run()
   }
   is_network_manager = ap_pkt.metadata_message.is_initiator;
 
+  //is_network_manager = TOS_NODE_ID == 20;
   init_network_manager(&network_members_message);
 
   if (is_network_manager) {
@@ -210,6 +211,10 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
         
         // only if the area should not be freed or if it should be freed and we recenved the member message last round,
         // then send (otherwise we do not know if the message area was freed already)
+        //if (idx == 255) {
+          //while(1) {}
+        //}
+        
         if (received_member_message_last_round || !leave_network[idx]) {
           if (idx != 255) {
             message_layer_set_message(idx, 
@@ -343,7 +348,6 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
               break;
             } 
           }
-          
           network_manager_state.manager_wants_to_leave_network_in = 5; 
         } else {
           // only if the network manager does not want to leave the network, remove agents from the network.
