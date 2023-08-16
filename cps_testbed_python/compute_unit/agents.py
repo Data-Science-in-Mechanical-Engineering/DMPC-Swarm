@@ -1181,12 +1181,10 @@ class ComputationAgent(net.Agent):
             if self.__received_setpoints is not None:
                 if own_id in self.__received_setpoints:
                     target_pos = self.__received_setpoints[own_id]
-            if target_pos is None:
-                print("ffffffffffffffffffffff")
-                print(self.__received_setpoints)
-                print(self.get_targets()[own_id])
-                assert False, f"{self.__received_setpoints}, {self.get_targets()[own_id]}"
-            d_target = target_pos - copy.deepcopy(self.__trajectory_tracker.get_information(own_id).content[0].current_state[0:3])
+            if target_pos is None or self.get_targets()[own_id] is None:
+                d_target = 0
+            else:
+                d_target = target_pos - copy.deepcopy(self.__trajectory_tracker.get_information(own_id).content[0].current_state[0:3])
 
             dist_to_target = np.linalg.norm(d_target)
 
