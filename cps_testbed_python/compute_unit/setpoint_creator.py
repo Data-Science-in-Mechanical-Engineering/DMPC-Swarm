@@ -106,7 +106,7 @@ class SetpointCreator:
 
 	def generate_new_demo_setpoint(self, drone_id):
 		if drone_id < 7:
-			if self.__round % 300 >= 150:
+			if self.__round % 300 <= 150:
 				targets = {1: [-1.3, 0, 1], 2: [1.3, 0, 1], 3: [0, -1.0, 1.0], 4: [0, -0.3, 1.0], 5: [0, 0.3, 1], 6: [0, 1.0, 1],
 						   # 7: [0.23, -1.3, 1], 8: [0.23, 1.3, 1]
 						   }
