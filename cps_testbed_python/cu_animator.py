@@ -76,6 +76,7 @@ if __name__ == "__main__":
 					ax.scatter(target_positions[t][0], target_positions[t][1], s=10**2, color=colors[i % len(colors)], marker="X")
 
 		target_positions = data["intermediate_target_positions"]
+		print(target_positions)
 		if target_positions is not None:
 			for i, t in enumerate(target_positions):
 				if target_positions[t] is not None:

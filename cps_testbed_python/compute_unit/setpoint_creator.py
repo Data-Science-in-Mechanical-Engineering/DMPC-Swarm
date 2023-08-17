@@ -8,6 +8,7 @@ DEMO = 1
 CIRCLE_DYNAMIC = 2
 MESSAGE_LOSS_CRASH = 3
 DEMO_CIRCLE = 4
+CIRCLE_COMPARE = 5
 
 
 class SetpointCreator:
@@ -77,6 +78,8 @@ class SetpointCreator:
 		for drone_id in self.__drones:
 			if self.__demo_setpoints == CIRCLE:
 				self.__current_setpoints[drone_id] = self.generate_new_circle_setpoint(drone_id)
+			elif self.__demo_setpoints == CIRCLE_COMPARE:
+				self.__current_setpoints[drone_id] = self.generate_new_circle_compare_setpoint(drone_id)
 			elif self.__demo_setpoints == DEMO:
 				self.__current_setpoints[drone_id] = self.generate_new_demo_setpoint(drone_id)
 			elif self.__demo_setpoints == CIRCLE_DYNAMIC:
@@ -96,7 +99,7 @@ class SetpointCreator:
 	def generate_new_circle_setpoint(self, drone_id):
 		name_testbed = self.__drones[drone_id]
 		angle_offset = 0
-		if self.__round >= 180:
+		if self.__round%200 >= 100:
 			angle_offset = math.pi
 
 		offset = np.array(self.__testbeds[name_testbed][2])
@@ -104,15 +107,26 @@ class SetpointCreator:
 		dpos = [1.5, 1.5, 1.5]
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 1]) + offset
 
+	def generate_new_circle_compare_setpoint(self, drone_id):
+		if drone_id > 6:
+			return np.array([0.0, 0.0, 0.0])
+		if self.__round >= 200:
+			return self.generate_new_circle_setpoint(drone_id)
+		if self.__round <= 100:
+			return self.generate_new_demo_setpoint(drone_id)
+		targets = {1: [-1, 1, 1], 2: [0, 1, 1], 3: [1, 1, 1],
+				   4: [-1, -1, 1], 5: [0, -1, 1], 6: [1, -1, 1]}
+		return np.array(targets[drone_id], dtype=np.float32)
+
 	def generate_new_demo_setpoint(self, drone_id):
 		if drone_id < 7:
 			if self.__round % 300 <= 150:
-				targets = {1: [-1.3, 0, 1], 2: [1.3, 0, 1], 3: [0, -1.0, 1.0], 4: [0, -0.3, 1.0], 5: [0, 0.3, 1], 6: [0, 1.0, 1],
+				targets = {1: [-1.3, 0, 1], 2: [1.3, 0, 1], 3: [0, -1.0, 1.0], 4: [0, -0.21, 1.0], 5: [0, 0.21, 1], 6: [0, 1.0, 1],
 						   # 7: [0.23, -1.3, 1], 8: [0.23, 1.3, 1]
 						   }
 				return np.array(targets[drone_id])
 			else:
-				targets = {1: [1.3, 0, 1], 2: [-1.3, 0, 1], 3: [0, -1.0, 1.0], 4: [0, -0.3, 1.0], 5: [0, 0.3, 1], 6: [0, 1.0, 1],
+				targets = {1: [1.3, 0, 1], 2: [-1.3, 0, 1], 3: [0, -1.0, 1.0], 4: [0, -0.21, 1.0], 5: [0, 0.21, 1], 6: [0, 1.0, 1],
 						   # 7: [0.23, 1.3, 1], 8: [0.23, -1.3, 1]
 						   }
 				return np.array(targets[drone_id])

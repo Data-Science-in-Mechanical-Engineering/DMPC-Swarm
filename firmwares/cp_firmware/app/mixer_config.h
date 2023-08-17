@@ -48,8 +48,8 @@ static message_assignment_t message_assignment[] = {
                                                     {.id=6, .size=sizeof(state_message_t)},
                                                     {.id=7, .size=sizeof(state_message_t)},
                                                     {.id=8, .size=sizeof(state_message_t)},
-                                                    //{.id=9, .size=sizeof(state_message_t)},
-                                                    //{.id=10, .size=sizeof(state_message_t)},
+                                                    {.id=9, .size=sizeof(state_message_t)},
+                                                    {.id=10, .size=sizeof(state_message_t)},
                                                     {.id=20, .size=sizeof(trajectory_message_t)},
                                                     {.id=21, .size=sizeof(trajectory_message_t)},
                                                     {.id=100, .size=sizeof(state_message_t)},
@@ -82,13 +82,13 @@ static message_assignment_t constant_message_assignment[] = {
 
 	#define MX_ROUND_LENGTH				90 // in #slots
 	#define ROUND_PERIOD				GPI_TICK_MS_TO_HYBRID2(ROUND_LENGTH_MS)
-	#define MX_SLOT_LENGTH				GPI_TICK_US_TO_HYBRID2(1500) //GPI_TICK_US_TO_HYBRID2(1100)
+	#define MX_SLOT_LENGTH				GPI_TICK_US_TO_HYBRID2(1580) //GPI_TICK_US_TO_HYBRID2(1100)
 #endif
 
 
 
 #define NUM_PLANTS				NUM_ELEMENTS(plants)
-#define MX_GENERATION_SIZE 21  // + initiator
+#define MX_GENERATION_SIZE 25  // + initiator
 
 
 // Possible values (Gpi_Radio_Mode):

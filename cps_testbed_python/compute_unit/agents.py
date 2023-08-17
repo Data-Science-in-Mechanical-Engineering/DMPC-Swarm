@@ -73,6 +73,7 @@ def simulate_quantization_setpoints_message(message):
         return message_quant
     for k in message.setpoints:
         for i in range(3):
+            old = copy.deepcopy(message_quant.setpoints[k][i])
             message_quant.setpoints[k][i] = real_compute_unit.dequantize_pos(real_compute_unit.quantize_pos(message.setpoints[k][i]))
     return message_quant
 
@@ -394,7 +395,13 @@ class ComputationAgent(net.Agent):
             # self.__animation_thread = threading.Thread(target=cu_animator.animate, args=(self.__data_pipeline,),
                                                        # daemon=True)
             # self.__animation_thread.start()
-        print("mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm")
+
+        self.__trigger = None
+
+
+
+    def load_trigger(self, trigger):
+        self.__trigger = trigger
 
     def add_new_agent(self, m_id):
         last_trajectory = None
@@ -496,7 +503,6 @@ class ComputationAgent(net.Agent):
             pass
         elif slot_group_id == self.__slot_group_setpoints_id:
             if self.__send_setpoints:
-                print("Sending setpoints")
                 setpoints = copy.deepcopy(self.__high_level_setpoints)
                 if setpoints is not None:
                     for agent_id in setpoints:
@@ -525,9 +531,6 @@ class ComputationAgent(net.Agent):
         if message.slot_group_id == self.__slot_group_planned_trajectory_id:
             self.__num_trajectory_messages_received += 1
             if isinstance(message.content, TrajectoryMessageContent):
-                print(f"message.content.id {message.content.id}")
-                print(message)
-                print(message.content)
                 message.content.init_state[0:3] += self.__pos_offset[message.content.id]
 
             if message.ID not in self.__last_received_messages:
@@ -685,9 +688,6 @@ class ComputationAgent(net.Agent):
                     integration_start=self.__current_time - trajectory.trajectory_start_time)
                 print(f"Current_pos: {trajectory.current_state[0:3]}")
 
-        print("Show")
-        print(self.__show_animation)
-        print(self.__send_setpoints)
         if self.__show_animation and self.__send_setpoints:
             trajectories = {}
             current_target_positions = {}
@@ -708,7 +708,6 @@ class ComputationAgent(net.Agent):
         self.__selected_UAVs["selected"].append(-1)
         self.__selected_UAVs["round"].append(round_nmbr)
         self.__last_system_state = self.__system_state
-        print(f"self.__system_state {self.__system_state}")
         self.__init_configuration = False
         self.ordered_indexes = None
         self.prios = None
@@ -840,12 +839,24 @@ class ComputationAgent(net.Agent):
                 else:
                     # select next agent
                     # ordered_indexes = self.order_agents_by_priority()
-                    ordered_indexes = np.argsort(-np.array(self.__prio_consensus))  # self.order_agents_by_priority()#
+                    print(f"self.__prio_consensus: {self.__prio_consensus}")
+                    ordered_indexes = np.argsort(-np.array(self.__prio_consensus), kind="stable")  # self.order_agents_by_priority()#
                     self.__current_agent = ordered_indexes[self.__comp_agent_prio]
                     current_id = self.__agents_ids[self.__current_agent]
                     self.__num_trigger_times[current_id] += 1
                     self.__selected_UAVs["selected"][-1] = current_id
 
+                    current_agent_real = 0
+                    current_id_real = 0
+                    if self.__trigger is not None:
+                        for lkj in range(len(self.__trigger["round"])):
+                            if self.__trigger["round"][lkj] == int(round(self.__current_time / self.__communication_delta_t)):
+                                for key in range(len(self.__agents_ids)):
+                                    if self.__agents_ids[key] == self.__trigger["selected"][lkj]:
+                                        current_agent_real = key
+                                current_id_real = self.__agents_ids[current_agent_real]
+
+                        self.print(f"current_id_real: {current_id_real}, current_id {current_id}")
                     self.ordered_indexes = ordered_indexes
                     self.starting_times = self.__agents_starting_times
 
@@ -927,14 +938,13 @@ class ComputationAgent(net.Agent):
                     as out_file:
                 pickle.dump(self, out_file)
 
-
         if len(self.__save_snapshot_times) > 0:
             if int(round(self.__current_time / self.__communication_delta_t)) >= self.__save_snapshot_times[0]:
                 setpoints = {}
                 for agent_id in self.__agents_ids:
                     setpoints[agent_id] = self.__trajectory_tracker.get_information(agent_id).content[0].current_state[0:3]
                 self.__setpoint_history.append(setpoints)
-            if int(round(self.__current_time / self.__communication_delta_t)) == 500:
+            if int(round(self.__current_time / self.__communication_delta_t)) == 450:
                 with open("../../experiment_measurements" +
                           f"/CU{self.ID}setpoints{int(self.__current_time / self.__communication_delta_t)}.p", 'wb') \
                         as out_file:
@@ -1169,7 +1179,8 @@ class ComputationAgent(net.Agent):
         """ calculates the prio for each agent """
         state_feeback_triggered_prio = 10000
         quantization_bit_number = 8
-        max_time = self.__prediction_horizon * self.__communication_delta_t
+        max_time = self.__prediction_horizon * self.__communication_delta_t * self.__num_computing_agents
+        max_time = self.__communication_delta_t * self.__num_agents / self.__num_computing_agents
 
         cone_angle = 60.0 * math.pi / 180
 
@@ -1181,7 +1192,7 @@ class ComputationAgent(net.Agent):
             if self.__received_setpoints is not None:
                 if own_id in self.__received_setpoints:
                     target_pos = self.__received_setpoints[own_id]
-            if target_pos is None or self.get_targets()[own_id] is None:
+            if target_pos is None or self.__trajectory_tracker.get_information(own_id).content[0].current_state is None:
                 d_target = 0
             else:
                 d_target = target_pos - copy.deepcopy(self.__trajectory_tracker.get_information(own_id).content[0].current_state[0:3])
@@ -1213,7 +1224,7 @@ class ComputationAgent(net.Agent):
             elif prios[i] < 0:
                 prios[i] = int(0)
             else:
-                prios[i] = int(round(prios[i] / (self.__alpha_1 + self.__alpha_2 + self.__alpha_3 + self.__alpha_4)*(2**quantization_bit_number-1)))
+                prios[i] = int(round(prios[i] / (self.__alpha_1 + self.__alpha_2 + self.__alpha_3 + self.__alpha_4*0)*(2**quantization_bit_number-1)))
                 if prios[i] > 2**quantization_bit_number-2:
                     prios[i] = int(2 ** quantization_bit_number - 2)
         # print("zzzzzzzzzzzzzzz")
@@ -1318,7 +1329,7 @@ class ComputationAgent(net.Agent):
         # to break the deadlock go back to the original targets).
         all_agents_in_deadlock = True
         for agent_id in self.__agents_ids:
-            if np.linalg.norm(self.__trajectory_tracker.get_information(agent_id).content[0].current_state[3:6]) > 1e-1:
+            if np.linalg.norm(self.__trajectory_tracker.get_information(agent_id).content[0].current_state[3:6]) > 0.1:
                 all_agents_in_deadlock = False
                 break
 
@@ -1381,7 +1392,7 @@ class ComputationAgent(net.Agent):
                         closest_agent = other_agent_id
                         closest_distance = other_agent_distance
                 # if an agent is closer to hlp_threshold_distance, use some sort of potential function approach
-                hlp_threshold_distance = 0.7
+                hlp_threshold_distance = 0.6
                 if closest_distance < hlp_threshold_distance:
                     to_target = self.__current_target_positions[closest_agent] - current_pos[closest_agent]  # self.__trajectory_tracker.get_information(closest_agent).content[0].current_state[3:6]
                     c = np.cross(current_pos[agent_id] - current_pos[closest_agent], to_target)
@@ -1503,6 +1514,14 @@ class ComputationAgent(net.Agent):
     def __send_setpoints(self):
         return self.ID == self.__computing_agents_ids[0]
 
+    @property
+    def simulate_quantization(self):
+        return self.__simulate_quantization
+
+    @simulate_quantization.setter
+    def simulate_quantization(self, v):
+        self.__simulate_quantization = v
+
     def get_trajectory_tracker(self):
         return self.__trajectory_tracker
 
@@ -1520,6 +1539,9 @@ class ComputationAgent(net.Agent):
 
     def set_save_snapshot_times(self, value):
         self.__save_snapshot_times = value
+
+    def get_pos(self, drone_idx):
+        return self.__trajectory_tracker.get_information(self.__agents_ids[drone_idx]).content[0].current_state[0:3]
 
 
 class DemoSetpointGenerator:
@@ -1704,6 +1726,9 @@ class RemoteDroneAgent(net.Agent):
             return
         # if the message is from leader agent set new reference point
         if message.slot_group_id == self.__slot_group_planned_trajectory_id:
+            # if self.ID == 6:
+            #     if 121 > self.__current_time / self.__communication_delta_t > 118:
+            #         return
             if isinstance(message.content, TrajectoryMessageContent):
                 # what if two CUs send a trajectory for the same UAV?
                 if message.content.id == self.ID:

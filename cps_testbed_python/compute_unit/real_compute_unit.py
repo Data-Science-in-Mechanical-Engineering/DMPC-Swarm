@@ -39,7 +39,7 @@ def dequantize_float(integer, range):
     lower = np.min(range)
     upper = np.max(range)
     resolution = 2**15-1
-    return (integer - resolution) / resolution * upper
+    return (int(integer) - resolution) / resolution * upper
 
 def quantize_pos(pos):
     return quantize_float(pos, [-MAX_POSITION, MAX_POSITION])
@@ -54,7 +54,8 @@ def quantize_input(input):
     return quantize_float(input, [-MAX_INPUT, MAX_INPUT])
 
 def dequantize_pos(pos):
-    return dequantize_float(pos, [-MAX_POSITION, MAX_POSITION])
+    a = dequantize_float(pos, [-MAX_POSITION, MAX_POSITION])
+    return a
 
 def dequantize_vel(vel):
     return dequantize_float(vel, [-MAX_VELOCITY, MAX_VELOCITY])
