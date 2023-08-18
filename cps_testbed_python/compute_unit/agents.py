@@ -576,7 +576,7 @@ class ComputationAgent(net.Agent):
                     self.__recalculate_setpoints = True
 
             for trajectory in self.__trajectory_tracker.get_information(message.ID).content:
-                if np.linalg.norm(trajectory.current_state[0:3] - message.content.state[0:3]) > self.__state_feedback_trigger_dist:
+                if np.linalg.norm(trajectory.current_state[0:3] - message.content.state[0:3]) > self.__state_feedback_trigger_dist and False:
                     print(f"{message.ID}: {trajectory.current_state} {message.content.state[0:3]}")
                     self.__state_feedback_triggered.append(message.ID)
                     # trajectory.current_state = np.zeros(trajectory.current_state.shape)

@@ -164,7 +164,7 @@ static uint8_t			agg_input[AGGREGATE_SIZE];
 // ATTENTION: it is important to have TOS_NODE_ID in .data (not in .bss), otherwise tos-set-symbol
 // will not work
 uint16_t __attribute__((section(".data")))	TOS_NODE_ID = 0;
-#define THIS_NODE_ID 12
+#define THIS_NODE_ID 13
 //**************************************************************************************************
 //***** Global Functions ****************************************************************************
 

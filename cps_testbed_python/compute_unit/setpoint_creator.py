@@ -138,11 +138,13 @@ class SetpointCreator:
 		min_pos = np.array(self.__testbeds[name_testbed][0])
 		max_pos = np.array(self.__testbeds[name_testbed][1])
 		offset = np.array(self.__testbeds[name_testbed][2])
-		dpos = (max_pos - min_pos) / 2 * 0.95
+		dpos = (max_pos - min_pos) / 2 * 0.8
 		mean = (min_pos + max_pos) / 2 + offset
 		if name_testbed == "Vicon":
 			angle = 2 * math.pi * (self.__round) / 50.0 + 2 * math.pi * drone_id / 10 + math.pi
-			mean[2] = 0.8 + drone_id*0.1
+			mean[2] = 1.0 + drone_id*0.1 if drone_id != 13 else: 1.0
+			mean[1] += 0.2
+			mean[0] += 0.2
 		else:
 			angle = 2 * math.pi * (self.__round) / 50.0 + 2 * math.pi * drone_id / 2 + math.pi
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean

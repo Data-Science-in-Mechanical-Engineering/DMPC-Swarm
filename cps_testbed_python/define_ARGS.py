@@ -12,7 +12,7 @@ def define_ARGS():
     parser = argparse.ArgumentParser(
         description='ARGS for the ET-DMPC')
     parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 4: "Vicon", 5: "Vicon", 6: "Vicon", 7: "Vicon", 8: "Vicon", 9: "Vicon", 10: "Vicon",
-                                             11: "Mobile", 12: "Mobile"}, type=dict,
+                                             11: "Mobile", 12: "Mobile", 13: "Vicon"}, type=dict,
                         help='drone IDs with name of the testbed', metavar='')
     parser.add_argument('--num_targets_per_drone', default=3, type=int,
                         help='Number of targets', metavar='')
