@@ -30,7 +30,7 @@ static uint16_t (*communication_starts_callback)(ap_message_t**);
 static ap_message_t dummy_message;
 static uint8_t ap_connected;
 
-static uint8_t is_network_manager;
+static uint8_t is_network_manager = 0;
 
 static uint8_t leave_network[MAX_NUM_AGENTS] = {0};
 
@@ -87,8 +87,8 @@ void run()
   message_layer_init();
   if (ap_connected) {
     wait_for_AP(&ap_pkt);
+    is_network_manager = ap_pkt.metadata_message.is_initiator;
   }
-  is_network_manager = ap_pkt.metadata_message.is_initiator;
 
   //is_network_manager = TOS_NODE_ID == 20;
   init_network_manager(&network_members_message);
@@ -309,27 +309,27 @@ void run_rounds(uint8_t (*communication_finished_callback)(ap_message_t*, uint16
     if (mixer_messages_received[0].header.type == TYPE_NETWORK_MEMBERS_MESSAGE) {
       received_member_message_last_round = 1;
       memcpy(&network_members_message, &mixer_messages_received[0], sizeof(network_members_message_t));
+    } else {
+      // if we have not received it, then countdown -1
+      if (network_members_message.id_new_network_manager != 0) {
+        network_members_message.manager_wants_to_leave_network_in -= 1;
+      }
+    }
 
-      // if the countdown reached 0 and we are the new network manager, set ourself as networkm manager or do not set ourself
-      if (network_members_message.manager_wants_to_leave_network_in == 0 && network_members_message.id_new_network_manager != 0) {
-        if (network_members_message.id_new_network_manager==TOS_NODE_ID) {
-          is_network_manager = 1;
-        
-          init_network_manager(&network_manager_state);
-          memcpy(&network_manager_state, &network_members_message, sizeof(network_members_message_t));
+    // if the countdown reached 0 and we are the new network manager, set ourself as networkm manager or do not set ourself
+    if (network_members_message.manager_wants_to_leave_network_in == 0 && network_members_message.id_new_network_manager != 0) {
+      if (network_members_message.id_new_network_manager==TOS_NODE_ID) {
+        is_network_manager = 1;
+      
+        init_network_manager(&network_manager_state);
+        memcpy(&network_manager_state, &network_members_message, sizeof(network_members_message_t));
 
-          // we are now the network manager, stop the request for it.
-          network_manager_state.id_new_network_manager = 0;
-        } else {
-          // we are not network manager anymore.
-          if (is_network_manager) {
-            is_network_manager = 0;
-          }
-        }
+        // we are now the network manager, stop the request for it.
+        network_manager_state.id_new_network_manager = 0;
       } else {
-        // if we have not received it, then countdown -1
-        if (network_members_message.id_new_network_manager != 0) {
-          network_members_message.manager_wants_to_leave_network_in -= 1;
+        // we are not network manager anymore.
+        if (is_network_manager) {
+          is_network_manager = 0;
         }
       }
     }
