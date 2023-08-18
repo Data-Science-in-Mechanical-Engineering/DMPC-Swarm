@@ -36,7 +36,7 @@ ASSERT_CT_STATIC(PRIO_WIDTH <= (sizeof(priority_t) * 8), prob_info_t_needs_to_im
 #define BOLT_WRITE_DURATION		(MX_GENERATION_SIZE * GPI_TICK_US_TO_HYBRID2(200))
 
 // duration the CP needs to read data from AP.
-#define AP_READ_DURATION		(GPI_TICK_MS_TO_HYBRID2(20))
+#define AP_READ_DURATION		(GPI_TICK_MS_TO_HYBRID2(10))
 
 // measured: <6us
 #define MIXER_ARM_DURATION		(GPI_TICK_US_TO_HYBRID2(10))

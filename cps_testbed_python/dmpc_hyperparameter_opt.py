@@ -136,7 +136,7 @@ if __name__ == "__main__":
 	parser.add_argument('--sim_steps_per_control', default=4, type=int, help='')
 	parser.add_argument('--control_steps_per_round', default=12, type=int, help='')
 	parser.add_argument('--use_constant_freq', default=True, type=bool, help='')
-	parser.add_argument('--duration_sec', default=60, type=int,
+	parser.add_argument('--duration_sec', default=20, type=int,
 						help='Duration of the simulation in seconds (default: 5)', metavar='')
 	parser.add_argument('--communication_freq_hz', default=5, type=int,
 						help='Communication frequency in Hz (default: 10)')
@@ -156,7 +156,7 @@ if __name__ == "__main__":
 	parser.add_argument('--prediction_horizon', default=15, type=int, help='Prediction Horizon for DMPC')
 	parser.add_argument('--interpolation_order', default=5, type=int, help='Order of the Bernstein Interpolation')
 
-	parser.add_argument('--r_min', default=0.5, type=float, help='minimum distance to each Drone')
+	parser.add_argument('--r_min', default=0.4, type=float, help='minimum distance to each Drone')
 	parser.add_argument('--r_min_crit', default=0.2, type=float, help='minimum distance to each Drone')
 
 	parser.add_argument('--use_soft_constraints', default=False, type=bool, help='')
@@ -174,22 +174,22 @@ if __name__ == "__main__":
 						help='Select, whether the BVC planes should be skewed')
 	parser.add_argument('--event_trigger', default=True, type=bool,
 						help='Select, whether the event trigger should be used for scheduling')
-	parser.add_argument('--downwash_scaling_factor', default=3, type=int,
+	parser.add_argument('--downwash_scaling_factor', default=4, type=int,
 						help='Scaling factor to account for the downwash')
 	parser.add_argument('--downwash_scaling_factor_crit', default=4, type=int,
 						help='Scaling factor to account for the downwash')
 	parser.add_argument('--use_qpsolvers', default=True, type=bool,
 						help='Select, whether qpsolver is used for trajectory planning')
-	parser.add_argument('--alpha_1', default=1*1, type=bool,
+	parser.add_argument('--alpha_1', default=1*0, type=bool,
 						help='Weight in event-trigger')
 	parser.add_argument('--alpha_2', default=1*0, type=bool,
 						help='Weight in event-trigger')
-	parser.add_argument('--alpha_3', default=1*0, type=bool,
+	parser.add_argument('--alpha_3', default=1*1, type=bool,
 						help='Weight in event-trigger')
-	parser.add_argument('--alpha_4', default=1*1, type=bool,
+	parser.add_argument('--alpha_4', default=1*0, type=bool,
 
 						help='Weight in event-trigger')
-	parser.add_argument('--save_video', default=True, type=bool,
+	parser.add_argument('--save_video', default=False, type=bool,
 						help='Select, whether a video should be saved')
 	parser.add_argument('--remove_redundant_constraints', default=False, type=bool,
 						help='Select, whether a video should be saved')
@@ -241,12 +241,14 @@ if __name__ == "__main__":
 	parser.add_argument("--weight_band", default=0.5, type=float, help="")
 	parser.add_argument("--width_band", default=0.3, type=float, help="")
 
-	parser.add_argument("--load_cus", default=False, type=float, help="")
-	parser.add_argument("--load_cus_round_nmbr", default=150, type=int, help="")
+	parser.add_argument("--load_cus", default=True, type=float, help="")
+	parser.add_argument("--load_cus_round_nmbr", default=100, type=int, help="")
 
 	parser.add_argument("--save_snapshot_times", default=[], type=any, help="")
 
 	parser.add_argument("--simulate_quantization", default=True, type=bool, help="")
+
+	parser.add_argument("--show_animation", default=True, type=bool, help="")
 
 	ARGS = parser.parse_args()
 
@@ -270,7 +272,8 @@ if __name__ == "__main__":
 		print(
 			f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
 
-	ARGS.setpoint_creator = setpoint_creator.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=setpoint_creator.DEMO)
+	ARGS.setpoint_creator = setpoint_creator.SetpointCreator(ARGS.drones, ARGS.testbeds,
+															 demo_setpoints=setpoint_creator.CIRCLE_COMPARE)
 
 	if ARGS.hyperparameter_optimization:
 		ARGS.save_video = False
@@ -315,7 +318,7 @@ if __name__ == "__main__":
 
 	TESTBED = 0
 	CIRCLE = 1
-	init_method = CIRCLE
+	init_method = TESTBED
 	a = 2
 
 	cus = []
@@ -334,8 +337,7 @@ if __name__ == "__main__":
 			INIT_XYZS = np.array(INIT_XYZS)
 			INIT_TARGETS = np.array(INIT_TARGETS)
 		elif init_method == TESTBED:
-			INIT_XYZS = np.array([[-1, 1, 1], [0, 1, 1], [1, 1, 1],
-								  [-1.5, 0, 1], [-0.5, 0, 1], [0.5, 0, 1],
+			INIT_XYZS = np.array([[-1.3, 0, 1], [1.3, 0, 1], [-0.3, 0.3, 1.0], [0.3, 0.3, 1.0], [-0.3, -0.3, 1], [0.3, -0.3, 1],
 								  #[1.5, 0, 1],
 								  #[-1, -1, 1] #, [0, -1, 1], [1, -1, 1]
 								  ])
@@ -348,6 +350,9 @@ if __name__ == "__main__":
 				f"/CU{cu_id}snapshot{ARGS.load_cus_round_nmbr}.p", 'rb') \
 					as in_file:
 				cus.append(pickle.load(in_file))
+				cus[-1].simulate_quantization = ARGS.simulate_quantization
+			with open(f"../../experiment_measurements/num_trigger_times{cu_id}_10_0_0_10.p", "rb") as in_file:
+				cus[-1].load_trigger(pickle.load(in_file)["selected_UAVs"])
 
 		INIT_XYZS = []
 		for drone_id in cus[0].agent_ids:

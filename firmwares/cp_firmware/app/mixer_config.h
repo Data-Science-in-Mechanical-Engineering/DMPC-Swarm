@@ -30,9 +30,9 @@ typedef struct message_assignment_t_tag
 /* basic settings ************************************************************/
 
 // The array contains physical node IDs and their position in the array is the logical node ID.
-static const uint8_t nodes[]	= {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 21, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39};//{1, 2, 3, 20, 30, 31, 32, 33, 34};//{1, 2, 20, 21};
+static const uint8_t nodes[]	= {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 20, 21, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39};//{1, 2, 3, 20, 30, 31, 32, 33, 34};//{1, 2, 20, 21};
 static const uint8_t cu_nodes[] = {20, 21};
-static const uint8_t cf_nodes[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+static const uint8_t cf_nodes[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
 static const uint8_t relay_nodes[] = {30, 31, 32, 33, 34, 36, 37, 38, 39};
 static const uint8_t shutdown_node = 35;
 
@@ -48,8 +48,12 @@ static message_assignment_t message_assignment[] = {
                                                     {.id=6, .size=sizeof(state_message_t)},
                                                     {.id=7, .size=sizeof(state_message_t)},
                                                     {.id=8, .size=sizeof(state_message_t)},
-                                                    //{.id=9, .size=sizeof(state_message_t)},
-                                                    //{.id=10, .size=sizeof(state_message_t)},
+                                                    {.id=9, .size=sizeof(state_message_t)},
+                                                    {.id=10, .size=sizeof(state_message_t)},
+                                                    {.id=11, .size=sizeof(state_message_t)},
+                                                    {.id=12, .size=sizeof(state_message_t)},
+                                                    {.id=13, .size=sizeof(state_message_t)},
+                                                    {.id=14, .size=sizeof(state_message_t)},
                                                     {.id=20, .size=sizeof(trajectory_message_t)},
                                                     {.id=21, .size=sizeof(trajectory_message_t)},
                                                     {.id=100, .size=sizeof(state_message_t)},
@@ -72,7 +76,7 @@ static message_assignment_t constant_message_assignment[] = {
 #define MX_NUM_NODES			NUM_ELEMENTS(nodes)
 #define MX_INITIATOR_ID			20 // nodes[0] // 1
 #define MX_PAYLOAD_ONLY			20 // 16B state and 4B control input for logging
-#define MX_PAYLOAD_SIZE			42 // 2 byte for header 90 bytes for 2 byte quantizized trajectory
+#define MX_PAYLOAD_SIZE			65
 #define DEFAULT_MODE			0
 #define ROUND_LENGTH_MS                 200
 
@@ -82,13 +86,13 @@ static message_assignment_t constant_message_assignment[] = {
 
 	#define MX_ROUND_LENGTH				90 // in #slots
 	#define ROUND_PERIOD				GPI_TICK_MS_TO_HYBRID2(ROUND_LENGTH_MS)
-	#define MX_SLOT_LENGTH				GPI_TICK_US_TO_HYBRID2(1500) //GPI_TICK_US_TO_HYBRID2(1100)
+	#define MX_SLOT_LENGTH				GPI_TICK_US_TO_HYBRID2(1600) //GPI_TICK_US_TO_HYBRID2(1100)
 #endif
 
 
 
 #define NUM_PLANTS				NUM_ELEMENTS(plants)
-#define MX_GENERATION_SIZE 21  // + initiator
+#define MX_GENERATION_SIZE 26  // + initiator
 
 
 // Possible values (Gpi_Radio_Mode):
@@ -101,7 +105,7 @@ static message_assignment_t constant_message_assignment[] = {
 // Values mentioned in the manual (nRF52840_PS_v1.1):
 // +8dBm,  +7dBm,  +6dBm,  +5dBm,  +4dBm,  +3dBm, + 2dBm,
 //  0dBm,  -4dBm,  -8dBm, -12dBm, -16dBm, -20dBm, -40dBm
-#define MX_TX_PWR_DBM			2
+#define MX_TX_PWR_DBM			-12
 
 /*****************************************************************************/
 /* special settings **********************************************************/

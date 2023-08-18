@@ -164,7 +164,7 @@ static uint8_t			agg_input[AGGREGATE_SIZE];
 // ATTENTION: it is important to have TOS_NODE_ID in .data (not in .bss), otherwise tos-set-symbol
 // will not work
 uint16_t __attribute__((section(".data")))	TOS_NODE_ID = 0;
-#define THIS_NODE_ID 21
+#define THIS_NODE_ID 13
 //**************************************************************************************************
 //***** Global Functions ****************************************************************************
 
@@ -528,12 +528,12 @@ static void initialization(void)
 	mixer_rand_seed(rng_seed);
 
 	// translate TOS_NODE_ID to logical node id used with mixer
-	for (node_id = 0; node_id < NUM_ELEMENTS(nodes); ++node_id)
-	{
-		if (nodes[node_id] == TOS_NODE_ID)
-			break;
-	}
-	if (node_id >= NUM_ELEMENTS(nodes))
+	//for (node_id = 0; node_id < NUM_ELEMENTS(nodes); ++node_id)
+	//{
+		//if (nodes[node_id] == TOS_NODE_ID)
+			//break;
+	//}
+	//if (node_id >= NUM_ELEMENTS(nodes))
 	{
           #if USE_SPI   
 		printf("!!! PANIC: node mapping not found for node %u !!!\n", TOS_NODE_ID);

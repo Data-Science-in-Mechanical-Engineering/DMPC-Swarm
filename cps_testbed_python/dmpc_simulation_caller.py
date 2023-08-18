@@ -138,13 +138,13 @@ if __name__ == "__main__":
 
 	parser.add_argument('--abort_simulation', default=True, type=bool, help='Total number of simulations')
 
-	parser.add_argument('--total_simulations', default=500, type=int, help='Total number of simulations')
+	parser.add_argument('--total_simulations', default=1000, type=int, help='Total number of simulations')
 	parser.add_argument('--network_message_loss', default=[0], type=list,
 						help='List of message loss values of the communication network')
 	parser.add_argument('--prediction_horizon', default=15, type=int, help='Prediction Horizon for DMPC')
 	parser.add_argument('--interpolation_order', default=5, type=int, help='Order of the Bernstein Interpolation')
 
-	parser.add_argument('--r_min', default=0.5, type=float, help='minimum distance to each Drone')
+	parser.add_argument('--r_min', default=0.4, type=float, help='minimum distance to each Drone')
 	parser.add_argument('--r_min_crit', default=0.2, type=float, help='minimum distance to each Drone')
 
 	parser.add_argument('--use_soft_constraints', default=False, type=bool, help='')
@@ -228,7 +228,7 @@ if __name__ == "__main__":
 	parser.add_argument('--agent_dodge_distance', default=0.5, type=float)
 
 	parser.add_argument("--weight_band", default=0.5, type=float, help="")
-	parser.add_argument("--width_band", default=0.3, type=float, help="")
+	parser.add_argument("--width_band", default=0.3+0.001*0, type=float, help="")
 
 	parser.add_argument("--load_cus", default=False, type=float, help="")
 	parser.add_argument("--load_cus_round_nmbr", default=150, type=int, help="")
@@ -236,6 +236,8 @@ if __name__ == "__main__":
 	parser.add_argument("--save_snapshot_times", default=[], type=any, help="")
 
 	parser.add_argument("--simulate_quantization", default=True, type=bool, help="")
+
+	parser.add_argument("--show_animation", default=False, type=bool, help="")
 
 	ARGS = parser.parse_args()
 
@@ -320,9 +322,9 @@ if __name__ == "__main__":
 	#call_batch_simulation(ARGS_array, name_files="dmpc_simulation_results_ignore_message_loss_005",
 	#					  message_loss_probability=0.05, ignore_message_loss=True)
 
-	for num_cus in [1, 3, 5, 7, 9, 11, 13, 15]:
-		for message_loss_prob in [0]:
-			for simulate_quantization in [False]:
+	for num_cus in [3, 5, 7, 9, 11, 13, 15]:
+		for message_loss_prob in [0.01, 0.1]:
+			for simulate_quantization in [True]:
 				for ignore_message_loss in [False]:
 					call_batch_simulation(ARGS_array, name_files=f"dmpc_simulation_results_iml{ignore_message_loss}_{int(100*message_loss_prob+1e-7)}_{num_cus}cus_{'quant' if simulate_quantization else ''}",
 										  message_loss_probability=message_loss_prob,

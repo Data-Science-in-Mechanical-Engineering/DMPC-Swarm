@@ -235,7 +235,7 @@ class Simulation:
                                         target_positions=self.__INIT_TARGETS[drone_id],
                                         other_drones_ids=self.__ARGS.drone_ids,
                                         use_demo_setpoints=self.__ARGS.use_demo_setpoints,
-                                        load_cus_round_nmbr=0 if not self.__ARGS.load_cus else self.__ARGS.load_cus_round_nmbr,
+                                        load_cus_round_nmbr=0 if not self.__ARGS.load_cus else self.__ARGS.load_cus_round_nmbr + 1,
                                         trajectory_start_time= 0 if not self.__ARGS.load_cus else trajectory_start_time,
                                         trajectory_cu_id=-1 if not self.__ARGS.load_cus else trajectory_cu_id)
 
@@ -276,14 +276,15 @@ class Simulation:
                                                       pos_offset=self.__ARGS.pos_offset,
                                                       weight_band=self.__ARGS.weight_band,
                                                       simulate_quantization=self.__ARGS.simulate_quantization,
-                                                      save_snapshot_times=self.__ARGS.save_snapshot_times)
+                                                      save_snapshot_times=self.__ARGS.save_snapshot_times,
+                                                      show_animation=i==self.__ARGS.num_drones and self.__ARGS.show_animation)
                 prio += 1
             else:
                 computing_agent = cus[i - self.__ARGS.num_drones]
-                computing_agent.set_simulate_quantization(self.__ARGS.simulate_quantization)
+                # computing_agent.set_simulate_quantization(self.__ARGS.simulate_quantization)
                 computing_agent.set_current_time((self.__ARGS.load_cus_round_nmbr) * 0.2)
                 computing_agent.set_save_snapshot_times([])
-                computing_agent.round_started()
+                # computing_agent.round_started()
             self.__agents.append(computing_agent)
             self.__computing_agents.append(computing_agent)
 
@@ -409,6 +410,10 @@ class Simulation:
 
                     # step network
                     self.__network.step()
+
+                    #for jgh in range(6):
+                    #    temp = self.__computing_agents[0].get_pos(jgh)
+                    #    self.__easy_logger.add_data_point(f"state_set{jgh}", copy.deepcopy(temp))
 
                     # check if agents do the correct thing
                     ordered_indexes = None
