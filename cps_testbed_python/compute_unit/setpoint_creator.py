@@ -142,7 +142,7 @@ class SetpointCreator:
 		mean = (min_pos + max_pos) / 2 + offset
 		if name_testbed == "Vicon":
 			angle = 2 * math.pi * (self.__round) / 50.0 + 2 * math.pi * drone_id / 10 + math.pi
-			mean[2] = 1.0 + drone_id*0.1 if drone_id != 13 else: 1.0
+			mean[2] = 1.0 + drone_id*0.1 if drone_id != 13 else 1.0
 			mean[1] += 0.2
 			mean[0] += 0.2
 		else:
