@@ -36,7 +36,8 @@ if __name__ == "__main__":
 
     cu_ids = [20] #ARGS.computing_agent_ids  # IDs of computing units to be executed on this machine
 
-    cus = [computing_unit.ComputingUnit(ARGS, cu_id=i, sync_movement=False) for i in cu_ids]
+    cus = [computing_unit.ComputingUnit(ARGS, num_static_drones=ARGS.num_static_drones,
+                                        cu_id=i, sync_movement=False) for i in cu_ids]
     fn = sys.stdin.fileno()
     cus[0].run(fn)
 
