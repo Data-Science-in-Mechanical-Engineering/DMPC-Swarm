@@ -97,6 +97,8 @@ class SetpointCreator:
 		return self.__current_setpoints, setpoints_changed
 
 	def generate_new_circle_setpoint(self, drone_id):
+		if drone_id == 10:
+			drone_id = 2
 		name_testbed = self.__drones[drone_id]
 		angle_offset = 0
 		if self.__round%200 >= 100:
@@ -105,7 +107,7 @@ class SetpointCreator:
 		offset = np.array(self.__testbeds[name_testbed][2])
 		angle = 2 * math.pi * drone_id / 6 + angle_offset
 		dpos = [1.5, 1.5, 1.5]
-		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 1]) + offset
+		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0.8]) + offset
 
 	def generate_new_circle_compare_setpoint(self, drone_id):
 		if drone_id > 6:
@@ -133,20 +135,25 @@ class SetpointCreator:
 		else:
 			return self.generate_new_circle_setpoint(drone_id)
 
-	def generate_new_dynamic_circle_setpoint(self, drone_id):
+	def generate_new_dynamic_circle_setpoint(self, di):
+
+		drone_id = di if di != 10 else 2
 		name_testbed = self.__drones[drone_id]
 		min_pos = np.array(self.__testbeds[name_testbed][0])
 		max_pos = np.array(self.__testbeds[name_testbed][1])
 		offset = np.array(self.__testbeds[name_testbed][2])
 		dpos = (max_pos - min_pos) / 2 * 0.8
+		dpos = [1.4, 1.4] if drone_id != 7 else [0.8, 0.8]
 		mean = (min_pos + max_pos) / 2 + offset
 		if name_testbed == "Vicon":
-			angle = 2 * math.pi * (self.__round) / 50.0 + 2 * math.pi * drone_id / 10 + math.pi
-			mean[2] = 1.0 + drone_id*0.1 if drone_id != 13 else 1.0
-			mean[1] += 0.2
-			mean[0] += 0.2
+			angle = 2 * math.pi * (self.__round) / 65.0 + 2 * math.pi * drone_id / 6 + math.pi
+			mean[2] = 0.7 #+ drone_id*0.1 if drone_id != 13 else 1.0
+			mean[1] -= 0.0
+			mean[0] -= 0.0
 		else:
 			angle = 2 * math.pi * (self.__round) / 50.0 + 2 * math.pi * drone_id / 2 + math.pi
+		if self.__round >= 400 and drone_id == 7:
+			return np.array([1.7, 1.0, 1.0])
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean
 
 	def generate_new_demo_circle_setpoint(self, drone_id):
