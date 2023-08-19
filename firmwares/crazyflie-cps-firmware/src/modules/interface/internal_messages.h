@@ -79,8 +79,8 @@ typedef struct __attribute__((packed)) init_message_t_tag
 
 #define MAXIMUM_NUMBER_MESSAGES 100 // maximum number expected for one AP-CP communication round
 
-#define MAX_NUM_DRONES 10
-#define MAX_NUM_AGENTS 15
+#define MAX_NUM_DRONES 15
+#define MAX_NUM_AGENTS 20
 
 typedef struct __attribute__((packed)) trajectory_message_t_tag
 {

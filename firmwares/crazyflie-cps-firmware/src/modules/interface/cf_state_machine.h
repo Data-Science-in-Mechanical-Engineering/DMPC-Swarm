@@ -42,6 +42,7 @@
 #define STATUS_LANDED 7
 
 #define START_FROM_HAND 1
+#define LAUNCH_HEIGHT (START_FROM_HAND*1.5f + 1.0f)
 
 #define CF_ABS(X) ((X)>0 ? (X):-(X))
 #define CF_MAX(X, Y) (((X)>(Y)) ? (X):(Y))
