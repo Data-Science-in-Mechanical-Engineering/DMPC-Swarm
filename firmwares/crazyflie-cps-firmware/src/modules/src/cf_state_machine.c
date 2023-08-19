@@ -246,7 +246,7 @@ static uint16_t process_VERTICAL_LAUNCH_STATE(cf_state_machine_handle *hstate_ma
 
 	uint8_t status = hstate_machine->cf_launch_status();
 	if (status == STATUS_IDLE) {
-		hstate_machine->launch_cf(state[0], state[1], 1.0f+hstate_machine->id*0.00f);
+		hstate_machine->launch_cf(state[0], state[1], LAUNCH_HEIGHT);
 
 		// init the last field of hstate_machine, the current trajectory. This field is only needed, if the CU requests the trajectory.
 		// it is saved in the statemachine and not requested evertime, because then, we need to do all the quantizations again.
@@ -256,7 +256,7 @@ static uint16_t process_VERTICAL_LAUNCH_STATE(cf_state_machine_handle *hstate_ma
 		}
 		hstate_machine->current_traj.init_state[0] = QUANTIZE_POSITION(state[0]);
 		hstate_machine->current_traj.init_state[1] = QUANTIZE_POSITION(state[1]);
-		hstate_machine->current_traj.init_state[2] = QUANTIZE_POSITION(1.0f+hstate_machine->id*0.00f);
+		hstate_machine->current_traj.init_state[2] = QUANTIZE_POSITION(LAUNCH_HEIGHT);
 
 		hstate_machine->current_traj.init_state[3] = QUANTIZE_VELOCITY(0.0f);
 		hstate_machine->current_traj.init_state[4] = QUANTIZE_VELOCITY(0.0f);
@@ -386,7 +386,7 @@ static uint16_t process_SYS_RUN_STATE(cf_state_machine_handle *hstate_machine, a
 			case TYPE_METADATA:
 				*round_nmbr = rx_data[i]->metadata_message.round_nmbr;
 				#if START_FROM_HAND
-				if (rx_data[i]->metadata_message.round_nmbr > 470) {
+				if (rx_data[i]->metadata_message.round_nmbr > 47000) {
 					hstate_machine->wants_to_leave = 1;
 				}
 				#endif
