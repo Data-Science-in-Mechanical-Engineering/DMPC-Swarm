@@ -548,6 +548,8 @@ class ComputationAgent(net.Agent):
                 assert message.ID == self.ID
 
         if message.slot_group_id == self.__slot_group_drone_state:
+            if message.ID not in self.__trajectory_tracker.keys:
+                return
             message.content.state[0:3] += self.__pos_offset[message.ID]
             self.print(f"Received pos from {message.ID}: {message.content.state}")
             message.content.target_position += self.__pos_offset[message.ID]
