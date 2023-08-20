@@ -152,19 +152,12 @@ class SetpointCreator:
 		dpos = [1.4, 1.4] if drone_id != 7 else [0.8, 0.8]
 		mean = (min_pos + max_pos) / 2 + offset
 		if name_testbed == "Vicon":
-<<<<<<< HEAD
-
-			angle = 2 * math.pi * (self.__round) / 70.0 + 2 * math.pi * drone_id / 10 + math.pi
-			mean[2] = 1.0 + drone_id*0.1 if drone_id != 13 else 1.0
-			mean[1] += 0.2
-			mean[0] += 0.2
-=======
 			angle = 2 * math.pi * (self.__round) / 65.0 + 2 * math.pi * drone_id / 6 + math.pi
 			mean[2] = 0.7 #+ drone_id*0.1 if drone_id != 13 else 1.0
 			mean[1] -= 0.0
 			mean[0] -= 0.0
->>>>>>> bd4635722fb6db6d4a0132d00df1beadace0374c
 		else:
+			dpos = [0.5, 0.5]
 			angle = 2 * math.pi * (self.__round) / 65.0 + 2 * math.pi * drone_id / 2 + math.pi
 			mean[2] = 0.6
 		if self.__round >= 400 and drone_id == 7:
@@ -201,6 +194,9 @@ class SetpointCreator:
 		return np.array(targets[drone_id])
 
 	def generate_new_random_setpoint(self, drone_id):
+		if drone_id == 11 or drone_id == 12:
+			return self.generate_new_dynamic_circle_setpoint(drone_id)
+
 		if drone_id not in self.__random_setpoints_calculated:
 			self.__random_setpoints_calculated[drone_id] = False
 		if (self.__round % 25 == 0 and not self.__random_setpoints_calculated[drone_id]) or drone_id not in self.__random_setpoints:
@@ -218,8 +214,6 @@ class SetpointCreator:
 			self.__random_setpoints_calculated[drone_id] = False
 
 		return self.__random_setpoints[drone_id]
-
-
 
 	def generate_new_setpoint(self, name_testbed):
 		"""
