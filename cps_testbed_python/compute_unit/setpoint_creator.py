@@ -9,6 +9,7 @@ CIRCLE_DYNAMIC = 2
 MESSAGE_LOSS_CRASH = 3
 DEMO_CIRCLE = 4
 CIRCLE_COMPARE = 5
+RANDOM = 6
 
 
 class SetpointCreator:
@@ -35,6 +36,9 @@ class SetpointCreator:
 		self.__current_setpoints_age = {drone_id: 0 for drone_id in drones}
 
 		self.__old_setpoints = copy.deepcopy(self.__current_setpoints)
+
+		self.__random_setpoints = {}
+		self.__random_setpoints_calculated = {}
 
 	@property
 	def drones(self):
@@ -88,6 +92,8 @@ class SetpointCreator:
 				self.__current_setpoints[drone_id] = self.generate_new_message_loss_crash_setpoint(drone_id)
 			elif self.__demo_setpoints == DEMO_CIRCLE:
 				self.__current_setpoints[drone_id] = self.generate_new_demo_circle_setpoint(drone_id)
+			elif self.__demo_setpoints == RANDOM:
+				self.__current_setpoints[drone_id] = self.generate_new_random_setpoint(drone_id)
 
 		setpoints_changed = False
 		for k in self.__current_setpoints:
@@ -151,7 +157,8 @@ class SetpointCreator:
 			mean[1] -= 0.0
 			mean[0] -= 0.0
 		else:
-			angle = 2 * math.pi * (self.__round) / 50.0 + 2 * math.pi * drone_id / 2 + math.pi
+			angle = 2 * math.pi * (self.__round) / 65.0 + 2 * math.pi * drone_id / 2 + math.pi
+			mean[2] = 0.6
 		if self.__round >= 400 and drone_id == 7:
 			return np.array([1.7, 1.0, 1.0])
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean
@@ -184,6 +191,26 @@ class SetpointCreator:
 		else:
 			targets = {1: [1.2, 0.0, 1], 2: [-1.2, 0, 1]}
 		return np.array(targets[drone_id])
+
+	def generate_new_random_setpoint(self, drone_id):
+		if drone_id not in self.__random_setpoints_calculated:
+			self.__random_setpoints_calculated[drone_id] = False
+		if (self.__round % 25 == 0 and not self.__random_setpoints_calculated[drone_id]) or drone_id not in self.__random_setpoints:
+			name_testbed = self.__drones[drone_id]
+			min_pos = np.array(self.__testbeds[name_testbed][0]) * 0.8
+			max_pos = np.array(self.__testbeds[name_testbed][1]) * 0.8
+			offset = np.array(self.__testbeds[name_testbed][2])
+			self.__random_setpoints_calculated[drone_id] = True
+			self.__random_setpoints[drone_id] = (np.random.rand(3) * (max_pos - min_pos) + min_pos)
+			if self.__random_setpoints[drone_id][2] < 0.8:
+				self.__random_setpoints[drone_id][2] = 0.8
+
+			self.__random_setpoints[drone_id] += offset
+		elif self.__round % 25 != 0:
+			self.__random_setpoints_calculated[drone_id] = False
+
+		return self.__random_setpoints[drone_id]
+
 
 
 	def generate_new_setpoint(self, name_testbed):
