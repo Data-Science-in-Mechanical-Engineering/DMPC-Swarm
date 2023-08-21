@@ -428,7 +428,8 @@ class ComputationAgent(net.Agent):
         self.__agents_prios[m_id] = m_id
 
         # first every agent should fly to the origin.
-        self.__setpoint_creator.add_drone(m_id, np.array([0.0, 0.0, 1.0]))
+        self.__setpoint_creator.add_drone(m_id, np.array([0.0, 0.0, 1.0]),
+                                          int(round(self.__current_time / self.__communication_delta_t)))
 
         self.__current_target_positions[m_id] = np.array([0.0, 0.0, 1.0])
 
@@ -717,6 +718,10 @@ class ComputationAgent(net.Agent):
         start_time = time.time()
         if round_nmbr is not None:
             self.__current_time = round_nmbr * self.__communication_delta_t
+
+        if len(self.__agents_ids) == 0:
+            self.__last_received_messages = {self.ID: EmtpyContent([])}
+            return
 
         # if information is not unique at this point, we know that one drone was not able to verify that it got the
         # trajectory (because the acknowledge-message was lost). This means that at this point the trajectories saved

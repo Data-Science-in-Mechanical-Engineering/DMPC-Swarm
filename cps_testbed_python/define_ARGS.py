@@ -89,7 +89,7 @@ def define_ARGS():
     parser.add_argument("--message_loss_period_start", default=150000, type=int, help="")
     parser.add_argument("--message_loss_period_end", default=20000, type=int, help="")
 
-    parser.add_argument("--num_static_drones", default=11, type=int, help="")
+    parser.add_argument("--num_static_drones", default=1, type=int, help="")
 
     ARGS = parser.parse_args()
 
@@ -113,7 +113,7 @@ def define_ARGS():
         ARGS.max_positions[key] = np.array(ARGS.testbeds[testbed][1]) + offset
         print(f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
 
-    ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=sc.RANDOM)
+    ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=sc.DYNAMIC_SWARM)
     """
     testbed = cuboid.Cuboid(np.array([0.4, 0.4, 0.3]), np.array([ARGS.testbed_size[0], 0, 0]),
                             np.array([0, ARGS.testbed_size[1], 0]),

@@ -10,6 +10,7 @@ MESSAGE_LOSS_CRASH = 3
 DEMO_CIRCLE = 4
 CIRCLE_COMPARE = 5
 RANDOM = 6
+DYNAMIC_SWARM = 7
 
 
 class SetpointCreator:
@@ -39,6 +40,9 @@ class SetpointCreator:
 
 		self.__random_setpoints = {}
 		self.__random_setpoints_calculated = {}
+
+		self.__starting_rounds = {}
+		self.__angles = {}
 
 	@property
 	def drones(self):
@@ -94,6 +98,8 @@ class SetpointCreator:
 				self.__current_setpoints[drone_id] = self.generate_new_demo_circle_setpoint(drone_id)
 			elif self.__demo_setpoints == RANDOM:
 				self.__current_setpoints[drone_id] = self.generate_new_random_setpoint(drone_id)
+			elif self.__demo_setpoints == DYNAMIC_SWARM:
+				self.__current_setpoints[drone_id] = self.generate_new_dynamic_swarm_setpoint(drone_id)
 
 		setpoints_changed = False
 		for k in self.__current_setpoints:
@@ -229,7 +235,22 @@ class SetpointCreator:
 		#TODO, currently in the global coordinate system change in the future (we need this to send them)
 		return np.random.rand(3) * (max_pos - min_pos - 0.2) + min_pos + 0.1 + np.array(self.__testbeds[name_testbed][2])
 
-	def add_drone(self, drone_id, state):
+	def generate_new_dynamic_swarm_setpoint(self, drone_id):
+		if drone_id in self.__starting_rounds:
+			if self.__round - self.__starting_rounds[drone_id] > 310:
+				return np.array([1.5, -1.6, 1.0])
+			name_testbed = self.__drones[drone_id]
+			min_pos = np.array(self.__testbeds[name_testbed][0])
+			max_pos = np.array(self.__testbeds[name_testbed][1])
+			offset = np.array(self.__testbeds[name_testbed][2])
+			mean = np.array([0.2, 0.2, 0.8 + 0.05*drone_id])
+
+			angle = 2 * math.pi * (self.__round) / 50.0 + 2 * math.pi * drone_id / 3 + math.pi
+			return np.array([1.2 * math.cos(angle), 1.2 * math.sin(angle), 0.0]) + mean + offset
+
+		return np.array([0.0, 0.0, 0.0])
+
+	def add_drone(self, drone_id, state, round):
 		"""
 
 		Args:
@@ -239,8 +260,9 @@ class SetpointCreator:
 		Returns:
 
 		"""
+		self.__round = round
 		assert drone_id in self.__drones, f"Drone id {drone_id} not in the registered drones."
-
+		self.__starting_rounds[drone_id] = self.__round
 		self.__current_setpoints[drone_id] = self.generate_new_setpoint(self.__drones[drone_id])
 
 
