@@ -11,6 +11,7 @@ DEMO_CIRCLE = 4
 CIRCLE_COMPARE = 5
 RANDOM = 6
 DYNAMIC_SWARM = 7
+MULTI_HOP = 8
 
 
 class SetpointCreator:
@@ -100,6 +101,8 @@ class SetpointCreator:
 				self.__current_setpoints[drone_id] = self.generate_new_random_setpoint(drone_id)
 			elif self.__demo_setpoints == DYNAMIC_SWARM:
 				self.__current_setpoints[drone_id] = self.generate_new_dynamic_swarm_setpoint(drone_id)
+			elif self.__demo_setpoints == MULTI_HOP:
+				self.__current_setpoints[drone_id] = self.generate_new_multi_hop_setpoint(drone_id)
 
 		setpoints_changed = False
 		for k in self.__current_setpoints:
@@ -250,6 +253,24 @@ class SetpointCreator:
 
 		return np.array([0.0, 0.0, 0.0])
 
+	def generate_new_multi_hop_setpoint(self, drone_id):
+		name_testbed = self.__drones[drone_id]
+		min_pos = np.array(self.__testbeds[name_testbed][0])
+		max_pos = np.array(self.__testbeds[name_testbed][1])
+		offset = np.array(self.__testbeds[name_testbed][2])
+		dpos = (max_pos - min_pos) / 2 * 0.8
+		dpos = [1.5, 1.5]
+		mean = (min_pos + max_pos) / 2
+		if name_testbed == "Vicon" and drone_id in self.__angles:
+			temp = 0 # if self.__round % 200
+			angle = self.__angles[drone_id] + temp + 2 * math.pi * self.__round / 60.0
+			mean[2] = 0.7 + 0.05*drone_id  # + drone_id*0.1 if drone_id != 13 else 1.0
+		else:
+			dpos = [0.5, 0.5]
+			angle = 2 * math.pi * (self.__round) / 60.0 + 2 * math.pi * drone_id / 2 + math.pi
+			mean[2] = 0.6
+		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean + offset
+
 	def add_drone(self, drone_id, state, round):
 		"""
 
@@ -263,6 +284,14 @@ class SetpointCreator:
 		self.__round = round
 		assert drone_id in self.__drones, f"Drone id {drone_id} not in the registered drones."
 		self.__starting_rounds[drone_id] = self.__round
+
+		if self.__drones[drone_id] == "Vicon":
+			self.__angles[drone_id] = 0
+			i = 0
+			for key in self.__angles:
+				self.__angles[key] = 2*math.pi / len(self.__angles) * i
+				i += 1
+
 		self.__current_setpoints[drone_id] = self.generate_new_setpoint(self.__drones[drone_id])
 
 
