@@ -668,13 +668,14 @@ class ComputingUnit:
     calculation and an uart interface for communication. The Computing Unit communicates with the computation agent
     by using the net.Message class. For the UART communication, the message.MixerMessage class is used. """
 
-    def __init__(self, ARGS, cu_id, is_initiator=False, sync_movement=False, loose_messages=False, baudrate=921600):
+    def __init__(self, ARGS, cu_id, num_static_drones=1, is_initiator=False, sync_movement=False, loose_messages=False, baudrate=921600):
         self.__ARGS = ARGS
         if self.__ARGS.dynamic_swarm:
             self.__ARGS.computing_agent_ids = [cu_id]
         if cu_id not in ARGS.computing_agent_ids:
             raise ValueError('cu_id not in ARGS computation agent IDs')
         self.__cu_id = cu_id
+        self.__num_static_drones = num_static_drones
         self.__is_initiator = is_initiator
         self.__sync_movement = sync_movement
         self.__loose_messages = loose_messages
@@ -799,11 +800,12 @@ class ComputingUnit:
                         print(m.types)
                         print(m.manager_wants_to_leave_network_in)
                         print(m.id_new_network_manager)
+                        num_connected_drones = 0
                         for t in m.types:
                             if t == 1:
-                                state = STATE_SYS_RUN
-                                self.__uart_interface.print("First UAV connected")
-                                break
+                                num_connected_drones += 1
+                        if self.__num_static_drones <= num_connected_drones:
+                            state = STATE_SYS_RUN
                 ack_message.type = TYPE_AP_ACK
                 messages_tx = [ack_message]
                 if counter is not None:

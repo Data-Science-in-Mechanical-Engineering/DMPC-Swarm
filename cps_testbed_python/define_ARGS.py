@@ -12,7 +12,7 @@ def define_ARGS():
     parser = argparse.ArgumentParser(
         description='ARGS for the ET-DMPC')
     parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 4: "Vicon", 5: "Vicon", 6: "Vicon", 7: "Vicon", 8: "Vicon", 9: "Vicon", 10: "Vicon",
-                                             11: "Mobile", 12: "Mobile", 13: "Vicon"}, type=dict,
+                                             11: "Mobile", 12: "Mobile", 13: "Vicon", 14: "Vicon"}, type=dict,
                         help='drone IDs with name of the testbed', metavar='')
     parser.add_argument('--num_targets_per_drone', default=3, type=int,
                         help='Number of targets', metavar='')
@@ -60,9 +60,9 @@ def define_ARGS():
     parser.add_argument('--use_qpsolvers', default=True, type=bool,
                         help='Select, whether qpsolver is used for data planning')
 
-    parser.add_argument('--alpha_1', default=10, type=bool,
+    parser.add_argument('--alpha_1', default=0, type=bool,
                         help='Weight in event-trigger')
-    parser.add_argument('--alpha_2', default=0, type=bool,
+    parser.add_argument('--alpha_2', default=10, type=bool,
                         help='Weight in event-trigger')
     parser.add_argument('--alpha_3', default=0, type=bool,
                         help='Weight in event-trigger')
@@ -89,6 +89,8 @@ def define_ARGS():
     parser.add_argument("--message_loss_period_start", default=150000, type=int, help="")
     parser.add_argument("--message_loss_period_end", default=20000, type=int, help="")
 
+    parser.add_argument("--num_static_drones", default=5, type=int, help="")
+
     ARGS = parser.parse_args()
 
     ARGS.drone_ids = list(ARGS.drones.keys())
@@ -111,7 +113,7 @@ def define_ARGS():
         ARGS.max_positions[key] = np.array(ARGS.testbeds[testbed][1]) + offset
         print(f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
 
-    ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=sc.CIRCLE_DYNAMIC)
+    ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=sc.MULTI_HOP)
     """
     testbed = cuboid.Cuboid(np.array([0.4, 0.4, 0.3]), np.array([ARGS.testbed_size[0], 0, 0]),
                             np.array([0, ARGS.testbed_size[1], 0]),

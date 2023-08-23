@@ -428,7 +428,8 @@ class ComputationAgent(net.Agent):
         self.__agents_prios[m_id] = m_id
 
         # first every agent should fly to the origin.
-        self.__setpoint_creator.add_drone(m_id, np.array([0.0, 0.0, 1.0]))
+        self.__setpoint_creator.add_drone(m_id, np.array([0.0, 0.0, 1.0]),
+                                          int(round(self.__current_time / self.__communication_delta_t)))
 
         self.__current_target_positions[m_id] = np.array([0.0, 0.0, 1.0])
 
@@ -548,6 +549,8 @@ class ComputationAgent(net.Agent):
                 assert message.ID == self.ID
 
         if message.slot_group_id == self.__slot_group_drone_state:
+            if message.ID not in self.__trajectory_tracker.keys:
+                return
             message.content.state[0:3] += self.__pos_offset[message.ID]
             self.print(f"Received pos from {message.ID}: {message.content.state}")
             message.content.target_position += self.__pos_offset[message.ID]
@@ -631,6 +634,8 @@ class ComputationAgent(net.Agent):
                     # this trajectory is the trajectory the
                     # UAV is flying.
                     if trajectories_equal(trajectory, message.content):
+                        print(f"Trajectories equal: {message.ID}, {message.content.trajectory_calculated_by}, "
+                              f"{message.content.trajectory_start_time}")
                         trajectory_to_change = trajectory
                         break
 
@@ -715,6 +720,10 @@ class ComputationAgent(net.Agent):
         start_time = time.time()
         if round_nmbr is not None:
             self.__current_time = round_nmbr * self.__communication_delta_t
+
+        if len(self.__agents_ids) == 0:
+            self.__last_received_messages = {self.ID: EmtpyContent([])}
+            return
 
         # if information is not unique at this point, we know that one drone was not able to verify that it got the
         # trajectory (because the acknowledge-message was lost). This means that at this point the trajectories saved
