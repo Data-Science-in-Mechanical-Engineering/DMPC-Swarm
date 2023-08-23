@@ -60,9 +60,9 @@ def define_ARGS():
     parser.add_argument('--use_qpsolvers', default=True, type=bool,
                         help='Select, whether qpsolver is used for data planning')
 
-    parser.add_argument('--alpha_1', default=10, type=bool,
+    parser.add_argument('--alpha_1', default=0, type=bool,
                         help='Weight in event-trigger')
-    parser.add_argument('--alpha_2', default=0, type=bool,
+    parser.add_argument('--alpha_2', default=10, type=bool,
                         help='Weight in event-trigger')
     parser.add_argument('--alpha_3', default=0, type=bool,
                         help='Weight in event-trigger')
@@ -89,7 +89,7 @@ def define_ARGS():
     parser.add_argument("--message_loss_period_start", default=150000, type=int, help="")
     parser.add_argument("--message_loss_period_end", default=20000, type=int, help="")
 
-    parser.add_argument("--num_static_drones", default=9, type=int, help="")
+    parser.add_argument("--num_static_drones", default=5, type=int, help="")
 
     ARGS = parser.parse_args()
 

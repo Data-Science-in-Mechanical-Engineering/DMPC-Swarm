@@ -634,6 +634,8 @@ class ComputationAgent(net.Agent):
                     # this trajectory is the trajectory the
                     # UAV is flying.
                     if trajectories_equal(trajectory, message.content):
+                        print(f"Trajectories equal: {message.ID}, {message.content.trajectory_calculated_by}, "
+                              f"{message.content.trajectory_start_time}")
                         trajectory_to_change = trajectory
                         break
 
