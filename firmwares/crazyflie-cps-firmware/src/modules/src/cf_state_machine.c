@@ -15,9 +15,10 @@
 #include "debug.h"
 #include "math.h"
 
-#if START_FROM_HAND
+/// #if START_FROM_HAND
 static uint32_t was_low = 0;
-#endif
+// #endif
+static uint32_t landing_counter = 0;
 static uint32_t wait_for_launch = 0;
 
 void init_cf_state_machine(cf_state_machine_handle *hstate_machine,
@@ -144,9 +145,9 @@ static void state_message_write_target_pos(state_message_t *state_message, cf_st
 
 static void state_message_write_traj_metadata(state_message_t *state_message, cf_state_machine_handle *hstate_machine)
 {
-	cf_trajectory *traj = hstate_machine->get_current_trajectory();
-	state_message->calculated_by = traj->calculated_by;
-	state_message->trajectory_start_time = traj->start_round;
+	// cf_trajectory *traj = hstate_machine->get_current_trajectory();
+	state_message->calculated_by = hstate_machine->current_traj.calculated_by; //traj->calculated_by;
+	state_message->trajectory_start_time = hstate_machine->current_traj.trajectory_start_time; //traj->start_round;
 }
 
 /**
@@ -222,6 +223,7 @@ static uint16_t process_WAIT_FOR_LAUNCH_STATE(cf_state_machine_handle *hstate_ma
 		was_low += 1;
 	}
 	if (state[2] > 0.8f && (hstate_machine->mocap_system_active()) && was_low > 25) {
+		hstate_machine->wants_to_leave = 0;
 		hstate_machine->state = VERTICAL_LAUNCH_STATE;
 
 	}
@@ -309,6 +311,7 @@ static uint16_t process_RESERVE_MESSAGE_LAYER_AREA_STATE(cf_state_machine_handle
 		tx_data->header.id = hstate_machine->id;
 		quantize_state(&tx_data->state_message, state);
 		tx_data->state_message.status = STATUS_FLYING;
+		landing_counter = 0;
 		state_message_write_target_pos((state_message_t *) tx_data, hstate_machine);
 		state_message_write_traj_metadata((state_message_t *) tx_data, hstate_machine);
 	} else {
@@ -386,7 +389,7 @@ static uint16_t process_SYS_RUN_STATE(cf_state_machine_handle *hstate_machine, a
 			case TYPE_METADATA:
 				*round_nmbr = rx_data[i]->metadata_message.round_nmbr;
 				#if START_FROM_HAND
-				if (rx_data[i]->metadata_message.round_nmbr > 47000) {
+				if (landing_counter > 350) {
 					hstate_machine->wants_to_leave = 1;
 				}
 				#endif
@@ -483,6 +486,8 @@ static uint16_t process_SYS_RUN_STATE(cf_state_machine_handle *hstate_machine, a
 	if (land_drones) {
 		hstate_machine->state = SYS_SHUTDOWN_STATE;
 	}
+
+	landing_counter++;
 	return num_messages_to_send;
 
 }
@@ -565,6 +570,12 @@ static uint16_t process_SYS_SHUTDOWN_STATE(cf_state_machine_handle *hstate_machi
 		hstate_machine->target_position_idx = 0;
 		set_new_target_pos(hstate_machine);
 	}
+
+	if (status == STATUS_LANDED) {
+		hstate_machine->state = WAIT_FOR_LAUNCH_STATE;
+		was_low = 0;
+	}
+
 	return 1;
 }
 
