@@ -12,6 +12,7 @@
         "watchdog.h": "c",
         "_dsme_spi_slave.h": "c",
         "internal_messages.h": "c",
-        "stm32f4xx.h": "c"
+        "stm32f4xx.h": "c",
+        "cf_state_machine.h": "c"
     }
 }
