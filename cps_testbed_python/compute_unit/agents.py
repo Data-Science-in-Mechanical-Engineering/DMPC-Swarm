@@ -398,6 +398,8 @@ class ComputationAgent(net.Agent):
 
         self.__trigger = None
 
+        self.__received_network_members_message = True
+
 
 
     def load_trigger(self, trigger):
@@ -503,7 +505,7 @@ class ComputationAgent(net.Agent):
         elif slot_group_id == self.__slot_group_ack_id:
             pass
         elif slot_group_id == self.__slot_group_setpoints_id:
-            if self.__send_setpoints:
+            if self.__send_setpoints and self.__received_network_members_message:
                 setpoints = copy.deepcopy(self.__high_level_setpoints)
                 if setpoints is not None:
                     for agent_id in setpoints:
@@ -710,6 +712,7 @@ class ComputationAgent(net.Agent):
     def round_finished(self, round_nmbr=None, received_network_members_message=True):
         """this function has to be called at the end of the round to tell the agent that the communication round is
         finished"""
+        self.__received_network_members_message = received_network_members_message
         self.__selected_UAVs["selected"].append(-1)
         self.__selected_UAVs["round"].append(round_nmbr)
         self.__last_system_state = self.__system_state
