@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 import copy
 import math
 
+BASIS_HEIGHT = 1.2
+
 CIRCLE = 0
 DEMO = 1
 CIRCLE_DYNAMIC = 2
@@ -12,6 +14,55 @@ CIRCLE_COMPARE = 5
 RANDOM = 6
 DYNAMIC_SWARM = 7
 MULTI_HOP = 8
+DEMO_AI_WEEK = 9
+
+DEMO_AI_WEEK_IDLE = 0
+DEMO_AI_WEEK_CIRCLE = 1
+DEMO_AI_WEEK_CIRCLE2 = 2  # like DEMO_AI_WEEK_CIRCLE, just +pi on angle
+DEMO_AI_WEEK_D = 3
+DEMO_AI_WEEK_S = 4
+DEMO_AI_WEEK_M = 5
+DEMO_AI_WEEK_E = 6
+DEMO_AI_WEEK_GO_BACK = 7
+
+def get_pos_D(drone_id):
+	if drone_id > 7:
+		return np.array([0, 0, 0])
+	pos = np.array([[-1.0, 1.0, 0.7], [-0.1, 0.75, 0.7], [0.2, 0.0, 0.7], [-0.1, -0.75, 0.7], [-1.0, -1.0, 0.7], [-1.0, -0.33, 0.7], [-1.0, 0.33, 0.7]])
+	return turn_plane(pos[drone_id-1])
+
+
+def get_pos_S(drone_id):
+	if drone_id > 7:
+		return np.array([0, 0, 0])
+	pos = np.array([[0.25, 1.0, 0.7], [-0.25, 0.75, 0.7], [-0.25, 0.25, 0.7], [0.0, 0.0, 0.7], [0.25, -0.25, 0.7], [0.25, -0.75, 0.7], [-0.25, -1.0, 0.7]])
+	return turn_plane(pos[drone_id-1])
+
+
+def get_pos_M(drone_id):
+	if drone_id > 7:
+		return np.array([0, 0, 0])
+	pos = np.array([[-1.0, 1.0, 0.7], [-1.0, -1.0, 0.7], [-0.5, 0.5, 0.7], [0.0, 0.0, 0.7], [0.5, 0.5, 0.7], [1.0, 1.0, 0.7], [1.0, -1.0, 0.7]])
+	return turn_plane(pos[drone_id-1])
+
+
+def get_pos_E(drone_id):
+	if drone_id > 7:
+		return np.array([0, 0, 0])
+	pos = np.array([[-1.0, 1.0, 0.7], [-1.0, 0.33, 0.7], [-1.0, -0.33, 0.7], [-1.0, -1.0, 0.7], [0.0, 1.0, 0.7], [0.0, 0.0, 0.7], [0.0, -1.0, 0.7]])
+	return turn_plane(pos[drone_id-1])
+
+
+def turn_plane(pos):
+	pos = copy.deepcopy(pos)
+	point1 = [0, -1.0, BASIS_HEIGHT]
+	point2 = [0, 1.0, 2.5]
+
+	m = (point2[2] - point1[2]) / (point2[1] - point1[1])
+
+	pos[2] = m * (pos[1] - point1[1]) + point1[2]
+
+	return pos
 
 
 class SetpointCreator:
@@ -44,6 +95,8 @@ class SetpointCreator:
 
 		self.__starting_rounds = {}
 		self.__angles = {}
+
+		self.__state_demo_ai_week = DEMO_AI_WEEK_IDLE
 
 	@property
 	def drones(self):
@@ -103,6 +156,8 @@ class SetpointCreator:
 				self.__current_setpoints[drone_id] = self.generate_new_dynamic_swarm_setpoint(drone_id)
 			elif self.__demo_setpoints == MULTI_HOP:
 				self.__current_setpoints[drone_id] = self.generate_new_multi_hop_setpoint(drone_id)
+			elif self.__demo_setpoints == DEMO_AI_WEEK:
+				self.__current_setpoints[drone_id] = self.generate_new_demo_ai_week_setpoint(drone_id)
 
 		setpoints_changed = False
 		for k in self.__current_setpoints:
@@ -270,6 +325,99 @@ class SetpointCreator:
 			angle = 2 * math.pi * (self.__round) / 60.0 + 2 * math.pi * drone_id / 2 + math.pi
 			mean[2] = 0.6
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean + offset
+
+	def generate_new_demo_ai_week_setpoint(self, drone_id):
+		if drone_id not in self.__angles:
+			return np.array([0, 0, 0])
+		self.__state_demo_ai_week = DEMO_AI_WEEK_IDLE
+
+		if self.__round > 150:
+			self.__state_demo_ai_week = DEMO_AI_WEEK_CIRCLE
+		if self.__round > 240:
+			self.__state_demo_ai_week = DEMO_AI_WEEK_CIRCLE2
+		if self.__round > 310:
+			self.__state_demo_ai_week = DEMO_AI_WEEK_CIRCLE
+
+		# show dsme.
+		if self.__round > 380:
+			self.__state_demo_ai_week = DEMO_AI_WEEK_D
+		if self.__round > 440:
+			self.__state_demo_ai_week = DEMO_AI_WEEK_S
+		if self.__round > 500:
+			self.__state_demo_ai_week = DEMO_AI_WEEK_M
+		if self.__round > 560:
+			self.__state_demo_ai_week = DEMO_AI_WEEK_E
+
+		if self.__round > 620:
+			self.__state_demo_ai_week = DEMO_AI_WEEK_GO_BACK
+
+		if self.__state_demo_ai_week == DEMO_AI_WEEK_IDLE:
+			if drone_id not in self.__angles:
+				return np.array([0, 0, 0])
+			name_testbed = self.__drones[drone_id]
+			min_pos = np.array(self.__testbeds[name_testbed][0])
+			max_pos = np.array(self.__testbeds[name_testbed][1])
+			offset = np.array(self.__testbeds[name_testbed][2])
+			dpos = [1.5, 1.5]
+			mean = (min_pos + max_pos) / 2
+			angle = self.__angles[drone_id] + 2 * math.pi * self.__round / 60.0
+			mean[2] = BASIS_HEIGHT  # + 0.05 * drone_id  # + drone_id*0.1 if drone_id != 13 else 1.0
+			return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean + offset
+
+		if self.__state_demo_ai_week == DEMO_AI_WEEK_CIRCLE:
+			if drone_id not in self.__angles:
+				return np.array([0, 0, 0])
+			name_testbed = self.__drones[drone_id]
+			min_pos = np.array(self.__testbeds[name_testbed][0])
+			max_pos = np.array(self.__testbeds[name_testbed][1])
+			offset = np.array(self.__testbeds[name_testbed][2])
+			dpos = [1.5, 1.5]
+			mean = (min_pos + max_pos) / 2
+			angle = self.__angles[drone_id]
+			mean[2] = BASIS_HEIGHT
+			return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean + offset
+
+		if self.__state_demo_ai_week == DEMO_AI_WEEK_CIRCLE2:
+			if drone_id not in self.__angles:
+				return np.array([0, 0, 0])
+			name_testbed = self.__drones[drone_id]
+			min_pos = np.array(self.__testbeds[name_testbed][0])
+			max_pos = np.array(self.__testbeds[name_testbed][1])
+			offset = np.array(self.__testbeds[name_testbed][2])
+			dpos = [1.5, 1.5]
+			mean = (min_pos + max_pos) / 2
+			angle = self.__angles[drone_id] + math.pi
+			mean[2] = BASIS_HEIGHT
+			return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean + offset
+
+		if self.__state_demo_ai_week == DEMO_AI_WEEK_CIRCLE2:
+			name_testbed = self.__drones[drone_id]
+			min_pos = np.array(self.__testbeds[name_testbed][0])
+			max_pos = np.array(self.__testbeds[name_testbed][1])
+			offset = np.array(self.__testbeds[name_testbed][2])
+			dpos = [1.5, 1.5]
+			mean = (min_pos + max_pos) / 2
+			angle = self.__angles[drone_id] + math.pi
+			mean[2] = BASIS_HEIGHT
+			return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean + offset
+
+		if self.__state_demo_ai_week == DEMO_AI_WEEK_D:
+			pos = get_pos_D(drone_id)
+			return pos
+		if self.__state_demo_ai_week == DEMO_AI_WEEK_S:
+			pos = get_pos_S(drone_id)
+			return pos
+		if self.__state_demo_ai_week == DEMO_AI_WEEK_M:
+			pos = get_pos_M(drone_id)
+			return pos
+		if self.__state_demo_ai_week == DEMO_AI_WEEK_E:
+			pos = get_pos_E(drone_id)
+			return pos
+
+		if self.__state_demo_ai_week == DEMO_AI_WEEK_GO_BACK:
+			back_pos = np.array([[-1.0, 1.0, 0.7], [0.0, 1.0, 0.7], [1.0, 1.0, 0.7],
+								[-1.5, 0.0, 0.7], [-0.5, 0.0, 0.7], [0.5, 0.0, 0.7], [1.5, 0.0, 0.7]])
+			return back_pos[drone_id - 1]
 
 	def add_drone(self, drone_id, state, round):
 		"""

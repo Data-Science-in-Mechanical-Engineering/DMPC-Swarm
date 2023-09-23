@@ -1192,7 +1192,7 @@ class ComputationAgent(net.Agent):
         state_feeback_triggered_prio = 10000
         quantization_bit_number = 8
         max_time = self.__prediction_horizon * self.__communication_delta_t * self.__num_computing_agents
-        max_time = self.__communication_delta_t * self.__num_agents / self.__num_computing_agents
+        max_time = self.__prediction_horizon * self.__communication_delta_t * self.__num_agents / self.__num_computing_agents
 
         cone_angle = 60.0 * math.pi / 180
 
