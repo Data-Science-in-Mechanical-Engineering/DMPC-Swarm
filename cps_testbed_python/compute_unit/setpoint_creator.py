@@ -29,7 +29,7 @@ def get_pos_D(drone_id):
 	if drone_id > 7:
 		return np.array([0, 0, 0])
 	pos = np.array([[-1.0, 1.0, 0.7], [-0.1, 0.75, 0.7], [0.2, 0.0, 0.7], [-0.1, -0.75, 0.7], [-1.0, -1.0, 0.7], [-1.0, -0.33, 0.7], [-1.0, 0.33, 0.7]])
-	return turn_plane(pos[drone_id-1])
+	return turn_plane(pos[drone_id-1]) + np.array([0.5, 0.0, 0.0])
 
 
 def get_pos_S(drone_id):
@@ -50,7 +50,7 @@ def get_pos_E(drone_id):
 	if drone_id > 7:
 		return np.array([0, 0, 0])
 	pos = np.array([[-1.0, 1.0, 0.7], [-1.0, 0.33, 0.7], [-1.0, -0.33, 0.7], [-1.0, -1.0, 0.7], [0.0, 1.0, 0.7], [0.0, 0.0, 0.7], [0.0, -1.0, 0.7]])
-	return turn_plane(pos[drone_id-1])
+	return turn_plane(pos[drone_id-1]) + np.array([0.5, 0.0, 0.0])
 
 
 def turn_plane(pos):
