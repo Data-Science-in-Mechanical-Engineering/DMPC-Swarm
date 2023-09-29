@@ -156,7 +156,8 @@ class ComputationAgent(net.Agent):
                  use_optimized_constraints=True, weight_band=1.0,
                  save_snapshot_times=[], snapshot_saving_path="",
                  simulate_quantization=False,
-                 show_animation=False):
+                 show_animation=False,
+                 min_num_drones=0):
         """
 
         Parameters
@@ -400,6 +401,7 @@ class ComputationAgent(net.Agent):
 
         self.__received_network_members_message = True
 
+        self.__min_num_drones = min_num_drones
 
 
     def load_trigger(self, trigger):
@@ -845,7 +847,7 @@ class ComputationAgent(net.Agent):
             else:
                 # if an agent leaves, the prios might still be using the old swarm setup,
                 # then, do calculate nothing.
-                if len(self.__prio_consensus) > len(self.__agents_ids):
+                if len(self.__prio_consensus) > len(self.__agents_ids) or len(self.__agents_ids) < self.__min_num_drones:
                     prios = self.calc_prio()
                     self.__last_received_messages = {self.ID: EmtpyContent(prios)}
                 else:

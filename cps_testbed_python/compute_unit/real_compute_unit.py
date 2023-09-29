@@ -1121,7 +1121,7 @@ class ComputingUnit:
             min_distance_cooperative=self.__ARGS.min_distance_cooperative,
             weight_cooperative=self.__ARGS.weight_cooperative,
             cooperative_normal_vector_noise=0,
-            width_band=self.__ARGS.width_band
+            width_band=self.__ARGS.width_band,
         )
 
         if self.__ARGS.dynamic_swarm:
@@ -1158,7 +1158,8 @@ class ComputingUnit:
                                                      weight_band=self.__ARGS.weight_band,
                                                      send_setpoints=self.__is_initiator, # self.__cu_id == 20,
                                                      save_snapshot_times=self.__ARGS.save_snapshot_times,
-                                                     show_animation=True
+                                                     show_animation=True,
+                                                     min_num_drones=self.__num_static_drones
                                                      )
 
     def send_socket(self, message: message.MixerMessage):
