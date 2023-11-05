@@ -447,6 +447,8 @@ class ComputationAgent(net.Agent):
 
         self.__num_agents = len(self.__agents_ids)
 
+        self.__setpoint_creator.remove_drone(m_id)
+
     def add_new_computation_agent(self, m_id):
         self.__computing_agents_ids.append(m_id)
         self.__computing_agents_ids.sort()

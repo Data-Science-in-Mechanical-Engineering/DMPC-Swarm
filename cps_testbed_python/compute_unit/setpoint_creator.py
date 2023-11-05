@@ -15,6 +15,7 @@ RANDOM = 6
 DYNAMIC_SWARM = 7
 MULTI_HOP = 8
 DEMO_AI_WEEK = 9
+DEMO_SCIENCE_NIGHT = 10
 
 DEMO_AI_WEEK_IDLE = 0
 DEMO_AI_WEEK_CIRCLE = 1
@@ -96,6 +97,8 @@ class SetpointCreator:
 		self.__starting_rounds = {}
 		self.__angles = {}
 
+		self.__active_drones = []
+
 		self.__state_demo_ai_week = DEMO_AI_WEEK_IDLE
 
 	@property
@@ -158,6 +161,8 @@ class SetpointCreator:
 				self.__current_setpoints[drone_id] = self.generate_new_multi_hop_setpoint(drone_id)
 			elif self.__demo_setpoints == DEMO_AI_WEEK:
 				self.__current_setpoints[drone_id] = self.generate_new_demo_ai_week_setpoint(drone_id)
+			elif self.__demo_setpoints == DEMO_SCIENCE_NIGHT:
+				self.__current_setpoints[drone_id] = self.generate_new_demo_science_night_setpoint(drone_id)
 
 		setpoints_changed = False
 		for k in self.__current_setpoints:
@@ -419,6 +424,32 @@ class SetpointCreator:
 								[-1.5, 0.0, 0.7], [-0.5, 0.0, 0.7], [0.5, 0.0, 0.7], [1.5, 0.0, 0.7]])
 			return back_pos[drone_id - 1]
 
+	def generate_new_demo_science_night_setpoint(self, drone_id):
+		if drone_id not in self.__active_drones:
+			return np.array([0, 0, 0])
+
+		for other_drone_id in self.__active_drones:
+			# this drone lands
+			if self.__round - self.__starting_rounds[other_drone_id] > 500:
+				if other_drone_id == drone_id:
+					return np.array([0.5, -0.5, 0.6])
+				else:
+					i = self.__active_drones.index(other_drone_id)
+					return np.array([-0.5, -0.5 + 0.5*i, 1.0])
+
+		angle_offset = 0 if self.__round % 200 <= 100 else math.pi
+		angle = angle_offset + 2*math.pi / 3 * self.__active_drones.index(drone_id) + 2*math.pi*self.__round / 30
+		dpos = [1.0, 1.0]
+		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0.8])
+
+	def remove_drone(self, drone_id):
+		if drone_id in self.__active_drones:
+			self.__active_drones.pop(drone_id)
+
+		if drone_id in self.__angles:
+			self.__angles.pop(drone_id)
+			self.__starting_rounds.pop(drone_id)
+
 	def add_drone(self, drone_id, state, round):
 		"""
 
@@ -441,5 +472,6 @@ class SetpointCreator:
 				i += 1
 
 		self.__current_setpoints[drone_id] = self.generate_new_setpoint(self.__drones[drone_id])
+		self.__active_drones.append(drone_id)
 
 
