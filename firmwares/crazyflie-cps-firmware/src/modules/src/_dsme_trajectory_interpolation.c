@@ -281,7 +281,7 @@ void land_crazyflie()
     xSemaphoreTake(dataSemaphore, portMAX_DELAY);
     x_state[0] = setpoint.position.x;
     y_state[0] = setpoint.position.y;
-    z_state[0] = 0.8f;
+    z_state[0] = 0.15f;
 
     traj_int_state = LAND;
     land_status = STATUS_LANDING;

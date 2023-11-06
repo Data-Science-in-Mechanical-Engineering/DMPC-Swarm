@@ -356,7 +356,7 @@ static uint16_t process_SYS_RUN_STATE(cf_state_machine_handle *hstate_machine, a
 				#endif
 				break;
 			case TYPE_SYS_SHUTDOWN:
-				land_drones = 1;
+				hstate_machine->wants_to_leave = 1;
 				break;
 			case TYPE_TRAJECTORY:
 				if (rx_data[i]->trajectory_message.drone_id == hstate_machine->id) {
@@ -572,7 +572,9 @@ static uint16_t process_SYS_SHUTDOWN_STATE(cf_state_machine_handle *hstate_machi
 	}
 
 	if (status == STATUS_LANDED) {
+		#if START_FROM_HAND
 		hstate_machine->state = WAIT_FOR_LAUNCH_STATE;
+		#endif
 		was_low = 0;
 	}
 
