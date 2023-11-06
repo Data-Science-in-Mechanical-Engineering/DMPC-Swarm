@@ -88,7 +88,7 @@ def define_ARGS():
     parser.add_argument("--message_loss_period_start", default=150000, type=int, help="")
     parser.add_argument("--message_loss_period_end", default=20000, type=int, help="")
 
-    parser.add_argument("--num_static_drones", default=7, type=int, help="")
+    parser.add_argument("--num_static_drones", default=1, type=int, help="")
 
     ARGS = parser.parse_args()
 

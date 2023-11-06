@@ -101,6 +101,11 @@ class SetpointCreator:
 
 		self.__state_demo_ai_week = DEMO_AI_WEEK_IDLE
 
+		self.__demo_science_night_angle = 0
+		self.__demo_science_night_angle2 = 0
+
+		self.__new_round = True
+
 	@property
 	def drones(self):
 		return self.__drones
@@ -137,6 +142,7 @@ class SetpointCreator:
 		"""
 		if round_nmbr != self.__round:
 			self.__old_setpoints = copy.deepcopy(self.__current_setpoints)
+			self.__new_round = True
 		self.__round = round_nmbr
 		self.check_current_setpoints_reached(drones_states)
 
@@ -163,6 +169,7 @@ class SetpointCreator:
 				self.__current_setpoints[drone_id] = self.generate_new_demo_ai_week_setpoint(drone_id)
 			elif self.__demo_setpoints == DEMO_SCIENCE_NIGHT:
 				self.__current_setpoints[drone_id] = self.generate_new_demo_science_night_setpoint(drone_id)
+			self.__new_round = False
 
 		setpoints_changed = False
 		for k in self.__current_setpoints:
@@ -430,21 +437,30 @@ class SetpointCreator:
 
 		for other_drone_id in self.__active_drones:
 			# this drone lands
-			if self.__round - self.__starting_rounds[other_drone_id] > 500:
+			if self.__round - self.__starting_rounds[other_drone_id] > 940:
 				if other_drone_id == drone_id:
-					return np.array([0.5, -0.5, 0.6])
+					return np.array([-1.0, -1.0, 0.6])
 				else:
-					i = self.__active_drones.index(other_drone_id)
-					return np.array([-0.5, -0.5 + 0.5*i, 1.0])
+					i = self.__active_drones.index(drone_id)
+					return np.array([0.5, -0.5 + 0.5*i, 1.0])
 
-		angle_offset = 0 if self.__round % 200 <= 100 else math.pi
-		angle = angle_offset + 2*math.pi / 3 * self.__active_drones.index(drone_id) + 2*math.pi*self.__round / 30
+		if len(self.__active_drones) < 3:
+			i = self.__active_drones.index(drone_id)
+			return np.array([0.5, -0.5 + 0.5 * i, 1.0])
+
+		angle_offset = 0 if self.__round % 200 <= 100 or self.__round % 200 > 150 else math.pi
+		speed = 2*math.pi / 80 if self.__round % 200 <= 100 else 0
+		if self.__new_round:
+			self.__demo_science_night_angle += speed
+			self.__demo_science_night_angle2 += 3*speed
+		print(f"self.__demo_science_night_angle: {self.__demo_science_night_angle}")
+		angle = angle_offset + 2*math.pi / 3 * self.__active_drones.index(drone_id) + (self.__demo_science_night_angle if self.__active_drones.index(drone_id) != 0 else self.__demo_science_night_angle2)
 		dpos = [1.0, 1.0]
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0.8])
 
 	def remove_drone(self, drone_id):
 		if drone_id in self.__active_drones:
-			self.__active_drones.pop(drone_id)
+			self.__active_drones.pop(self.__active_drones.index(drone_id))
 
 		if drone_id in self.__angles:
 			self.__angles.pop(drone_id)
