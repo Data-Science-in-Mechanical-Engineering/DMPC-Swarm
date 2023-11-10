@@ -43,7 +43,7 @@ def define_ARGS():
     parser.add_argument('--sim_id', default=0, type=int, help='ID of simulation, used for random generator seed')
     parser.add_argument('--INIT_XYZS', default={}, type=dict, help='Initial drone positions')
     parser.add_argument('--INIT_TARGETS', default={}, type=dict, help='Initial target positions')
-    parser.add_argument('--testbeds', default={"Mobile": ([-1.2, -1.2, 0.5], [1.2, 1.2, 1.1], [0, 0, 0])},
+    parser.add_argument('--testbeds', default={"Mobile": ([-1.1, -1.1, 0.5], [1.1, 1.1, 1.1], [0, 0, 0])},
                         type=dict, help='Testbeds of the system. Format: name: (min, max, offset)')
     parser.add_argument('--pos_offset', default={}, type=dict, help='Corresponding spatial offsets for drones')
     parser.add_argument('--testbed_size', default=[3.7, 3.7, 3.7], type=list, help='Size of the testbed')

@@ -439,23 +439,23 @@ class SetpointCreator:
 			# this drone lands
 			if self.__round - self.__starting_rounds[other_drone_id] > 940:
 				if other_drone_id == drone_id:
-					return np.array([-1.0, -1.0, 0.6])
+					return np.array([1.0, -1.0, 0.6])
 				else:
 					i = self.__active_drones.index(drone_id)
-					return np.array([0.5, -0.5 + 0.5*i, 1.0])
+					return np.array([-0.5, -0.5 + 0.5*i, 1.0])
 
-		if len(self.__active_drones) < 3:
+		if len(self.__active_drones) < 4:
 			i = self.__active_drones.index(drone_id)
-			return np.array([0.5, -0.5 + 0.5 * i, 1.0])
+			return np.array([-0.5, -0.5 + 0.5 * i, 1.0])
 
 		angle_offset = 0 if self.__round % 200 <= 100 or self.__round % 200 > 150 else math.pi
-		speed = 2*math.pi / 80 if self.__round % 200 <= 100 else 0
+		speed = 2*math.pi / 40 if self.__round % 200 <= 100 else 0
 		if self.__new_round:
 			self.__demo_science_night_angle += speed
-			self.__demo_science_night_angle2 += 3*speed
+			self.__demo_science_night_angle2 += 1*speed
 		print(f"self.__demo_science_night_angle: {self.__demo_science_night_angle}")
-		angle = angle_offset + 2*math.pi / 3 * self.__active_drones.index(drone_id) + (self.__demo_science_night_angle if self.__active_drones.index(drone_id) != 0 else self.__demo_science_night_angle2)
-		dpos = [1.0, 1.0]
+		angle = angle_offset + 2*math.pi / (len(self.__active_drones)) * self.__active_drones.index(drone_id) + (self.__demo_science_night_angle if self.__active_drones.index(drone_id) != 0 else self.__demo_science_night_angle2)
+		dpos = [1.0, 1.0] if self.__active_drones.index(drone_id) != 0 else [1.0, 1.0]
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0.8])
 
 	def remove_drone(self, drone_id):
