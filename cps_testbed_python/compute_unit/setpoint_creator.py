@@ -444,7 +444,7 @@ class SetpointCreator:
 					i = self.__active_drones.index(drone_id)
 					return np.array([-0.5, -0.5 + 0.5*i, 1.0])
 
-		if len(self.__active_drones) < 4:
+		if len(self.__active_drones) < 3:
 			i = self.__active_drones.index(drone_id)
 			return np.array([-0.5, -0.5 + 0.5 * i, 1.0])
 
