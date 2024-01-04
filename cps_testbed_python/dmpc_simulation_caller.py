@@ -6,6 +6,9 @@ import copy
 import multiprocessing
 import sys
 import yaml
+import cv2
+
+from compute_unit import setpoint_creator
 
 sys.path.append("../../../gym-pybullet-drones")
 sys.path.append("../../../")
@@ -56,9 +59,9 @@ def parallel_simulation_wrapper(ARGS_for_simulation):
 	return None
 
 
-def call_batch_simulation(ARGS_array, name_files="test",
-                          message_loss_probability=0.0, ignore_message_loss=False, num_cus=None,
-						  simulate_quantization=False):
+def call_batch_simulation_param_varying(ARGS_array, name_files="test",
+										  message_loss_probability=0.0, ignore_message_loss=False, num_cus=None,
+										  simulate_quantization=False):
 	for ARGS in ARGS_array:
 		ARGS.path = os.path.dirname(os.path.abspath(__file__)) + "/../../batch_simulation_results/dmpc/" \
 															+ name_files
@@ -70,23 +73,46 @@ def call_batch_simulation(ARGS_array, name_files="test",
 			ARGS.computing_agent_ids = [i for i in range(40, 40+num_cus)]
 		ARGS.simulate_quantization = simulate_quantization
 
-	with open(ARGS_array[0].path + "/ARGS.pkl", 'wb') as out_file:
+	with open(ARGS_array[0].path + f"/ARGS_{ARGS_array[0].num_drones}_drones.pkl", 'wb') as out_file:
 		pickle.dump(ARGS_array, out_file)
 
 	max_threads = multiprocessing.cpu_count() - 2
-	p = mp.Pool(processes=np.min((max_threads, ARGS_array[0].total_simulations)), maxtasksperchild=1)  #
+	p = mp.Pool(processes=np.min((max_threads, ARGS_array[0].num_simulations)), maxtasksperchild=1)  #
 	simulation_logger = [x for x in p.imap(parallel_simulation_wrapper, ARGS_array)]
 	p.close()
 	p.terminate()
 	p.join()
 
 
+def call_single_simulation(ARGS, filename):
+	ARGS.path = os.path.dirname(os.path.abspath(__file__)) + f"/../../simulation_results/dmpc/{filename}"
+	create_dir(ARGS.path)
+	ARGS.sim_id = 1
+	parallel_simulation_wrapper(ARGS)
+
+	if ARGS.save_video:
+		print("Saving video")
+		video_name = 'Video.avi'
+		image_folder = ARGS.path + "_simnr_1"
+		images = [img for img in os.listdir(image_folder) if img.endswith(".jpg") and img.startswith("ImgPredict1")]
+		frame = cv2.imread(os.path.join(image_folder, "ImgPredict1_0.jpg"))
+		height, width, layers = frame.shape
+		fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+		video = cv2.VideoWriter(os.path.join(image_folder, video_name), fourcc, fps=30, frameSize=(width, height))
+
+		for i in range(1, len(images)):
+			video.write(cv2.imread(os.path.join(image_folder, "ImgPredict1_" + str(i) + ".jpg")))
+
+		video.release()
+
 if __name__ == "__main__":
 	#### Define and parse (optional) arguments for the script ##
 	# !!!!!!!!!!!!!!!! Downwash simulation is unrealistic atm.
 	parser = argparse.ArgumentParser(
 		description='CPS Testbed Simulator')
-	parser.add_argument('--param_path', default="parameters/batch_simulation.yaml", type=str, help='yaml file for parameters', metavar='')
+	#parser.add_argument('--param_path', default="parameters/batch_simulation.yaml", type=str, help='yaml file for parameters', metavar='')
+	parser.add_argument('--param_path', default="parameters/hyperparameter_opt.yaml", type=str,
+						help='yaml file for parameters', metavar='')
 
 	# a lot of other parameters that need to be kept constant.
 	parser.add_argument('--drone', default="cf2x", type=DroneModel, help='Drone model (default: CF2X)', metavar='',
@@ -133,6 +159,8 @@ if __name__ == "__main__":
 
 	ARGS = parse_params(ARGS, params)
 
+	ARGS.path = os.path.dirname(os.path.abspath(__file__)) + "/../../simulation_results/dmpc/demo/"
+
 	# we only simulate the vicon testbed
 	ARGS.drones = {i: "Vicon" for i in range(1, ARGS.num_drones + 1)}
 	ARGS.drone_ids = list(ARGS.drones.keys())
@@ -155,7 +183,8 @@ if __name__ == "__main__":
 	ARGS.setpoint_creator = None
 
 	if ARGS.use_own_targets:
-		assert False, "not implemented yet."
+		ARGS.setpoint_creator = setpoint_creator.SetpointCreator(ARGS.drones, ARGS.testbeds,
+															 	 demo_setpoints=setpoint_creator.CIRCLE)
 
 	origin = np.array(ARGS.testbeds["Vicon"][0]) + np.array(ARGS.testbeds["Vicon"][2])
 	testbed_size = np.array(ARGS.testbeds["Vicon"][1]) - np.array(ARGS.testbeds["Vicon"][0])
@@ -170,9 +199,9 @@ if __name__ == "__main__":
 
 	initializer = initializer.Initializer(testbed, rng_seed=10)
 
-	for i in range(0, ARGS.total_simulations):
+	for i in range(0, ARGS.num_simulations):
 		ARGS_for_simulation = copy.deepcopy(ARGS)
-		#num_sims_per_drone_config = int(ARGS.total_simulations / len(ARGS.num_drones))
+		#num_sims_per_drone_config = int(ARGS.num_simulations / len(ARGS.num_drones))
 		#ARGS_for_simulation.num_drones = ARGS.num_drones[i % len(ARGS.num_drones)]
 		INIT_XYZS, INIT_TARGETS = initializer.initialize(
 			ARGS_for_simulation.drone_position_initialization_method, dist_to_wall=0.25,
@@ -204,11 +233,14 @@ if __name__ == "__main__":
 		ARGS_for_simulation.sim_id = i + 1
 		ARGS_array.append(ARGS_for_simulation)
 
-	for num_cus in [3, 5, 7, 9, 11, 13, 15]:
-		for message_loss_prob in [0.01, 0.1]:
-			for simulate_quantization in [True]:
-				for ignore_message_loss in [False]:
-					call_batch_simulation(ARGS_array, name_files=f"dmpc_simulation_results_iml{ignore_message_loss}_{int(100*message_loss_prob+1e-7)}_{num_cus}cus_{'quant' if simulate_quantization else ''}",
-										  message_loss_probability=message_loss_prob,
-										  ignore_message_loss=ignore_message_loss,
-										  num_cus=num_cus, simulate_quantization=simulate_quantization)
+	if ARGS.sweep_parameters:
+		for num_cus in [3, 5, 7, 9, 11, 13, 15]:
+			for message_loss_prob in [0.01, 0.1]:
+				for simulate_quantization in [True]:
+					for ignore_message_loss in [False]:
+						call_batch_simulation_param_varying(ARGS_array, name_files=f"dmpc_simulation_results_iml{ignore_message_loss}_{int(100*message_loss_prob+1e-7)}_{num_cus}cus_{'quant' if simulate_quantization else ''}",
+											  message_loss_probability=message_loss_prob,
+											  ignore_message_loss=ignore_message_loss,
+											  num_cus=num_cus, simulate_quantization=simulate_quantization)
+	else:
+		call_single_simulation(ARGS_array[0], ARGS.name)
