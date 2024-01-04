@@ -143,8 +143,8 @@ class ComputationAgent(net.Agent):
         callback for the network to signal that a round has finished
     """
 
-    def __init__(self, ID, slot_group_planned_trajectory_id, slot_group_trajectory_initial_state,
-                 slot_group_drone_state, init_positions, target_positions, agents_ids,
+    def __init__(self, ID, slot_group_planned_trajectory_id,
+                 slot_group_drone_state, init_positions, agents_ids,
                  communication_delta_t,
                  trajectory_generator_options, pos_offset, prediction_horizon, num_computing_agents, comp_agent_prio,
                  computing_agents_ids, setpoint_creator, offset=0,
@@ -173,7 +173,7 @@ class ComputationAgent(net.Agent):
             trajectory_generator_options: tg.TrajectoryGeneratorOptions
                 options for data generator
             agents_ids: numpy.array, shape (num_agents,)
-                ids of all agents in the system
+                ids of all agents in the system (we can add new drones to the system)
             communication_delta_t: float
                 time difference between two communication rounds
             prediction_horizon: int
@@ -192,7 +192,6 @@ class ComputationAgent(net.Agent):
         self.__slot_group_drone_state = slot_group_drone_state
         self.__slot_group_state_id = slot_group_state_id
         self.__slot_group_ack_id = slot_group_ack_id
-        self.__target_positions = copy.deepcopy(target_positions)
         self.__ignore_message_loss = ignore_message_loss
         self.__state_feedback_trigger_dist = state_feedback_trigger_dist
         self.__trajectory_generator_options = trajectory_generator_options
@@ -205,7 +204,6 @@ class ComputationAgent(net.Agent):
         self.__received_setpoints = None
         self.__using_intermediate_targets = False
         self.__hlp_lock = 0  # for 5 rounds, we block the hlp after the hlp has been called
-        self.__current_targets_reached = {agent_id: False for agent_id in agents_ids}
         self.__agent_dodge_distance = agent_dodge_distance
         self.__age_setpoint_trajectory = 0
         self.__recalculate_setpoints = False  # there might exist cases, where we need to recalculate the setpoints immediately
@@ -1150,35 +1148,6 @@ class ComputationAgent(net.Agent):
         """ updates the target IDs of the drones. If a drone has multiple targets it should fly to, the next target
         is selected, if the previous one is reached """
         return
-        threshold_dist = 0.001  # m
-        targets = self.get_targets()
-        all_drones_reached_target = True
-        all_drones_reached_current_target = True
-        for id in self.__agents_ids:
-            if self.__agent_state[id] is not None and self.__simulated:
-                dist_to_target = np.linalg.norm(targets[id] - self.__agent_state[id][0:3])
-            else:
-                dist_to_target = np.linalg.norm(targets[id] -
-                                                self.__trajectory_tracker.get_information(id).content[0].init_state[0:3])
-            if dist_to_target < threshold_dist:
-                #self.print("AGENT " + str(id) + " REACHED TARGET " + str(self.__agent_target_id[id]))
-                #self.print(targets[id])
-                pass
-            else:
-                all_drones_reached_current_target = False
-                all_drones_reached_target = False
-
-        if all_drones_reached_current_target:
-            for id in self.__agents_ids:
-                if self.__agent_target_id[id] < len(self.__target_positions[id]) - 1:
-                    self.__agent_target_id[id] += 1
-                    all_drones_reached_target = False
-                    self.__recalculate_setpoints = True
-                elif self.__agent_target_id[id] == (len(self.__target_positions[id]) - 1):
-                    pass  # placeholder for action if drone reached its final target
-                self.__agents_prios[id] = id
-
-        self.__all_targets_reached = all_drones_reached_target
 
     def calc_prio(self):
         """ calculates the prio for each agent """
@@ -1327,9 +1296,6 @@ class ComputationAgent(net.Agent):
                 self.__high_level_setpoints[agent_id] = self.__current_target_positions[agent_id]
             return
 
-        if self.__recalculate_setpoints:
-            self.__current_targets_reached = {agent_id: False for agent_id in self.__agents_ids}
-
         # check if agents are in a deadlock. If they are, either try to break the deadlock (or if we already trying
         # to break the deadlock go back to the original targets).
         all_agents_in_deadlock = True
@@ -1462,18 +1428,6 @@ class ComputationAgent(net.Agent):
     @property
     def current_intermediate_target(self):
         return self.__high_level_setpoints
-
-    @property
-    def target_positions(self):
-
-        return self.__target_positions
-
-    @target_positions.setter
-    def target_positions(self, target_positions):
-        # reset prios, because target positions got changed
-        for id in self.__agents_ids:
-            self.__agents_prios[id] = id
-        self.__target_positions = target_positions
 
     @property
     def comp_agent_prio(self):

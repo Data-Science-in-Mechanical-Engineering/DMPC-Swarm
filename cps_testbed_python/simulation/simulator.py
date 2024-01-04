@@ -195,7 +195,6 @@ class Simulation:
         )
 
         slot_group_trajectory = net.SlotGroup(0, False, self.__ARGS.num_computing_agents)
-        slot_group_initial_state = net.SlotGroup(1, False, self.__ARGS.num_computing_agents)
         slot_group_state = net.SlotGroup(2, False, self.__ARGS.num_drones - self.__ARGS.num_computing_agents)
         slot_group_setpoints = net.SlotGroup(3, False, 1)
 
@@ -221,7 +220,6 @@ class Simulation:
                 print(trajectory_starting_times)
                 trajectory_start_time = min(trajectory_starting_times)
 
-
             drone_id = self.__ARGS.drone_ids[i]
             agent = da.RemoteDroneAgent(ID=drone_id,
                                         slot_group_planned_trajectory_id=slot_group_trajectory.id,
@@ -246,12 +244,13 @@ class Simulation:
             if len(cus) == 0:
                 cu_id = self.__ARGS.computing_agent_ids[i-self.__ARGS.num_drones]
                 computing_agent = da.ComputationAgent(ID=cu_id, slot_group_planned_trajectory_id=slot_group_trajectory.id,
-                                                      slot_group_trajectory_initial_state=slot_group_initial_state.id,
                                                       slot_group_drone_state=slot_group_state.id,
-                                                      init_positions=self.__ARGS.INIT_XYZS_id,
-                                                      target_positions=self.__INIT_TARGETS,
+                                                      #init_positions=self.__ARGS.INIT_XYZS_id,
+                                                      init_positions={},
                                                       computing_agents_ids=self.__ARGS.computing_agent_ids,
-                                                      agents_ids=self.__ARGS.drone_ids, communication_delta_t=delta_t,
+                                                      #agents_ids=self.__ARGS.drone_ids,
+                                                      agents_ids=[],
+                                                      communication_delta_t=delta_t,
                                                       trajectory_generator_options=trajectory_generator_options,
                                                       prediction_horizon=self.__ARGS.prediction_horizon,
                                                       num_computing_agents=self.__ARGS.num_computing_agents,
@@ -277,6 +276,9 @@ class Simulation:
                                                       simulate_quantization=self.__ARGS.simulate_quantization,
                                                       save_snapshot_times=self.__ARGS.save_snapshot_times,
                                                       show_animation=i==self.__ARGS.num_drones and self.__ARGS.show_animation)
+
+                for drone_id in self.__ARGS.drone_ids:
+                    computing_agent.add_new_agent(drone_id)
                 prio += 1
             else:
                 computing_agent = cus[i - self.__ARGS.num_drones]
@@ -290,7 +292,6 @@ class Simulation:
         self.__network = net.Network(self.__agents, rounds_lost=self.__ARGS.rounds_lost,
                                      message_loss=self.__ARGS.message_loss_probability)
         self.__network.add_slot_group(slot_group_trajectory)
-        self.__network.add_slot_group(slot_group_initial_state)
         self.__network.add_slot_group(slot_group_state)
         self.__network.add_slot_group(slot_group_setpoints)
 
@@ -316,7 +317,7 @@ class Simulation:
                     - INIT_TARGETS: np.array
         """
         num_image = 0
-        resolution_video = [1024 // 2, 576 // 2]
+        resolution_video = [self.__ARGS.resolution_video, int(self.__ARGS.resolution_video*9/16)]
         projectionMatrix_video = p.computeProjectionMatrixFOV(
             fov=45.0,
             aspect=16 / 9,
