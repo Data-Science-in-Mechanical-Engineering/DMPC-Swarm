@@ -858,7 +858,7 @@ class ComputingUnit:
                             elif t == 1:
                                 if m.ids[i] not in self.__drones_in_swarm:
                                     self.__uart_interface.print(f"Drone {m.ids[i]} added to swarm")
-                                    self.__computation_agent.add_new_agent(m.ids[i])
+                                    self.__computation_agent.add_new_drone(m.ids[i])
                                     self.__drones_in_swarm.append(m.ids[i])
 
                         # check if an agent has left the swarm
@@ -869,7 +869,7 @@ class ComputingUnit:
                                 self.__cus_in_swarm.remove(cu)
                         for drone in self.__drones_in_swarm:
                             if not drone in m.ids:
-                                self.__computation_agent.remove_agent(drone)
+                                self.__computation_agent.remove_drone(drone)
                                 self.__drones_in_swarm.remove(drone)
                                 print(f"Removed drone {drone}")
 
@@ -1127,40 +1127,34 @@ class ComputingUnit:
         if self.__ARGS.dynamic_swarm:
             self.__ARGS.computing_agent_ids = [self.__cu_id]
 
-        self.computation_agent = da.ComputationAgent(ID=self.__cu_id,
-                                                     slot_group_planned_trajectory_id=self.__message_type_trajectory_id,
-                                                     slot_group_trajectory_initial_state=self.__message_type_trajectory_initital_state,
-                                                     slot_group_drone_state=self.__message_type_drone_state,
-                                                     init_positions=self.__ARGS.INIT_XYZS,
-                                                     target_positions=self.__ARGS.INIT_TARGETS,
-                                                     agents_ids=self.__ARGS.drone_ids, communication_delta_t=delta_t,
-                                                     trajectory_generator_options=trajectory_generator_options,
-                                                     pos_offset=self.__ARGS.pos_offset,
-                                                     prediction_horizon=self.__ARGS.prediction_horizon,
-                                                     num_computing_agents=self.__ARGS.num_computing_agents,
-                                                     comp_agent_prio=sorted(self.__ARGS.computing_agent_ids).index(
-                                                         self.__cu_id),
-                                                     offset=(self.__cu_id - self.__ARGS.num_drones) * int(
+        self.computation_agent = da.ComputeUnit(ID=self.__cu_id,
+                                                slot_group_planned_trajectory_id=self.__message_type_trajectory_id,
+                                                slot_group_drone_state=self.__message_type_drone_state,
+                                                communication_delta_t=delta_t,
+                                                trajectory_generator_options=trajectory_generator_options,
+                                                pos_offset=self.__ARGS.pos_offset,
+                                                prediction_horizon=self.__ARGS.prediction_horizon,
+                                                num_computing_agents=self.__ARGS.num_computing_agents,
+                                                offset=(self.__cu_id - self.__ARGS.num_drones) * int(
                                                          self.__ARGS.num_drones / max(
                                                              (self.__ARGS.num_computing_agents), 1)),
-                                                     use_event_trigger=self.__ARGS.event_trigger,
-                                                     alpha_1=self.__ARGS.alpha_1, alpha_2=self.__ARGS.alpha_2,
-                                                     alpha_3=self.__ARGS.alpha_3, alpha_4=self.__ARGS.alpha_4,
-                                                     remove_redundant_constraints=self.__ARGS.remove_redundant_constraints,
-                                                     computing_agents_ids=self.__ARGS.computing_agent_ids,
-                                                     simulated=False,
-                                                     ignore_message_loss=self.__ARGS.ignore_message_loss,
-                                                     use_high_level_planner=self.__ARGS.use_high_level_planner,
-                                                     use_own_targets=True, #not self.__ARGS.dynamic_swarm,
-                                                     #use_optimized_constraints=self.__ARGS.use_optimized_constraints,
-                                                     setpoint_creator=self.__ARGS.setpoint_creator,
-                                                     slot_group_setpoints_id=self.__slot_group_setpoints_id,
-                                                     weight_band=self.__ARGS.weight_band,
-                                                     send_setpoints=self.__is_initiator, # self.__cu_id == 20,
-                                                     save_snapshot_times=self.__ARGS.save_snapshot_times,
-                                                     show_animation=True,
-                                                     min_num_drones=self.__num_static_drones
-                                                     )
+                                                alpha_1=self.__ARGS.alpha_1, alpha_2=self.__ARGS.alpha_2,
+                                                alpha_3=self.__ARGS.alpha_3, alpha_4=self.__ARGS.alpha_4,
+                                                remove_redundant_constraints=self.__ARGS.remove_redundant_constraints,
+                                                computing_agents_ids=self.__ARGS.computing_agent_ids,
+                                                simulated=False,
+                                                ignore_message_loss=self.__ARGS.ignore_message_loss,
+                                                use_high_level_planner=self.__ARGS.use_high_level_planner,
+                                                use_own_targets=True,  #not self.__ARGS.dynamic_swarm,
+                                                #use_optimized_constraints=self.__ARGS.use_optimized_constraints,
+                                                setpoint_creator=self.__ARGS.setpoint_creator,
+                                                slot_group_setpoints_id=self.__slot_group_setpoints_id,
+                                                weight_band=self.__ARGS.weight_band,
+                                                send_setpoints=self.__is_initiator,  # self.__cu_id == 20,
+                                                save_snapshot_times=self.__ARGS.save_snapshot_times,
+                                                show_animation=True,
+                                                min_num_drones=self.__num_static_drones
+                                                )
 
     def send_socket(self, message: message.MixerMessage):
         if self.socket is None:
