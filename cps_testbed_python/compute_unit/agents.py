@@ -199,9 +199,7 @@ class ComputeUnit(net.Agent):
         self.__using_intermediate_targets = False
         self.__hlp_lock = 0  # for 5 rounds, we block the hlp after the hlp has been called
         self.__agent_dodge_distance = agent_dodge_distance
-        self.__age_setpoint_trajectory = 0
         self.__recalculate_setpoints = False  # there might exist cases, where we need to recalculate the setpoints immediately
-        self.__agent_target_id = {}
 
         self.__computing_agents_ids = computing_agents_ids
         self.__communication_delta_t = communication_delta_t
@@ -218,12 +216,6 @@ class ComputeUnit(net.Agent):
 
         self.__remove_redundant_constraints = remove_redundant_constraints
 
-        # communication timepoints start with the time of the next communication. (we have a delay of one due to the
-        # communication) * 2, because the current position cannot be influenced anymore
-        self.__communication_timepoints = \
-            np.linspace(self.__communication_delta_t * 2,
-                        self.__communication_delta_t * 2 + communication_delta_t * prediction_horizon,
-                        prediction_horizon)
         self.__breakpoints = \
             np.linspace(0, communication_delta_t * prediction_horizon, prediction_horizon * int(communication_delta_t
                                                                                                 / trajectory_generator_options.optimization_variable_sample_time+1e-7) + 1)
@@ -240,11 +232,10 @@ class ComputeUnit(net.Agent):
             options=trajectory_generator_options,
             trajectory_interpolation=self.__trajectory_interpolation)
 
-        self.__number_rounds = 0
+        self.__number_rounds = 0    # same as current_time divided by communication_delta_t
         self.__options = trajectory_generator_options
 
         self.__current_agent = 0
-        self.__scheduled_agents_indexes = [i for i in range(num_computing_agents)]
 
         self.__drones_ids = []
         self.__num_computing_agents = num_computing_agents
@@ -263,46 +254,30 @@ class ComputeUnit(net.Agent):
                     i * self.__communication_delta_t + self.__options.collision_constraint_sample_points,
                     derivative_order=0))
 
-        self.__ids_to_recalculate = []
-
-        delay = 1
-
         self.__trajectory_tracker = InformationTracker()
         self.__last_trajectory_shape = (len(self.__options.collision_constraint_sample_points), 3)
-                                        #init_positions[id].shape[0])
 
-        self.__last_calc_time = None
+        self.__last_calc_time = None     # duration of last calculation in seconds (can be used to measre time algorithm takes)
         self.__last_received_messages = {self.ID: EmtpyContent([])}
-        self.__received_drone_state_messages = []
 
-        self.__all_targets_reached = False
-
-        self.__init_configuration = True
-
-        self.__ack_message = None
-        self.__messages_rec = {}
+        self.__ack_message = None    # currently we have no acknowledgement flag in the communication (so an agent is notified if its message was received)
 
         self.__system_state = NORMAL
-        self.__last_system_state = NORMAL
+        self.__last_system_state = NORMAL    # used for debugging if MLR module
 
         # if the cus should decide which targets the drones have or the drones should decide this.
         self.__use_own_targets = use_own_targets
 
         self.__num_trajectory_messages_received = 0
 
-        self.ordered_indexes = None
+        self.ordered_indexes = None                     # used for debugging of priority based trigger
 
         self.__total_num_optimizer_runs = 0
         self.__num_succ_optimizer_runs = 0
 
-        self.__hlp_running = False  # flag that shows if the hlp thread is running.
         self.__simulated = simulated
-        self.__hlp_drone_idx = 0
 
         self.__downwash_scaling = np.diag([1, 1, 1.0 / float(self.__trajectory_generator_options.downwash_scaling_factor)])
-        self.__age_setpoint_trajectories = {drone_id: 0 for drone_id in self.__drones_ids}
-
-        self.__index = 0
 
         # field for event trigger, all agents generate a consensus of prios.
         self.__prio_consensus = []
@@ -312,15 +287,13 @@ class ComputeUnit(net.Agent):
         # the difference between those two is that current_target_positions are the target positions last received
         # from the corresponding drone. received_setpoints are the setpoints received from the CU that is the high level
         # planner. If they are none, the CU tries to steer the drones to current_target_positions else to
-        # received_setpoints.
+        # received_setpoints. See get_targets()
         self.__received_setpoints = None
         self.__current_target_positions = {}
 
-        self.__num_trigger_times = {drone_id: 0 for drone_id in self.__drones_ids}
+        self.__num_trigger_times = {drone_id: 0 for drone_id in self.__drones_ids}   # used for debugging and plots
 
-        self.__selected_UAVs = {"round": [], "selected": []}
-
-        self.__time_last_deadlock = 0
+        self.__selected_UAVs = {"round": [], "selected": []}            # used for debugging and plots
 
         self.__weight_band = weight_band
 
@@ -333,11 +306,11 @@ class ComputeUnit(net.Agent):
         self.__show_animation = show_animation
         self.__data_pipeline = cu_animator.DataPipeline()
 
-        self.__trigger = None
+        self.__trigger = None    # used to load trigger times e.g. from hardware experiments and then simulating the system with thos instead of its own trigger.
 
         self.__received_network_members_message = True
 
-        self.__min_num_drones = min_num_drones
+        self.__min_num_drones = min_num_drones    # minimum number of drones over which the CU starts running
 
 
     def load_trigger(self, trigger):
@@ -463,8 +436,6 @@ class ComputeUnit(net.Agent):
             return
         if message.slot_group_id == self.__slot_group_ack_id:
             self.__ack_message = copy.deepcopy(message)
-        else:
-            self.__messages_rec[(message.ID, message.slot_group_id)] = message
         # if the message is from leader agent set new reference point
         if message.slot_group_id == self.__slot_group_planned_trajectory_id:
             self.__num_trajectory_messages_received += 1
@@ -491,7 +462,6 @@ class ComputeUnit(net.Agent):
             message.content.state[0:3] += self.__pos_offset[message.ID]
             self.print(f"Received pos from {message.ID}: {message.content.state}")
             message.content.target_position += self.__pos_offset[message.ID]
-            self.__received_drone_state_messages.append(message)
             # The state is measured at the beginning of the round and extrapolated by drone
             # init drone state if it has to be init. (The state is measured at the beginning of the last round.)
             # calulate number of timesteps, the data need to be delayed
@@ -640,7 +610,6 @@ class ComputeUnit(net.Agent):
         self.__selected_UAVs["selected"].append(-1)
         self.__selected_UAVs["round"].append(round_nmbr)
         self.__last_system_state = self.__system_state
-        self.__init_configuration = False
         self.ordered_indexes = None
         start_time = time.time()
         if round_nmbr is not None:
@@ -741,7 +710,6 @@ class ComputeUnit(net.Agent):
                     break
             if not all_init_states_known:
                 # self.__update_information_tracker()
-                self.__messages_rec = {}
                 self.__number_rounds = self.__number_rounds + 1
                 self.__last_received_messages = {self.ID: EmtpyContent([])}
                 self.__current_time = self.__current_time + self.__communication_delta_t
@@ -1101,12 +1069,6 @@ class ComputeUnit(net.Agent):
         print("[" + str(self.ID) + "]: " + str(text))
 
     def deadlock_breaker_condition(self, drone_id, other_drone_id, check_time=False):
-        # self.print("000000111111111111111111111111")
-        # self.print(self.__current_time - self.__time_last_deadlock)
-        if self.__current_time - self.__time_last_deadlock <= 4 and check_time:   # only check time, if we are already in the deadlock breaker
-            # print(".........................................................")
-            return True
-
         if other_drone_id == drone_id:
             return False
         current_pos = {}
@@ -1266,11 +1228,6 @@ class ComputeUnit(net.Agent):
         return np.linalg.norm(self.__downwash_scaling@vector)
 
     @property
-    def init_configuration(self):
-        """ return, whether the setup it in its initial configuration (no new trajectories etc.) """
-        return self.__init_configuration
-
-    @property
     def last_num_constraints(self):
         return self.__trajectory_generator.last_num_constraints
 
@@ -1297,10 +1254,6 @@ class ComputeUnit(net.Agent):
     @property
     def drone_ids(self):
         return self.__drones_ids
-
-    @property
-    def all_targets_reached(self):
-        return self.__all_targets_reached
 
     @property
     def current_target_positions(self):
@@ -1416,13 +1369,6 @@ class RemoteDroneAgent(net.Agent):
         self.__current_time = load_cus_round_nmbr * self.__communication_delta_t
         self.__planned_trajectory_start_time = trajectory_start_time
         self.__prediction_horizon = prediction_horizon
-
-        # communication timepoints start with the time of the next communication. (we have a delay of one due to the
-        # communication) * 2, because the current position cannot be influenced anymore
-        self.__communication_timepoints = \
-            np.linspace(self.__communication_delta_t * 2,
-                        self.__communication_delta_t + communication_delta_t * prediction_horizon,
-                        prediction_horizon)
 
         # breakpoints of optimization variable
         self.__breakpoints = \

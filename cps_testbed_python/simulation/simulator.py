@@ -523,17 +523,15 @@ class Simulation:
                 if self.__ARGS.gui:
                     sync(i, START, self.__env.TIMESTEP)
 
-                #### Stop the simulation, if all drones reached their targets or have crashed
+                #### Stop the simulation, if all drones reached their targets or at least one agents has crashed
                 stop = True
                 stop2 = False
                 for j in range(self.__ARGS.num_drones):
+
                     stop = stop and (self.__agents[j].crashed or self.__agents[j].all_targets_reached)
+
                     if self.__agents[j].crashed:
                         stop2 = True
-                for j in range(self.__ARGS.num_computing_agents):
-                    if self.__computing_agents[j].all_targets_reached:
-                        stop2 = True
-                        break
                 if (stop or stop2) and self.__ARGS.abort_simulation:
                     break
 
@@ -561,26 +559,6 @@ class Simulation:
                 as out_file:
             pickle.dump(self.__easy_logger.get_data(), out_file)
         return True
-
-        for j in range(self.__ARGS.num_drones):
-            self.__logger.log_static(drone=j, successful=(not self.__agents[j].crashed)
-                                                         and not (self.__agents[j].transition_time is None),
-                                     transition_time=self.__agents[j].transition_time,
-                                     distance_travelled=0,
-                                     target=self.__agents[j].target_position, crashed=self.__agents[j].crashed)
-
-        av_transition_time = np.mean([self.__agents[j].transition_time for j in range(self.__ARGS.num_drones) if self.__agents[j].transition_time is not None])
-        crashed = sum([self.__agents[j].crashed for j in range(self.__ARGS.num_drones)])
-        print('Simulation ' + str(self.__id) + ' done. Average Transition Time: ' + str(np.round(av_transition_time,2)) + 's. ' + str(crashed) + ' Drones crashed.')
-
-        # save the logged data
-        self.save(self.__logger)
-
-        return self.__logger
-        #del self.__logger
-        #gc.collect()
-
-        #return True
 
     def save(self, simulation_logger):
         with open(
