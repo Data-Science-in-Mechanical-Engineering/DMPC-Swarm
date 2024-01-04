@@ -75,10 +75,8 @@ def call_batch_simulation(ARGS_array, name_files="test",
 
 
 if __name__ == "__main__":
-	# os.environ["OMP_NUM_THREADS"] = "1"
-	# os.environ["MKL_NUM_THREADS"] = "1"
 	#### Define and parse (optional) arguments for the script ##
-	# !!!!!!!!!!!!!!!! Downwash simulation is unrealistic atm. I will contact the authors of the paper and discuss it
+	# !!!!!!!!!!!!!!!! Downwash simulation is unrealistic atm.
 	parser = argparse.ArgumentParser(
 		description='Helix flight script using CtrlAviary or VisionAviary and DSLPIDControl')
 	parser.add_argument('--drone', default="cf2x", type=DroneModel, help='Drone model (default: CF2X)', metavar='',
@@ -138,7 +136,7 @@ if __name__ == "__main__":
 
 	parser.add_argument('--abort_simulation', default=True, type=bool, help='Total number of simulations')
 
-	parser.add_argument('--total_simulations', default=1000, type=int, help='Total number of simulations')
+	parser.add_argument('--total_simulations', default=10, type=int, help='Total number of simulations')
 	parser.add_argument('--network_message_loss', default=[0], type=list,
 						help='List of message loss values of the communication network')
 	parser.add_argument('--prediction_horizon', default=15, type=int, help='Prediction Horizon for DMPC')

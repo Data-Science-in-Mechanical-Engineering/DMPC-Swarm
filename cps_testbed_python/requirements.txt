@@ -3,12 +3,11 @@ numpy~=1.22.3
 pybullet~=3.1.7
 qpsolvers~=2.0.0
 filterpy~=1.4.5
-scikit-learn~=0.24.2
 scipy~=1.8.1
 matplotlib~=3.5.2
 gym~=0.26.2
-ray~=1.4.1
-torch~=1.9.0
+ray
+torch
 Pillow~=9.5.0
 cycler~=0.11.0
 opencv-python~=4.6.0.66
