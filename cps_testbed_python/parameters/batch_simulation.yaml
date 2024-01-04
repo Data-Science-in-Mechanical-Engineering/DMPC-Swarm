@@ -1,0 +1,60 @@
+# testbed setup
+computing_agent_ids: [40, 41]           # ids of compute units. Length of array defines number of CUs
+testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
+  Vicon: [[-2.0, -2.0, 0.3], [2.0, 2.0, 3.0], [0, 0, 0]]  #
+
+num_drones: 15
+
+# simulation setup
+simulated: True     # set false for real testbed (when it runs on a testbed, it saves a bit more data for debugging)
+duration_sec: 200   # duration of simulation
+abort_simulation: True  # exit simulation earlier, if drones crash or all targets reached.
+total_simulations: 10  # number of simulations to conduct
+save_video: False
+simulate_quantization: False  # simulate quantization during communication
+sim_steps_per_control: 4
+
+message_loss_probability: 0.0
+
+# Logging options
+log: True
+log_state: False
+
+# Controller options
+control_steps_per_round: 12
+use_communication_freq_hz: False  #weather to calculate communication_freq_hz based on formulas for mixer rounds or to use param communication_freq_hz#
+communication_freq_hz: 5
+prediction_horizon: 15           # prediction horizon in time is prediction_horizon / communication_freq_hz
+r_min: 0.4                       # distance to used during optimization
+downwash_scaling_factor: 4
+r_min_crit: 0.2                  # simulation considers drones crashed whe drones closer than this
+downwash_scaling_factor_crit: 4
+use_soft_constraints: False      # always keep this false, true not tested
+soft_constraint_max: 0.2
+weight_soft_constraint: 0.01
+skewed_plane_BVC: False          # always keep this false, true not tested
+use_qpsolvers: True
+remove_redundant_constraints: False  # always keep false, true deprecated
+min_distance_cooperative: 0.1   # for cooperative objective function (deprecated)
+cooperative_normal_vector_noise: 0.0  # for cooperative objective function (deprecated)
+weight_cooperative: 0.0
+weight_state: 1.0
+weight_speed: 0.0001
+weight_acc: 0.005
+weight_jerk: 0.001
+weight_band: 0.5                # weight for band that introduces a rotation to the anti collisions constraints
+width_band: 0.3                 # width of the band
+ignore_message_loss: False      # ignore the occurences of message loss
+use_optimized_constraints: True  # remove!!
+guarantee_anti_collision: True   # if false uses a deprecated approach
+
+# event trigger options
+alpha_1: 10.0
+alpha_2: 0
+alpha_3: 0
+alpha_4: 0
+
+# high level planner options to resolve deadlocks
+use_own_targets: False         # if the cus should use their own targets. This is needed, if we want to use the setpoint_creator for e.g. demos.
+use_high_level_planner: True
+agent_dodge_distance: 0.5      # the distance an agent move to dodge another agent

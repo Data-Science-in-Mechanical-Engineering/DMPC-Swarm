@@ -147,7 +147,7 @@ class ComputationAgent(net.Agent):
                  slot_group_drone_state, init_positions, target_positions, agents_ids,
                  communication_delta_t,
                  trajectory_generator_options, pos_offset, prediction_horizon, num_computing_agents, comp_agent_prio,
-                 computing_agents_ids, setpoint_creator, offset=0, use_event_trigger=False,
+                 computing_agents_ids, setpoint_creator, offset=0,
                  alpha_1=10, alpha_2=1000, alpha_3=1*0, alpha_4=0, remove_redundant_constraints=False,
                  slot_group_state_id=None,
                  slot_group_ack_id=100000, ignore_message_loss=False, use_own_targets=False,
@@ -289,8 +289,6 @@ class ComputationAgent(net.Agent):
 
         self.__num_agents = len(agents_ids)
         self.__num_computing_agents = num_computing_agents
-
-        self.__use_event_trigger = use_event_trigger
 
         # precalculate such that optimization is faster (speedup of ~ 60%)
         self.__input_trajectory_vector_matrix = []
@@ -1123,13 +1121,6 @@ class ComputationAgent(net.Agent):
         if self.__use_own_targets:
             setpoints, self.__recalculate_setpoints = self.__setpoint_creator.next_setpoints(self.__agent_state, round_nmbr=round(self.__current_time / self.__communication_delta_t))
             return setpoints
-            """
-            targets = {}
-            for id in self.__agents_ids:
-                targets[id] = self.__target_positions[id][self.__agent_target_id[id]]
-                # self.print("AGENT NO: " + str(id) + " TARGET NO: " + str(self.__agent_target_id[id]))
-            return targets
-            """
         else:
             return self.__current_target_positions
 
@@ -1558,19 +1549,6 @@ class ComputationAgent(net.Agent):
         return self.__trajectory_tracker.get_information(self.__agents_ids[drone_idx]).content[0].current_state[0:3]
 
 
-class DemoSetpointGenerator:
-    def __init__(self, radius=1.3, angle_speed=2*math.pi/8):
-        self.__offset = random.random()*math.pi*2
-        self.__radius = radius
-        self.__angle_speed = angle_speed
-        self.__angle = 0
-
-    def next_setpoint(self, dt):
-        self.__angle += dt*self.__angle_speed
-        return np.array([math.cos(self.__offset + self.__angle)*self.__radius + 2,
-                         math.sin(self.__offset + self.__angle)*self.__radius + 2, 1])
-
-
 class RemoteDroneAgent(net.Agent):
     """this class represents a drone agent inside the network.
     Every agent is allowed to send in multiple slot groups. This is needed if e.g. the agent should send his sensor
@@ -1591,7 +1569,7 @@ class RemoteDroneAgent(net.Agent):
     def __init__(self, ID, slot_group_planned_trajectory_id, init_position, target_position, communication_delta_t,
                  trajectory_generator_options, prediction_horizon, other_drones_ids, target_positions, order_interpolation=4,
                  slot_group_state_id=None, slot_group_ack_id=100000, state_feedback_trigger_dist=0.5,
-                 use_demo_setpoints=True, load_cus_round_nmbr=0,
+                 load_cus_round_nmbr=0,
                  trajectory_start_time=0,
                  trajectory_cu_id=-1):
         """
@@ -1687,9 +1665,6 @@ class RemoteDroneAgent(net.Agent):
 
         self.__current_setpoint = self.__init_state
 
-        self.__use_demo_setpoints = use_demo_setpoints
-        self.__demo_setpoint_generator = DemoSetpointGenerator()
-
     def get_prio(self, slot_group_id):
         """returns the priority for the scheulder, because the system is not event triggered, it just returns zero
 
@@ -1704,10 +1679,9 @@ class RemoteDroneAgent(net.Agent):
 
     def get_message(self, slot_group_id):
         if slot_group_id == self.__slot_group_state_id:
-            setpoint = self.__demo_setpoint_generator.next_setpoint(self.__communication_delta_t)
             message = net.Message(self.ID, slot_group_id,
                                   StateMessageContent(self.__traj_state,
-                                                      target_position=self.__target_positions[self.__agent_target_idx] if not self.__use_demo_setpoints else setpoint,
+                                                      target_position=self.__target_positions[self.__agent_target_idx],
                                                       target_position_idx=self.__agent_target_idx,
                                                       trajectory_start_time=self.__planned_trajectory_start_time,
                                                       trajectory_calculated_by=self.__current_trajectory_calculated_by,

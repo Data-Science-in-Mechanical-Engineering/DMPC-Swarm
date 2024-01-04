@@ -109,7 +109,7 @@ class Simulation:
         self.__round_time = calculate_min_round_time(size_cf_messages=2+2*9+1+2*3+2+1+1, num_cf=self.__ARGS.num_drones,
                                                      size_cu_messages=2+2*3*self.__ARGS.prediction_horizon+2*9+2+1+1,
                                                      num_cu=self.__ARGS.num_computing_agents)/1000.0 + 0.1 \
-            if not self.__ARGS.use_constant_freq else 1.0 / self.__ARGS.communication_freq_hz
+            if not self.__ARGS.use_communication_freq_hz else 1.0 / self.__ARGS.communication_freq_hz
 
         print(f"Round length: {self.__round_time}")
 
@@ -234,7 +234,6 @@ class Simulation:
                                         order_interpolation=self.__ARGS.interpolation_order,
                                         target_positions=self.__INIT_TARGETS[drone_id],
                                         other_drones_ids=self.__ARGS.drone_ids,
-                                        use_demo_setpoints=self.__ARGS.use_demo_setpoints,
                                         load_cus_round_nmbr=0 if not self.__ARGS.load_cus else self.__ARGS.load_cus_round_nmbr + 1,
                                         trajectory_start_time= 0 if not self.__ARGS.load_cus else trajectory_start_time,
                                         trajectory_cu_id=-1 if not self.__ARGS.load_cus else trajectory_cu_id)
@@ -261,7 +260,7 @@ class Simulation:
                                                       offset=(cu_id - self.__ARGS.num_drones) * int(
                                                           self.__ARGS.num_drones / max(
                                                               (self.__ARGS.num_computing_agents), 1)),
-                                                      use_event_trigger=self.__ARGS.event_trigger, alpha_1=self.__ARGS.alpha_1,
+                                                      alpha_1=self.__ARGS.alpha_1,
                                                       alpha_2=self.__ARGS.alpha_2, alpha_3=self.__ARGS.alpha_3, alpha_4=self.__ARGS.alpha_4,
                                                       remove_redundant_constraints=self.__ARGS.remove_redundant_constraints,
                                                       ignore_message_loss=self.__ARGS.ignore_message_loss,
