@@ -22,3 +22,4 @@ packaging~=21.3
 diversipy~=0.8
 pyparsing~=3.0.9
 kiwisolver~=1.4.2
+pandas~=2.0.3
