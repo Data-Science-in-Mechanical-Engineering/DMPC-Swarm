@@ -126,8 +126,8 @@ if __name__ == "__main__":
 	# plot_comparison(10, 0, ignore_message_loss=False, quant=False)
 
 	ignore_message_loss = False
-	message_loss_prob = 0.1
-	num_cus = 3
+	message_loss_prob = 0.01
+	num_cus = 5
 	simulate_quantization = True
 	path = os.path.dirname(os.path.abspath(__file__)) + "/../../../batch_simulation_results/dmpc/" \
 		   + f"dmpc_simulation_results_iml{ignore_message_loss}_{int(100 * message_loss_prob + 1e-7)}_{num_cus}cus_{'quant' if simulate_quantization else ''}"

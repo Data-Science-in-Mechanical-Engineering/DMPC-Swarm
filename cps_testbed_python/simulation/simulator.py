@@ -445,26 +445,20 @@ class Simulation:
                     bgrImg[:, :, 0] = rgbImg[:, :, 2]
                     bgrImg[:, :, 2] = rgbImg[:, :, 0]
                     bgrImg = np.copy(bgrImg)
-                    color_ind = 0
-                    #for drone_id in self.__logger.positions:
-                    #    for pos in self.__logger.positions[drone_id]:
-                    #        balldetection.draw_point(bgrImg, pos, trans, intrinsic_matrix, colors[color_ind%len(colors)])
-                    #    color_ind += 1
 
                     # paint planned trajectories
                     for agent_idx in range(self.__ARGS.num_drones):
                         # draw target
-                        if self.__agents[self.__ARGS.num_drones].current_target_positions[self.__agents[agent_idx].ID] is not None:
+                        if self.__agents[self.__ARGS.num_drones].get_targets()[self.__agents[agent_idx].ID] is not None:
                             draw_circle(bgrImg,
-                                       self.__agents[self.__ARGS.num_drones].current_target_positions[self.__agents[agent_idx].ID],
+                                       self.__agents[self.__ARGS.num_drones].get_targets()[self.__agents[agent_idx].ID],
                                        trans, intrinsic_matrix,
                                        colors[agent_idx % len(colors)]
                                        )
-                        if self.__agents[self.__ARGS.num_drones].current_intermediate_target is not None:
-                            if self.__agents[agent_idx].ID in self.__agents[self.__ARGS.num_drones].current_intermediate_target:
+                        if self.__agents[self.__ARGS.num_drones].get_drone_intermediate_setpoint(self.__agents[agent_idx].ID) is not None:
                                 draw_cross(bgrImg,
-                                            self.__agents[self.__ARGS.num_drones].current_intermediate_target[
-                                                self.__agents[agent_idx].ID],
+                                            self.__agents[self.__ARGS.num_drones].get_drone_intermediate_setpoint(
+                                                self.__agents[agent_idx].ID),
                                             trans, intrinsic_matrix,
                                             colors[agent_idx % len(colors)],
                                             size=10, width=3

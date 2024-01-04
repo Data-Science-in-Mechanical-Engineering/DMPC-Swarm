@@ -193,11 +193,9 @@ class ComputeUnit(net.Agent):
         self.__trajectory_generator_options = trajectory_generator_options
         self.__pos_offset = pos_offset
         self.__use_optimized_constraints = use_optimized_constraints
-        self.__current_target_positions = {}
         self.__use_high_level_planner = use_high_level_planner
         self.__high_level_setpoints = None
         self.__deadlock_breaker_agents = []
-        self.__received_setpoints = None
         self.__using_intermediate_targets = False
         self.__hlp_lock = 0  # for 5 rounds, we block the hlp after the hlp has been called
         self.__agent_dodge_distance = agent_dodge_distance
@@ -319,6 +317,13 @@ class ComputeUnit(net.Agent):
 
         self.__setpoint_creator = setpoint_creator
 
+        # the difference between those two is that current_target_positions are the target positions last received
+        # from the corresponding drone. received_setpoints are the setpoints received from the CU that is the high level
+        # planner. If they are none, the CU tries to steer the drones to current_target_positions else to
+        # received_setpoints.
+        self.__received_setpoints = None
+        self.__current_target_positions = {}
+
         self.__num_trigger_times = {agent_id: 0 for agent_id in self.__drones_ids}
 
         self.__selected_UAVs = {"round": [], "selected": []}
@@ -369,7 +374,7 @@ class ComputeUnit(net.Agent):
         self.__drones_ids.sort()
         self.__agents_prios[m_id] = m_id
 
-        # first every agent should fly to the origin.
+        # first every drone should fly to the origin, until the CU receives the target position from the drone
         self.__setpoint_creator.add_drone(m_id, np.array([0.0, 0.0, 1.0]),
                                           int(round(self.__current_time / self.__communication_delta_t)))
 
@@ -546,17 +551,16 @@ class ComputeUnit(net.Agent):
                     # also recalculate setpoints
                     self.__recalculate_setpoints = True
 
-            # process targets from drone
-            if not self.__use_own_targets:
-                if message.ID in self.__current_target_positions.keys():
-                    # change target position if target changed
-                    if np.any(message.content.target_position != self.__current_target_positions[message.ID]):
-                        self.__current_target_positions[message.ID] = copy.deepcopy(message.content.target_position)
-                        self.__agents_prios[message.ID] = message.ID  # change prio for cooperative behaviour
-                        # target changed, thus recalculate setpoints
-                        self.__recalculate_setpoints = True
-                else:
+            # process targets from drone (note, if use_own_targets is true this is ignored)
+            if message.ID in self.__current_target_positions.keys():
+                # change target position if target changed
+                if np.any(message.content.target_position != self.__current_target_positions[message.ID]):
                     self.__current_target_positions[message.ID] = copy.deepcopy(message.content.target_position)
+                    self.__agents_prios[message.ID] = message.ID  # change prio for cooperative behaviour
+                    # target changed, thus recalculate setpoints
+                    self.__recalculate_setpoints = True
+            else:
+                self.__current_target_positions[message.ID] = copy.deepcopy(message.content.target_position)
 
             if not self.__ignore_message_loss:
                 trajectory_information = self.__trajectory_tracker.get_information(message.ID)
@@ -624,19 +628,21 @@ class ComputeUnit(net.Agent):
                     integration_start=self.__current_time - trajectory.trajectory_start_time)
                 print(f"Current_pos: {trajectory.current_state[0:3]}")
 
+        # only the CU responsible for the high level planning is responsible for the animation
         if self.__show_animation and self.__send_setpoints:
             trajectories = {}
             current_target_positions = {}
-            received_setpoints = {}
+            intermediate_targets = {}
             for i in range(0, len(self.__drones_ids)):
                 trajectories[self.__drones_ids[i]] = self.__trajectory_tracker.get_information(self.__drones_ids[i]).content[0].last_trajectory
-                if self.__current_target_positions is not None:
-                    if self.__drones_ids[i] in self.__current_target_positions:
-                        current_target_positions[self.__drones_ids[i]] = self.__current_target_positions[self.__drones_ids[i]]
+
+                # show targets and intermediate setpoints.
+                if self.__drones_ids[i] in self.__current_target_positions:
+                    current_target_positions[self.__drones_ids[i]] = self.get_targets()[self.__drones_ids[i]]
                 if self.__received_setpoints is not None:
                     if self.__drones_ids[i] in self.__received_setpoints:
-                        received_setpoints[self.__drones_ids[i]] = self.__received_setpoints[self.__drones_ids[i]]
-            self.__data_pipeline.set_trajectories(trajectories, current_target_positions, received_setpoints)
+                        intermediate_targets[self.__drones_ids[i]] = self.get_drone_intermediate_setpoint(self.__drones_ids[i])
+            self.__data_pipeline.set_trajectories(trajectories, current_target_positions, intermediate_targets)
 
     def round_finished(self, round_nmbr=None, received_network_members_message=True):
         """this function has to be called at the end of the round to tell the agent that the communication round is
@@ -670,7 +676,8 @@ class ComputeUnit(net.Agent):
         # information
         self.__prio_consensus = []
         for message_id, trajectory in self.__last_received_messages.items():
-            # the other cus has not send a cus, but somthing else. This means it has not calculated a new trajectory
+            # the other cus has not send a trajectory message, but something else.
+            # This means it has not calculated a new trajectory
             # and we can ignore it.
             if not isinstance(trajectory, TrajectoryMessageContent):
                 continue
@@ -765,9 +772,6 @@ class ComputeUnit(net.Agent):
                     self.__agent_state[id] = None
                     self.__agents_starting_times[id] = None
 
-            if self.__use_own_targets:
-                self.update_target_ids()
-                self.__current_target_positions = self.get_targets()
             if len(self.__drones_ids) <= self.__comp_agent_prio:
                 prios = self.calc_prio()
                 self.__last_received_messages = {self.ID: EmtpyContent(prios)}
@@ -823,8 +827,8 @@ class ComputeUnit(net.Agent):
                                                               trajectory_calculated_by=self.ID,
                                                               id=current_id, prios=prios)}
                         self.print('Distance to target for Agent ' + str(current_id) + ': ' + str(np.linalg.norm(
-                            self.__agent_state[current_id][0:3] - self.__current_target_positions[current_id])) + " m.")
-                        self.print(f"agent_state: {self.__agent_state[current_id][0:3]}, setpoint: {self.__current_target_positions[current_id]}")
+                            self.__agent_state[current_id][0:3] - self.get_targets()[current_id])) + " m.")
+                        self.print(f"agent_state: {self.__agent_state[current_id][0:3]}, setpoint: {self.get_targets()[current_id]}")
                         self.print(
                             'Optimization for Agent ' + str(current_id) + ' took ' + str(time.time() - start_time) + ' s.')
 
@@ -934,7 +938,7 @@ class ComputeUnit(net.Agent):
                 if j < self.__num_computing_agents:
                     for trajectory in self.__trajectory_tracker.get_information(id).content:
                         dynamic_trajectories[i] = trajectory.last_trajectory
-                        dynamic_target_points[i] = self.__current_target_positions[id]
+                        dynamic_target_points[i] = self.get_targets()[id]
                         if j == self.__comp_agent_prio: # or i == self. ?
                             index = i
                         self.__agents_prios[id] = 0 # self.__agents_prios[id] if np.linalg.norm(
@@ -948,7 +952,7 @@ class ComputeUnit(net.Agent):
                             np.round(age_trajectory, 0))  # needs to be rounded because if of float inaccuracies
                         dynamic_trajectory_age[i] = age_trajectory
 
-                        band_weights.append(calculate_band_weight(p_target=self.__current_target_positions[current_id],
+                        band_weights.append(calculate_band_weight(p_target=self.get_targets()[current_id],
                                                                   p_self=last_trajectory_current_agent[-1],
                                                                   p_other=trajectory.last_trajectory[-1],
                                                                   weight=weight_band))
@@ -956,7 +960,7 @@ class ComputeUnit(net.Agent):
                 else:
                     for trajectory in self.__trajectory_tracker.get_information(id).content:
                         static_trajectories[i - num_dynamic_trajectories] = trajectory.last_trajectory
-                        static_target_points[i - num_dynamic_trajectories] = self.__current_target_positions[id]
+                        static_target_points[i - num_dynamic_trajectories] = self.get_targets()[id]
                         self.__agents_prios[id] = self.__agents_prios[id] if np.linalg.norm(
                             static_target_points[i - num_dynamic_trajectories] -
                             static_trajectories[i - num_dynamic_trajectories][-1]) > 2 * self.__options.r_min else -1
@@ -969,7 +973,7 @@ class ComputeUnit(net.Agent):
                             np.round(age_trajectory, 0))  # needs to be rounded because if of float inaccuracies
                         static_trajectory_age[i - num_dynamic_trajectories] = age_trajectory
 
-                        band_weights.append(calculate_band_weight(p_target=self.__current_target_positions[current_id],
+                        band_weights.append(calculate_band_weight(p_target=self.get_targets()[current_id],
                                                                   p_self=last_trajectory_current_agent[-1],
                                                                   p_other=trajectory.last_trajectory[-1],
                                                                   weight=weight_band))
@@ -988,7 +992,7 @@ class ComputeUnit(net.Agent):
             for information in self.__trajectory_tracker.get_all_information().values():
                 for trajectory in information.content:
                     dynamic_trajectories[i] = trajectory.last_trajectory
-                    dynamic_target_points[i] = self.__current_target_positions[trajectory.id]
+                    dynamic_target_points[i] = self.get_targets()[trajectory.id]
                     if trajectory.id == current_id:
                         index = i
 
@@ -1008,16 +1012,10 @@ class ComputeUnit(net.Agent):
                 [previous_solution_shifted[min((i + delay_timesteps, len(self.__breakpoints) - 2))]
                  for i in range(len(self.__breakpoints) - 1)])
 
-        # check if there exists a high level setpoint. If an agent is newly added to the swarm, there might exist no
-        # high level setpoint for it.
-        high_level_setpoint = None
-        if self.__received_setpoints is not None:
-            if current_id in self.__received_setpoints:
-                high_level_setpoint = self.__received_setpoints[current_id]
         return self.__trajectory_generator.calculate_trajectory(
             current_id=current_id,
             current_state=self.__agent_state[current_id],
-            target_position=self.__current_target_positions[current_id],
+            target_position=self.get_drone_intermediate_setpoint(current_id),
             index=index,
             dynamic_trajectories=np.array(dynamic_trajectories),
             static_trajectories=np.array(static_trajectories),
@@ -1031,12 +1029,28 @@ class ComputeUnit(net.Agent):
             dynamic_trajectory_age=dynamic_trajectory_age,
             static_trajectory_age=static_trajectory_age,
             use_nonlinear_mpc=False,
-            high_level_setpoints=high_level_setpoint #None if self.__high_level_setpoints is None else self.__high_level_setpoints[current_id]
+            high_level_setpoints=None
         )
+
+    def get_drone_intermediate_setpoint(self, drone_id):
+        """returns the current intermediate setpoint the CU should steer the drone to."""
+        target_pos = None
+
+        if drone_id in self.__current_target_positions:
+            target_pos = self.__current_target_positions[drone_id]
+
+        if self.__received_setpoints is not None:
+            if drone_id in self.__received_setpoints:
+                target_pos = self.__received_setpoints[drone_id]
+
+        return target_pos
 
     def get_targets(self):
         """
-        Returns the current target position of each agent
+        Returns the current target position of each agent, that an agent wishes to fly to (or if we want the CU to calculate
+        their own targets, the ones of the setpoint creator)
+        The CU that calculates the high level planner might assign different intermediate setpoints to the drone to resolve deadlocks.
+        Those can be got via get_drone_intermediate_setpoint.
 
         Parameters
         ----------
@@ -1048,7 +1062,9 @@ class ComputeUnit(net.Agent):
                 priority based order of ondexes. The first M agents will be scheduled
         """
         if self.__use_own_targets:
-            setpoints, self.__recalculate_setpoints = self.__setpoint_creator.next_setpoints(self.__agent_state, round_nmbr=round(self.__current_time / self.__communication_delta_t))
+            setpoints, new_setpoints = self.__setpoint_creator.next_setpoints(self.__agent_state, round_nmbr=round(self.__current_time / self.__communication_delta_t))
+            if new_setpoints:
+                self.__recalculate_setpoints = new_setpoints
             return setpoints
         else:
             return self.__current_target_positions
@@ -1075,11 +1091,6 @@ class ComputeUnit(net.Agent):
             next_agents.append(next_agent)
         return next_agents[slot_no]
 
-    def update_target_ids(self):
-        """ updates the target IDs of the drones. If a drone has multiple targets it should fly to, the next target
-        is selected, if the previous one is reached """
-        return
-
     def calc_prio(self):
         """ calculates the prio for each agent """
         state_feeback_triggered_prio = 10000
@@ -1093,10 +1104,9 @@ class ComputeUnit(net.Agent):
         for i in range(0, len(self.__drones_ids)):
             own_id = self.__drones_ids[i]
             max_dist = np.linalg.norm(self.__options.max_position[own_id] - self.__options.min_position[own_id])
-            target_pos = self.get_targets()[own_id]
-            if self.__received_setpoints is not None:
-                if own_id in self.__received_setpoints:
-                    target_pos = self.__received_setpoints[own_id]
+
+            target_pos = self.get_drone_intermediate_setpoint(own_id)
+
             if target_pos is None or self.__trajectory_tracker.get_information(own_id).content[0].current_state is None:
                 d_target = 0
             else:
@@ -1154,9 +1164,9 @@ class ComputeUnit(net.Agent):
         trajectory = self.__trajectory_tracker.get_information(other_agent_id).content[0]
         current_pos[other_agent_id] = trajectory.current_state[0:3]
 
-        own_dist_to_target = np.linalg.norm(current_pos[agent_id] - self.__current_target_positions[agent_id])
+        own_dist_to_target = np.linalg.norm(current_pos[agent_id] - self.get_targets()[agent_id])
         other_agent_dist_to_target = np.linalg.norm(
-            current_pos[other_agent_id] - self.__current_target_positions[other_agent_id])
+            current_pos[other_agent_id] - self.get_targets()[other_agent_id])
         if other_agent_dist_to_target < self.__options.r_min * 0.9 and other_agent_dist_to_target < own_dist_to_target:
             return False
         elif other_agent_dist_to_target > own_dist_to_target:
@@ -1168,11 +1178,11 @@ class ComputeUnit(net.Agent):
                     if np.dot(
                             self.__trajectory_tracker.get_information(other_agent_id).content[0].current_state[3:6],
                             current_pos[agent_id] - current_pos[other_agent_id]) > 0 or np.dot(
-                        self.__current_target_positions[other_agent_id] -
+                        self.get_targets()[other_agent_id] -
                         self.__trajectory_tracker.get_information(other_agent_id).content[0].current_state[0:3],
                             current_pos[agent_id] - current_pos[other_agent_id]) > 0:
                         return True
-                    if np.dot(self.__current_target_positions[other_agent_id][0:3] - current_pos[other_agent_id][0:3],
+                    if np.dot(self.get_targets()[other_agent_id][0:3] - current_pos[other_agent_id][0:3],
                               current_pos[agent_id][0:3] - current_pos[other_agent_id][0:3]) > 0:
                         return True
         return False
@@ -1201,12 +1211,12 @@ class ComputeUnit(net.Agent):
                 if trajectory.current_state is not None:
                     current_pos[agent_id] = trajectory.current_state[0:3]
                 else:
-                    current_pos[agent_id] = self.__current_target_positions[agent_id]
+                    current_pos[agent_id] = None
 
-        # check if we already know the target positions. If we do not know all (one drones has not sent it),
-        # do not calculate
+        # check if we already know the target or current positions. If we do not know all (one drones has not sent it),
+        # do not calculate. This usually happens, when a drone is freshly added to the swarm.
         for agent_id in self.__drones_ids:
-            if self.__current_target_positions[agent_id] is None or current_pos[agent_id] is None:
+            if self.get_targets()[agent_id] is None or current_pos[agent_id] is None:
                 return
 
         # if we do not block the hlp, after it has been called, it will be called multiple times in a row,
@@ -1219,12 +1229,12 @@ class ComputeUnit(net.Agent):
         all_agents_close_to_target = True
         for agent_id in self.__drones_ids:
             if np.linalg.norm(
-                    current_pos[agent_id] - self.__current_target_positions[agent_id]) > self.__options.r_min * 0.9:
+                    current_pos[agent_id] - self.get_targets()[agent_id]) > self.__options.r_min * 0.9:
                 all_agents_close_to_target = False
         if all_agents_close_to_target:
             self.__high_level_setpoints = {}
             for agent_id in self.__drones_ids:
-                self.__high_level_setpoints[agent_id] = self.__current_target_positions[agent_id]
+                self.__high_level_setpoints[agent_id] = self.get_targets()[agent_id]
             return
 
         # check if agents are in a deadlock. If they are, either try to break the deadlock (or if we already trying
@@ -1253,10 +1263,8 @@ class ComputeUnit(net.Agent):
                 self.__recalculate_setpoints = False
                 self.__high_level_setpoints = {}
                 for agent_id in self.__drones_ids:
-                    self.__high_level_setpoints[agent_id] = self.__current_target_positions[agent_id]
+                    self.__high_level_setpoints[agent_id] = self.get_targets()[agent_id]
                 self.__using_intermediate_targets = 0
-                if not self.__simulated and False:
-                    self.__received_setpoints = copy.deepcopy(self.__high_level_setpoints)
                 self.__deadlock_breaker_agents = []
                 # do not calculate new intermediate setpoints
                 self.__hlp_lock = 0
@@ -1266,10 +1274,11 @@ class ComputeUnit(net.Agent):
             self.__hlp_lock = 0
             print("Deadlock!!!!")
         else:
+            # no need to calculate the high level planner
             return
 
         # calculate intermediate targets based on a similar algorithm given in Park et al. 2020
-        self.__high_level_setpoints = {agent_id: self.__current_target_positions[agent_id] for agent_id in self.__drones_ids}
+        self.__high_level_setpoints = {agent_id: self.get_targets()[agent_id] for agent_id in self.__drones_ids}
         self.__deadlock_breaker_agents = []
 
         for agent_id in self.__drones_ids:
@@ -1296,8 +1305,7 @@ class ComputeUnit(net.Agent):
                 # if an agent is closer to hlp_threshold_distance, use some sort of potential function approach
                 hlp_threshold_distance = 0.6
                 if closest_distance < hlp_threshold_distance:
-                    to_target = self.__current_target_positions[closest_agent] - current_pos[closest_agent]  # self.__trajectory_tracker.get_information(closest_agent).content[0].current_state[3:6]
-                    c = np.cross(current_pos[agent_id] - current_pos[closest_agent], to_target)
+                    to_target = self.get_targets()[closest_agent] - current_pos[closest_agent]  # self.__trajectory_tracker.get_information(closest_agent).content[0].current_state[3:6]
                     dodge_direction = current_pos[agent_id] - current_pos[closest_agent]
                     dodge_direction /= np.linalg.norm(dodge_direction)
                     # add some random noise. This helps breacking up deadlocks caused by symmetry.
@@ -1305,43 +1313,6 @@ class ComputeUnit(net.Agent):
 
     def __scaled_norm(self, vector):
         return np.linalg.norm(self.__downwash_scaling@vector)
-
-    def reset_setup(self, ):
-        """ resets the setup: Drone positions are set to their init positions and target positions are set to the 0th
-        target """
-
-        self.__agents_coefficients = {}
-        self.__agents_coefficients_calculated = {}
-        self.__agents_starting_times = {}  # times the corresponding coefficents start.
-        self.__agents_prios = {}
-
-        self.print("RESETTING")
-        for id in self.__drones_ids:
-            self.__agent_state[id] = np.hstack(
-                (copy.deepcopy(self.__init_positions[id]), np.zeros(2 * self.__init_positions[id].shape[0]))).ravel()
-            self.__agents_starting_states[id] = np.hstack(
-                (copy.deepcopy(self.__init_positions[id]), np.zeros(2 * self.__init_positions[id].shape[0]))).ravel()
-            self.__agent_target_id[id] = 0
-
-            self.__agents_coefficients[id] = \
-                tg.TrajectoryCoefficients(None,
-                                          False,
-                                          np.zeros((self.__prediction_horizon * int(self.__communication_delta_t /
-                                                                                    self.__options.optimization_variable_sample_time),
-                                                    self.__init_positions[id].shape[0])))
-
-            self.__agents_coefficients_calculated[id] = \
-                tg.TrajectoryCoefficients(None,
-                                          False,
-                                          np.zeros((self.__prediction_horizon * int(self.__communication_delta_t /
-                                                                                    self.__options.optimization_variable_sample_time),
-                                                    self.__init_positions[id].shape[0])))
-            self.__agents_starting_times[id] = 0
-            self.__agents_prios[id] = id
-
-        self.__number_rounds = 0
-        self.__all_targets_reached = False
-        self.__init_configuration = True
 
     @property
     def init_configuration(self):

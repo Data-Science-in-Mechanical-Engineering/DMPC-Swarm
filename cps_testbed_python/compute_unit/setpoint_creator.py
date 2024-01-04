@@ -81,7 +81,7 @@ class SetpointCreator:
 		self.__max_setpoint_age = max_setpoint_age
 		self.__demo_setpoints = demo_setpoints
 
-		self.__round = 0
+		self.__round = -1
 
 		self.__current_setpoints_reached = {drone_id: False for drone_id in drones}
 
