@@ -106,24 +106,7 @@ class SetpointCreator:
 	def testbeds(self):
 		return self.__testbeds
 
-	def check_current_setpoints_reached(self, drones_states):
-		"""
-
-		Returns:
-
-		"""
-		for drone_id in self.__current_setpoints:
-			# self.__current_setpoints_reached[drone_id] = False
-			# check if the crone is in the testbed and we know where it is
-			if self.__current_setpoints_age[drone_id] > self.__max_setpoint_age:
-				self.__current_setpoints_reached[drone_id] = True
-			"""if drone_id in drones_states and self.__current_setpoints[drone_id] is not None:
-				if drones_states[drone_id] is not None:
-					# if np.linalg.norm(drones_states[drone_id][0:3] - self.__current_setpoints[drone_id]) < self.__target_reached_dist \
-					if self.__current_setpoints_age[drone_id] > self.__max_setpoint_age:
-						self.__current_setpoints_reached[drone_id] = True"""
-
-	def next_setpoints(self, drones_states, round_nmbr):
+	def next_setpoints(self, round_nmbr):
 		"""
 
 		Args:
@@ -135,7 +118,6 @@ class SetpointCreator:
 		if round_nmbr != self.__round:
 			self.__old_setpoints = copy.deepcopy(self.__current_setpoints)
 		self.__round = round_nmbr
-		self.check_current_setpoints_reached(drones_states)
 
 		for drone_id in self.__drones:
 			if self.__demo_setpoints == CIRCLE:
