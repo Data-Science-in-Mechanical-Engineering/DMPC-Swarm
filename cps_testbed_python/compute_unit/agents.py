@@ -476,7 +476,7 @@ class ComputeUnit(net.Agent):
                 self.__recalculate_setpoints = True
 
             for trajectory in self.__trajectory_tracker.get_information(message.ID).content:
-                if np.linalg.norm(trajectory.current_state[0:3] - message.content.state[0:3]) > self.__state_feedback_trigger_dist and False:
+                if np.linalg.norm(trajectory.current_state[0:3] - message.content.state[0:3]) > self.__state_feedback_trigger_dist:
                     print(f"{message.ID}: {trajectory.current_state} {message.content.state[0:3]}")
                     self.__state_feedback_triggered.append(message.ID)
                     # trajectory.current_state = np.zeros(trajectory.current_state.shape)
@@ -487,11 +487,13 @@ class ComputeUnit(net.Agent):
                     # in round_finished()
                     coeff = None
                     if trajectory.coefficients.valid:
-                        coeff = np.zeros(trajectory.coefficients.coefficients.shape)
-                        trajectory.coefficients.coefficients = coeff
+                        #coeff = np.zeros(trajectory.coefficients.coefficients.shape)
+                        #trajectory.coefficients.coefficients = coeff
+                        coeff=trajectory.coefficients.coefficients
                     else:
-                        coeff = np.zeros(trajectory.coefficients.alternative_trajectory.shape)
-                        trajectory.coefficients.alternative_trajectory = coeff
+                        #coeff = np.zeros(trajectory.coefficients.alternative_trajectory.shape)
+                        #trajectory.coefficients.alternative_trajectory = coeff
+                        coeff = trajectory.coefficients.alternative_trajectory
                     delay_timesteps = (self.__current_time - trajectory.trajectory_start_time) \
                                       / self.__options.optimization_variable_sample_time
                     delay_timesteps = int(np.round(delay_timesteps, 0))  # needs to be rounded because if of float inaccuracies
@@ -1522,11 +1524,11 @@ class RemoteDroneAgent(net.Agent):
         if np.linalg.norm(self.__traj_state[0:3] - self.__state[0:3]) > self.__state_feedback_trigger_dist:
             self.__traj_state[0:3] = self.__state[0:3]
             #self.__traj_state[3:] = 0
-            if self.__planned_trajectory_coefficients.valid:
+            """if self.__planned_trajectory_coefficients.valid:
                 self.__planned_trajectory_coefficients.coefficients = np.zeros(self.__planned_trajectory_coefficients.coefficients.shape)
             else:
                 self.__planned_trajectory_coefficients.alternative_trajectory = np.zeros(
-                    self.__planned_trajectory_coefficients.alternative_trajectory.shape)
+                    self.__planned_trajectory_coefficients.alternative_trajectory.shape)"""
 
     def print(self, text):
         print("[" + str(self.ID) + "]: " + str(text))

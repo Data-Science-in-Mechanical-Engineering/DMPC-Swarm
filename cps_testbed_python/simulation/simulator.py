@@ -379,31 +379,13 @@ class Simulation:
                 obs, reward, done, info = self.__env.step(action)
 
                 if i % (COM_EVERY_N_STEPS) == 0:
-                    # the current position should be set before the network transmits its data (in reality the measurments
-                    # are taken after the end of communication round)
 
-                    all_targets_reached = True
+                    self.__network.step()
+
+                    # the current position should be set after the network transmits its data (because the drones
+                    # send their current position predicted by the whole round time.)
                     for j in range(0, self.__ARGS.num_drones):
                         self.__agents[j].position = obs[str(j)]["state"][0:3]
-
-                        dist_to_target = np.linalg.norm(self.__agents[j].position - self.__agents[j].target_position)
-                        # set transition time only, if it's not already set to not override it
-                        reached_target = self.__agents[j].target_reached
-                        if dist_to_target < critical_dist_to_target and not reached_target:
-                            self.__agents[j].transition_time = i / self.__env.SIM_FREQ
-                            self.__agents[j].target_reached = True
-                        elif dist_to_target >= critical_dist_to_target:
-                            self.__agents[j].transition_time = None
-                            self.__agents[j].target_reached = False
-
-                        all_targets_reached = all_targets_reached and reached_target
-                        # print(self.__agents[j].traj_state[:3])
-
-                    # if all_targets_reached:
-                    #     print("all targets reached")
-
-                    # step network
-                    self.__network.step()
 
                     #for jgh in range(6):
                     #    temp = self.__computing_agents[0].get_pos(jgh)
@@ -477,6 +459,7 @@ class Simulation:
                     num_image += 1
 
                 next_state = np.zeros((self.__ARGS.num_drones, 9))
+
                 #### Compute control for the current way point #############
                 for j in range(self.__ARGS.num_drones):
                     control_interval = 1.0 / self.__ARGS.control_freq_hz
@@ -510,13 +493,6 @@ class Simulation:
                             (self.__agents[j].position - self.__agents[n].position) @ scaling_matrix) for n in
                             range(0, self.__ARGS.num_drones) if n != j])
                         self.__agents[j].crashed = True
-
-                #### Log the simulation ####################################
-                if desample_time % self.__desample == 0:
-                    for j in range(self.__ARGS.num_drones):
-                        self.__logger.log(drone=j, timestamp=i / self.__env.SIM_FREQ, state=obs[str(j)]["state"],
-                                          control=np.hstack((next_state[j, :3], next_state[j, 3:6], np.zeros(6))))
-                        self.__logger.log_position(j, i / self.__env.SIM_FREQ, obs[str(j)]["state"][0:3], next_state[j, :3])
 
                 desample_time += 1
                 #### Sync the simulation ###################################

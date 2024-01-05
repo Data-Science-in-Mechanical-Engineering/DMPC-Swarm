@@ -182,7 +182,7 @@ if __name__ == "__main__":
 
 	# only used if use_own_targets is set.
 	ARGS.setpoint_creator = setpoint_creator.SetpointCreator(ARGS.drones, ARGS.testbeds,
-														 	 demo_setpoints=setpoint_creator.CIRCLE)
+														 	 demo_setpoints=setpoint_creator.DEMO_AI_WEEK)
 
 	origin = np.array(ARGS.testbeds["Vicon"][0]) + np.array(ARGS.testbeds["Vicon"][2])
 	testbed_size = np.array(ARGS.testbeds["Vicon"][1]) - np.array(ARGS.testbeds["Vicon"][0])
@@ -232,10 +232,10 @@ if __name__ == "__main__":
 		ARGS_array.append(ARGS_for_simulation)
 
 	if ARGS.sweep_parameters:
-		for num_cus in [3, 5, 7, 9, 11, 13, 15]:
-			for message_loss_prob in [0.01, 0.1]:
-				for simulate_quantization in [True]:
-					for ignore_message_loss in [False]:
+		for num_cus in [2, 3, 5, 7, 9, 11, 13, 15]:
+			for message_loss_prob in [0.01]:
+				for simulate_quantization in [False]:
+					for ignore_message_loss in [True]:
 						call_batch_simulation_param_varying(ARGS_array, name_files=f"dmpc_simulation_results_iml{ignore_message_loss}_{int(100*message_loss_prob+1e-7)}_{num_cus}cus_{'quant' if simulate_quantization else ''}",
 											  message_loss_probability=message_loss_prob,
 											  ignore_message_loss=ignore_message_loss,

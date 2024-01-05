@@ -169,6 +169,8 @@ class Network:
 
         self.__round = 0
 
+        random.seed(0)
+
     def add_agent(self, agent):
         """adds agent to network
 
