@@ -621,6 +621,9 @@ class ComputeUnit(net.Agent):
             self.__last_received_messages = {self.ID: EmtpyContent([])}
             return
 
+        n = int(round(self.__current_time / self.__communication_delta_t))
+        self.__comp_agent_prio = (self.__comp_agent_prio + n) % self.__num_computing_agents
+
         # if information is not unique at this point, we know that one drone was not able to verify that it got the
         # trajectory (because the acknowledge-message was lost). This means that at this point the trajectories saved
         # are no longer fullfiling all constraints and thus are deprecated.
@@ -731,6 +734,7 @@ class ComputeUnit(net.Agent):
                     # ordered_indexes = self.order_agents_by_priority()
                     print(f"self.__prio_consensus: {self.__prio_consensus}")
                     ordered_indexes = np.argsort(-np.array(self.__prio_consensus), kind="stable")  # self.order_agents_by_priority()#
+
                     self.__current_agent = ordered_indexes[self.__comp_agent_prio]
                     current_id = self.__drones_ids[self.__current_agent]
                     self.__num_trigger_times[current_id] += 1

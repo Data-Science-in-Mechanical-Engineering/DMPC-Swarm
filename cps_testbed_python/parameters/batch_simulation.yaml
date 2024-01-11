@@ -2,6 +2,7 @@ name: "batch_simulation"
 
 # testbed setup
 computing_agent_ids: [40, 41]           # ids of compute units. Length of array defines number of CUs
+num_computing_agents: 2
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
   Vicon: [[-2.0, -2.0, 0.3], [2.0, 2.0, 3.0], [0, 0, 0]]  #
 
@@ -16,6 +17,7 @@ save_video: False
 resolution_video: 512   # width of the video in pixels. Height is calculated as resolution_video*9/16
 simulate_quantization: False  # simulate quantization during communication
 sim_steps_per_control: 4
+folder_name: "cu_number"
 
 message_loss_probability: 0.0
 
