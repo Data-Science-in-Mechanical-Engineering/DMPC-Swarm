@@ -93,6 +93,9 @@ def call_batch_simulation_hpc(ARGS_array):
 
         create_dir(ARGS.path)
 
+    print(ARGS_array[0].path)
+    print(ARGS_array[0].num_drones)
+    print(f"/ARGS_{ARGS_array[0].num_drones}_drones.pkl")
     with open(ARGS_array[0].path + f"/ARGS_{ARGS_array[0].num_drones}_drones.pkl", 'wb') as out_file:
         pickle.dump(ARGS_array, out_file)
 
