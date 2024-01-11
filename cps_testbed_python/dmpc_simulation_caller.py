@@ -199,7 +199,7 @@ if __name__ == "__main__":
 
     # if the num_cus is set, use this instead of the ifs of the c
     if hasattr(ARGS, "num_computing_agents"):
-        ARGS.computing_agent_ids = [40 + i for i in range(ARGS.num_cus)]
+        ARGS.computing_agent_ids = [40 + i for i in range(ARGS.num_computing_agents)]
 
     ARGS.num_computing_agents = len(ARGS.computing_agent_ids)
 
