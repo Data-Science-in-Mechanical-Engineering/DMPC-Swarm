@@ -284,7 +284,7 @@ class Simulation:
             self.__computing_agents.append(computing_agent)
 
         self.__network = net.Network(self.__agents, rounds_lost=self.__ARGS.rounds_lost,
-                                     message_loss=self.__ARGS.message_loss_probability)
+                                     message_loss=self.__ARGS.message_loss_probability, seed=ARGS.sim_id)
         self.__network.add_slot_group(slot_group_trajectory)
         self.__network.add_slot_group(slot_group_state)
         self.__network.add_slot_group(slot_group_setpoints)
