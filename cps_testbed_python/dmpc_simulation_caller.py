@@ -89,7 +89,7 @@ def call_batch_simulation_param_varying(ARGS_array, folder_name, name_files="tes
 def call_batch_simulation_hpc(ARGS_array):
     for ARGS in ARGS_array:
         ARGS.path = os.path.dirname(os.path.abspath(__file__)) + f"/../../hpc_runs/{ARGS.name}/" \
-                    + f"dmpc_simulation_results_iml{ARGS.ignore_message_loss}_{int(100 * ARGS.message_loss_prob + 1e-7)}_{ARGS.num_cus}cus_{'quant' if ARGS.simulate_quantization else ''}",
+                    + f"dmpc_simulation_results_iml{ARGS.ignore_message_loss}_{int(100 * ARGS.message_loss_probability + 1e-7)}_{ARGS.num_cus}cus_{'quant' if ARGS.simulate_quantization else ''}",
 
         create_dir(ARGS.path)
 

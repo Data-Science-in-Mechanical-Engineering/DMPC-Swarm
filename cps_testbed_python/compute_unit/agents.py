@@ -157,7 +157,8 @@ class ComputeUnit(net.Agent):
                  save_snapshot_times=[], snapshot_saving_path="",
                  simulate_quantization=False,
                  show_animation=False,
-                 min_num_drones=0):
+                 min_num_drones=0,
+                 show_print=True):
         """
 
         Parameters
@@ -312,6 +313,7 @@ class ComputeUnit(net.Agent):
 
         self.__min_num_drones = min_num_drones    # minimum number of drones over which the CU starts running
 
+        self.__show_print = show_print
 
     def load_trigger(self, trigger):
         self.__trigger = trigger
@@ -451,9 +453,9 @@ class ComputeUnit(net.Agent):
                 self.__last_received_messages[message.ID] = copy.deepcopy(message.content)
             else:
                 if message.ID != self.ID:
-                    print("sssssssssss")
-                    print(self.__system_state)
-                    print(self.__last_system_state)
+                    self.print("sssssssssss")
+                    self.print(self.__system_state)
+                    self.print(self.__last_system_state)
                 assert message.ID == self.ID
 
         if message.slot_group_id == self.__slot_group_drone_state:
@@ -477,7 +479,7 @@ class ComputeUnit(net.Agent):
 
             for trajectory in self.__trajectory_tracker.get_information(message.ID).content:
                 if np.linalg.norm(trajectory.current_state[0:3] - message.content.state[0:3]) > self.__state_feedback_trigger_dist:
-                    print(f"{message.ID}: {trajectory.current_state} {message.content.state[0:3]}")
+                    self.print(f"{message.ID}: {trajectory.current_state} {message.content.state[0:3]}")
                     self.__state_feedback_triggered.append(message.ID)
                     # trajectory.current_state = np.zeros(trajectory.current_state.shape)
                     trajectory.current_state[0:3] = copy.deepcopy(message.content.state[0:3])
@@ -506,7 +508,7 @@ class ComputeUnit(net.Agent):
                                                              self.__state_trajectory_vector_matrix[0] @
                                                              trajectory.current_state), self.__last_trajectory_shape)
 
-                    print("3333333333333333333")
+                    self.print("3333333333333333333")
 
 
                     # also recalculate setpoints
@@ -530,7 +532,7 @@ class ComputeUnit(net.Agent):
                     # this trajectory is the trajectory the
                     # UAV is flying.
                     if trajectories_equal(trajectory, message.content):
-                        print(f"Trajectories equal: {message.ID}, {message.content.trajectory_calculated_by}, "
+                        self.print(f"Trajectories equal: {message.ID}, {message.content.trajectory_calculated_by}, "
                               f"{message.content.trajectory_start_time}")
                         trajectory_to_change = trajectory
                         break
@@ -587,7 +589,7 @@ class ComputeUnit(net.Agent):
                     trajectory.coefficients,
                     x0=trajectory.current_state,
                     integration_start=self.__current_time - trajectory.trajectory_start_time)
-                print(f"Current_pos: {trajectory.current_state[0:3]}")
+                self.print(f"Current_pos: {trajectory.current_state[0:3]}")
 
         # only the CU responsible for the high level planning is responsible for the animation
         if self.__show_animation and self.__send_setpoints:
@@ -688,7 +690,7 @@ class ComputeUnit(net.Agent):
         if (not self.__num_trajectory_messages_received == len(self.__computing_agents_ids)) and not self.__ignore_message_loss:
             for information in self.__trajectory_tracker.get_all_information().values():
                 information.set_deprecated()
-            print(f"Lost messages of CU! {self.__num_trajectory_messages_received}")
+            self.print(f"Lost messages of CU! {self.__num_trajectory_messages_received}")
         self.__num_trajectory_messages_received = 0
         assert self.__num_trajectory_messages_received <= len(self.__computing_agents_ids)
 
@@ -732,7 +734,7 @@ class ComputeUnit(net.Agent):
                 else:
                     # select next agent
                     # ordered_indexes = self.order_agents_by_priority()
-                    print(f"self.__prio_consensus: {self.__prio_consensus}")
+                    self.print(f"self.__prio_consensus: {self.__prio_consensus}")
                     ordered_indexes = np.argsort(-np.array(self.__prio_consensus), kind="stable")  # self.order_agents_by_priority()#
 
                     self.__current_agent = ordered_indexes[self.__comp_agent_prio]
@@ -787,7 +789,7 @@ class ComputeUnit(net.Agent):
                 self.ID: EmtpyContent(prios)}
             self.__system_state = RECOVER_INFORMATION_NOTIFY
         elif self.__system_state == RECOVER_INFORMATION_NOTIFY:
-            print("RECOVER_INFORMATION_NOTIFY")
+            self.print("RECOVER_INFORMATION_NOTIFY")
             self.__last_received_messages = {}
             for drone_id in self.__trajectory_tracker.keys:
                 if self.__trajectory_tracker.get_information(drone_id).is_deprecated:
@@ -801,12 +803,12 @@ class ComputeUnit(net.Agent):
             else:
                 self.__system_state = WAIT_FOR_UPDATE
         elif self.__system_state == WAIT_FOR_UPDATE:
-            print("WAIT_FOR_UPDATE")
+            self.print("WAIT_FOR_UPDATE")
             # send nothing and wait for drone to send
             self.__last_received_messages = {}
             self.__system_state = RECOVER_INFORMATION_NOTIFY
 
-        print(f"final self.__system_state {self.__system_state}")
+        self.print(f"final self.__system_state {self.__system_state}")
         # start time of the newly calculated data.
         self.__number_rounds = self.__number_rounds + 1
         self.__current_time = self.__current_time + self.__communication_delta_t
@@ -1067,12 +1069,11 @@ class ComputeUnit(net.Agent):
                 prios[i] = int(round(prios[i] / (self.__alpha_1 + self.__alpha_2 + self.__alpha_3 + self.__alpha_4*0)*(2**quantization_bit_number-1)))
                 if prios[i] > 2**quantization_bit_number-2:
                     prios[i] = int(2 ** quantization_bit_number - 2)
-        # print("zzzzzzzzzzzzzzz")
-        # print(prios)
         return prios
 
     def print(self, text):
-        print("[" + str(self.ID) + "]: " + str(text))
+        if self.__show_print:
+            print("[" + str(self.ID) + "]: " + str(text))
 
     def deadlock_breaker_condition(self, drone_id, other_drone_id, check_time=False):
         if other_drone_id == drone_id:
@@ -1107,7 +1108,7 @@ class ComputeUnit(net.Agent):
         return False
 
     def round_started(self):
-        print("round started!")
+        self.print("round started!")
         if not self.__use_high_level_planner:
             return
 
@@ -1191,7 +1192,7 @@ class ComputeUnit(net.Agent):
             else:
                 self.__using_intermediate_targets = True
             self.__hlp_lock = 0
-            print("Deadlock!!!!")
+            self.print("Deadlock!!!!")
         else:
             # no need to calculate the high level planner
             return
@@ -1329,7 +1330,7 @@ class RemoteDroneAgent(net.Agent):
                  slot_group_state_id=None, slot_group_ack_id=100000, state_feedback_trigger_dist=0.5,
                  load_cus_round_nmbr=0,
                  trajectory_start_time=0,
-                 trajectory_cu_id=-1):
+                 trajectory_cu_id=-1, show_print=True):
         """
 
         Parameters
@@ -1415,6 +1416,8 @@ class RemoteDroneAgent(net.Agent):
         self.__state_measured = False
 
         self.__current_setpoint = self.__init_state
+
+        self.__show_print = show_print
 
     def get_prio(self, slot_group_id):
         """returns the priority for the scheulder, because the system is not event triggered, it just returns zero
@@ -1535,7 +1538,8 @@ class RemoteDroneAgent(net.Agent):
                     self.__planned_trajectory_coefficients.alternative_trajectory.shape)"""
 
     def print(self, text):
-        print("[" + str(self.ID) + "]: " + str(text))
+        if self.__show_print:
+            print("[" + str(self.ID) + "]: " + str(text))
 
     def round_started(self):
         pass

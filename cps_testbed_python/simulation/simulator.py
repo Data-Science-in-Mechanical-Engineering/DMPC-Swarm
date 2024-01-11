@@ -209,7 +209,6 @@ class Simulation:
                         trajectory = cu.get_trajectory_tracker().get_information(self.__ARGS.drone_ids[i]).content[0]
                     else:
                         trajectory = cu.get_trajectory_tracker().get_information(self.__ARGS.drone_ids[i]).content[1]
-                        print("44444444444")
                         print(trajectory.trajectory_start_time)
                         if abs(trajectory.trajectory_start_time - (self.__ARGS.load_cus_round_nmbr)*0.2) < 1e-5:
                             assert False
@@ -234,7 +233,8 @@ class Simulation:
                                         other_drones_ids=self.__ARGS.drone_ids,
                                         load_cus_round_nmbr=0 if not self.__ARGS.load_cus else self.__ARGS.load_cus_round_nmbr + 1,
                                         trajectory_start_time= 0 if not self.__ARGS.load_cus else trajectory_start_time,
-                                        trajectory_cu_id=-1 if not self.__ARGS.load_cus else trajectory_cu_id)
+                                        trajectory_cu_id=-1 if not self.__ARGS.load_cus else trajectory_cu_id,
+                                        show_print=ARGS.show_print)
 
             agent_ids[i] = drone_id
             self.__agents.append(agent)
@@ -269,7 +269,8 @@ class Simulation:
                                                  weight_band=self.__ARGS.weight_band,
                                                  simulate_quantization=self.__ARGS.simulate_quantization,
                                                  save_snapshot_times=self.__ARGS.save_snapshot_times,
-                                                 show_animation=i==self.__ARGS.num_drones and self.__ARGS.show_animation)
+                                                 show_animation=i==self.__ARGS.num_drones and self.__ARGS.show_animation,
+                                                 show_print=ARGS.show_print)
 
                 for drone_id in self.__ARGS.drone_ids:
                     computing_agent.add_new_drone(drone_id)
@@ -489,9 +490,9 @@ class Simulation:
                             (self.__agents[j].state[0:3] - self.__agents[
                                 n].state[0:3]) @ scaling_matrix) < self.__ARGS.r_min_crit for n in
                             range(0, self.__ARGS.num_drones) if n != j]):
-                        print([np.linalg.norm(
+                        """print([np.linalg.norm(
                             (self.__agents[j].position - self.__agents[n].position) @ scaling_matrix) for n in
-                            range(0, self.__ARGS.num_drones) if n != j])
+                            range(0, self.__ARGS.num_drones) if n != j])"""
                         self.__agents[j].crashed = True
 
                 desample_time += 1
