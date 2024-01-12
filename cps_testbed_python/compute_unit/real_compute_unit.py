@@ -1124,8 +1124,7 @@ class ComputingUnit:
             width_band=self.__ARGS.width_band,
         )
 
-        if self.__ARGS.dynamic_swarm:
-            self.__ARGS.computing_agent_ids = [self.__cu_id]
+        self.__ARGS.computing_agent_ids = [self.__cu_id]
 
         self.computation_agent = da.ComputeUnit(ID=self.__cu_id,
                                                 slot_group_planned_trajectory_id=self.__message_type_trajectory_id,
@@ -1145,8 +1144,7 @@ class ComputingUnit:
                                                 simulated=False,
                                                 ignore_message_loss=self.__ARGS.ignore_message_loss,
                                                 use_high_level_planner=self.__ARGS.use_high_level_planner,
-                                                use_own_targets=True,  #not self.__ARGS.dynamic_swarm,
-                                                #use_optimized_constraints=self.__ARGS.use_optimized_constraints,
+                                                use_own_targets=True,
                                                 setpoint_creator=self.__ARGS.setpoint_creator,
                                                 slot_group_setpoints_id=self.__slot_group_setpoints_id,
                                                 weight_band=self.__ARGS.weight_band,
