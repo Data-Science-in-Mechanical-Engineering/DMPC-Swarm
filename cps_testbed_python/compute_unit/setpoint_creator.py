@@ -408,6 +408,8 @@ class SetpointCreator:
 			return back_pos[drone_id - 1]
 
 	def generate_circle_periodic_setpoint(self, drone_id):
+		if drone_id not in self.__angles:
+			return np.array([0, 0, 0])
 		name_testbed = self.__drones[drone_id]
 		min_pos = np.array(self.__testbeds[name_testbed][0])
 		max_pos = np.array(self.__testbeds[name_testbed][1])
@@ -416,8 +418,8 @@ class SetpointCreator:
 		mean = (min_pos + max_pos) / 2
 		angle = self.__angles[drone_id]
 		mean[2] = BASIS_HEIGHT
-		if self.__round % 100 < 50:
-			angle += math.pi
+		if self.__round % 200 < 100:
+			angle += math.pi * 0.9
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean + offset
 
 	def add_drone(self, drone_id, state, round):

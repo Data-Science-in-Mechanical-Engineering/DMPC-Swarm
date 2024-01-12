@@ -18,6 +18,8 @@ resolution_video: 512   # width of the video in pixels. Height is calculated as 
 simulate_quantization: False  # simulate quantization during communication
 sim_steps_per_control: 4
 
+show_print: True
+
 message_loss_probability: 0.0
 
 sweep_parameters: False

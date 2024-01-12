@@ -158,9 +158,7 @@ class ComputeUnit(net.Agent):
                  simulate_quantization=False,
                  show_animation=False,
                  min_num_drones=0,
-                 show_print=True,
-                 save_drone_trajectories=False,
-                 name_run="",
+                 show_print=True
                  ):
         """
 
@@ -318,10 +316,6 @@ class ComputeUnit(net.Agent):
 
         self.__show_print = show_print
 
-        self.__save_drone_trajectories = save_drone_trajectories
-        self.__drone_trajectory_logger = {}
-        self.__name_run = name_run
-
     def load_trigger(self, trigger):
         self.__trigger = trigger
 
@@ -355,8 +349,6 @@ class ComputeUnit(net.Agent):
         self.__current_target_positions[m_id] = np.array([0.0, 0.0, 1.0])
 
         self.__num_trigger_times[m_id] = 0
-
-        self.__drone_trajectory_logger[m_id] = {}
 
     def remove_drone(self, m_id):
         self.__trajectory_tracker.delete_information(m_id)
@@ -473,12 +465,6 @@ class ComputeUnit(net.Agent):
             message.content.state[0:3] += self.__pos_offset[message.ID]
             self.print(f"Received pos from {message.ID}: {message.content.state}")
 
-            # write pos into the buffer.
-            if self.__save_drone_trajectories:
-                self.__drone_trajectory_logger[message.ID][round(1000*self.__current_time)] = (
-                    copy.deepcopy(message.content.state[0:3]),
-                    copy.deepcopy(self.__setpoint_creator.get_current_setpoints(message.ID)))
-
             message.content.target_position += self.__pos_offset[message.ID]
             # The state is measured at the beginning of the round and extrapolated by drone
             # init drone state if it has to be init. (The state is measured at the beginning of the last round.)
@@ -537,7 +523,8 @@ class ComputeUnit(net.Agent):
                     self.__current_target_positions[message.ID] = copy.deepcopy(message.content.target_position)
                     self.__drones_prios[message.ID] = message.ID  # change prio for cooperative behaviour
                     # target changed, thus recalculate setpoints
-                    self.__recalculate_setpoints = True
+                    if not self.__use_own_targets:
+                        self.__recalculate_setpoints = True
             else:
                 self.__current_target_positions[message.ID] = copy.deepcopy(message.content.target_position)
 
@@ -838,10 +825,6 @@ class ComputeUnit(net.Agent):
                 with open(f'../../experiment_measurements/num_trigger_times{self.ID}_{int(self.__alpha_1)}_{int(self.__alpha_2)}_{int(self.__alpha_3)}_{int(self.__alpha_4)}.p', 'wb') as handle:
                     pickle.dump({"num_trigger_times": self.__num_trigger_times, "selected_UAVs": self.__selected_UAVs}, handle)
 
-        if self.__save_drone_trajectories:
-            if int(round(self.__current_time / self.__communication_delta_t)) % 5 == 0:
-                with open(f'../../experiment_measurements/drone_trajectory_logger_{self.__name_run}.p', 'wb') as handle:
-                    pickle.dump(self.__drone_trajectory_logger, handle)
 
         if int(round(self.__current_time / self.__communication_delta_t)) % 5 == 0 and not self.__simulated:
             with open(f'../../experiment_measurements/num_trigger_times_sim{self.ID}_{int(self.__alpha_1)}_{int(self.__alpha_2)}_{int(self.__alpha_3)}_{int(self.__alpha_4)}.p', 'wb') as handle:
@@ -1144,6 +1127,7 @@ class ComputeUnit(net.Agent):
         # if the CU is not the one calculating the high level targets, do not calculate them.
         if not self.__send_setpoints: #and self.__simulated:
             return
+        self.print("round started!!!!")
         # get the current position of all agents.
         current_pos = {}
         for drone_id in self.__drones_ids:
@@ -1153,6 +1137,7 @@ class ComputeUnit(net.Agent):
                     current_pos[drone_id] = trajectory.current_state[0:3]
                 else:
                     current_pos[drone_id] = None
+                    print("---------------------------------------")
 
         # check if we already know the target or current positions. If we do not know all (one drones has not sent it),
         # do not calculate. This usually happens, when a drone is freshly added to the swarm.
@@ -1160,6 +1145,7 @@ class ComputeUnit(net.Agent):
             if self.get_targets()[drone_id] is None or current_pos[drone_id] is None:
                 return
 
+        print(f"pppppppppppppppppp {self.__recalculate_setpoints}")
         # if we do not block the hlp, after it has been called, it will be called multiple times in a row,
         # because the drones need a while to move and it will otherwise think, the drones are in a deadlock again
         self.__hlp_lock += 1

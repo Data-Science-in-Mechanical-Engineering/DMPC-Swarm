@@ -14,6 +14,8 @@ import copy
 
 import os
 
+import pickle
+
 
 def parallel_simulation_wrapper(computation_unit):
     computation_unit.run()
@@ -729,6 +731,8 @@ class ComputingUnit:
 
         self.__wants_to_leave = False   # we set this true, if the CU wants to leave the swarm.
 
+        self.__drone_trajectory_logger = {}
+
         if os.path.exists(f"../../experiment_measurements/ShutdownCU{self.__cu_id}.txt"):
             os.remove(f"../../experiment_measurements/ShutdownCU{self.__cu_id}.txt")
 
@@ -917,11 +921,23 @@ class ComputingUnit:
         messages_tx = []
         num_all_targets_reached = 0
         round_mbr = None
+
+        current_targets = self.__computation_agent.get_targets()
+
         for m in messages_rx:
+
+            if isinstance(m, StateMessage):
+                if m.m_id not in self.__drone_trajectory_logger:
+                    self.__drone_trajectory_logger[m.m_id] = {}
+
+                self.__drone_trajectory_logger[m.m_id][self.__round_nmbr] = (
+                        copy.deepcopy(m.state[0:3]),
+                        copy.deepcopy(current_targets[m.m_id]))
 
             # message loss
             if (self.__ARGS.message_loss_period_start <= self.__round_nmbr <= self.__ARGS.message_loss_period_end
                     and random.random() < self.__ARGS.message_loss_probability):
+                print("Message lost.!!!!!!!!!!!!!!!!!!")
                 continue
 
             m_temp = None
@@ -1024,6 +1040,10 @@ class ComputingUnit:
             m_temp.m_id = 200
             m_temp.target_positions = setpoint_message.content.setpoints
             messages_tx.append(m_temp)
+
+        if self.__round_nmbr % 5 == 0:
+            with open(f'../../experiment_measurements/drone_trajectory_logger_{self.__ARGS.name}.p', 'wb') as handle:
+                pickle.dump(self.__drone_trajectory_logger, handle)
 
         return messages_tx
 
@@ -1154,8 +1174,6 @@ class ComputingUnit:
                                                 show_animation=True,
                                                 min_num_drones=self.__num_static_drones,
                                                 show_print=self.__ARGS.show_print,
-                                                save_drone_trajectories=True,
-                                                name_run=self.__ARGS.name
                                                 )
 
     def send_socket(self, message: message.MixerMessage):
