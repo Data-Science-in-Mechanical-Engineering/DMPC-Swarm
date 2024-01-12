@@ -12,6 +12,8 @@ folder_name: "testbed_experiments"
 show_print: True
 
 message_loss_probability: 0.0
+message_loss_period_start: 500000
+message_loss_period_end: 600000
 
 #options for target points
 use_own_targets: True         # if the cus should use their own targets. This is needed, if we want to use the setpoint_creator for e.g. demos.

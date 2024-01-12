@@ -16,7 +16,7 @@ def define_ARGS():
     parser = argparse.ArgumentParser(
         description='ARGS for the ET-DMPC')
     parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 4: "Vicon", 5: "Vicon", 6: "Vicon", 7: "Vicon", 8: "Vicon", 9: "Vicon", 10: "Vicon",
-                                             11: "Mobile", 12: "Mobile", 13: "Vicon", 14: "Vicon"}, type=dict,
+                                             11: "Vicon", 12: "Vicon", 13: "Vicon", 14: "Vicon"}, type=dict,
                         help='drone IDs with name of the testbed', metavar='')
     parser.add_argument('--param_path', default="parameters/testbed_experiment.yaml", type=str,
                         help='yaml file for parameters', metavar='')
@@ -40,10 +40,6 @@ def define_ARGS():
     parser.add_argument('--dynamic_swarm', default=True, type=bool)  # if drones should be added dynamically or not.
 
     ARGS = parser.parse_args()
-
-    # if this is set, we are on the cluster. So make some changes.
-    if ARGS.iter_id is not None:
-        ARGS.param_path = f"{Path.home()}/hpc_parameters/{ARGS.name_job}/params{ARGS.iter_id}.yaml"
 
     with open(ARGS.param_path, 'r') as file:
         params = yaml.safe_load(file)
