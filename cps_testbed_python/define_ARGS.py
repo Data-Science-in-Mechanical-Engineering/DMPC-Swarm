@@ -114,23 +114,6 @@ def define_ARGS():
         print(f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
 
     ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=sc.DEMO_AI_WEEK)
-    """
-    testbed = cuboid.Cuboid(np.array([0.4, 0.4, 0.3]), np.array([ARGS.testbed_size[0], 0, 0]),
-                            np.array([0, ARGS.testbed_size[1], 0]),
-                            np.array([0, 0, ARGS.testbed_size[2]]))
-
-    ARGS.testbed = testbed
-
-
-    initializer = initializer.Initializer(testbed, rng_seed=2)
-
-
-    INIT_XYZS, INIT_TARGETS = initializer.initialize(
-        ARGS.drone_position_initialization_method, dist_to_wall=0.25,
-        num_points=ARGS.num_drones,
-        min_dist=ARGS.r_min, scaling_factor=ARGS.downwash_scaling_factor,
-        num_targets=ARGS.num_targets_per_drone * ARGS.num_drones)
-    """
 
     INIT_XYZS = np.array([[-1.0, 1.0, 1.2], [0.0, 0.0, 1.2], [1.0, 0.0, 1.2], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5]])
     INIT_TARGETS = np.array([[1.0, -1.0, 2.5], [-1.1, -1.1, 2.5], [1.1, 1.1, 0.8], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5], [1.0, -1.0, 2.5],
