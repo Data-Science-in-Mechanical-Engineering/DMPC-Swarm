@@ -918,6 +918,7 @@ class ComputingUnit:
         num_all_targets_reached = 0
         round_mbr = None
         for m in messages_rx:
+
             # message loss
             if (self.__ARGS.message_loss_period_start <= self.__round_nmbr <= self.__ARGS.message_loss_period_end
                     and random.random() < self.__ARGS.message_loss_probability):
@@ -1152,7 +1153,9 @@ class ComputingUnit:
                                                 save_snapshot_times=self.__ARGS.save_snapshot_times,
                                                 show_animation=True,
                                                 min_num_drones=self.__num_static_drones,
-                                                show_print=self.__ARGS.show_print
+                                                show_print=self.__ARGS.show_print,
+                                                save_drone_trajectories=True,
+                                                name_run=self.__ARGS.name
                                                 )
 
     def send_socket(self, message: message.MixerMessage):
