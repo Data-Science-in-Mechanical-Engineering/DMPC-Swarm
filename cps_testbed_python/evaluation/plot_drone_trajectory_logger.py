@@ -4,10 +4,10 @@ import numpy as np
 import pandas as pd
 
 if __name__ == "__main__":
-    name_run = "testbed_experiment"
+    name_run = "testbed_experiment_dyna"
     csv_path = "/home/alex/Documents/009_Paper/robot_swarm_science_robotics/Images"
     starting_time = 100
-    with open(f'../../../experiment_measurements/drone_trajectory_logger_{name_run}Final.p', 'rb') as handle:
+    with open(f'../../../experiment_measurements/drone_trajectory_logger_{name_run}.p', 'rb') as handle:
         drone_trajectory_logger = pickle.load(handle)
 
     times = np.array([t for t in drone_trajectory_logger[1]])
@@ -33,9 +33,9 @@ if __name__ == "__main__":
 
 
     df = pd.DataFrame({"t": (times-starting_time)*0.2, "d": max_dists, "m": min_inter_dists})
-    df.to_csv(f"{csv_path}/MessageLossHardwareExperiments.csv", sep=",")
+    df.to_csv(f"{csv_path}/MessageLossHardwareExperimentsDyna.csv", sep=",")
 
-    plt.plot(times, max_dists)
+    plt.plot(max_dists) #times, max_dists)
     plt.show()
 
     plt.plot(times, min_inter_dists)
