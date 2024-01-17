@@ -158,7 +158,9 @@ class ComputeUnit(net.Agent):
                  simulate_quantization=False,
                  show_animation=False,
                  min_num_drones=0,
-                 show_print=True):
+                 show_print=True,
+                 name_run="",
+                 ):
         """
 
         Parameters
@@ -315,6 +317,8 @@ class ComputeUnit(net.Agent):
 
         self.__show_print = show_print
 
+        self.__name_run = name_run
+
     def load_trigger(self, trigger):
         self.__trigger = trigger
 
@@ -463,6 +467,7 @@ class ComputeUnit(net.Agent):
                 return
             message.content.state[0:3] += self.__pos_offset[message.ID]
             self.print(f"Received pos from {message.ID}: {message.content.state}")
+
             message.content.target_position += self.__pos_offset[message.ID]
             # The state is measured at the beginning of the round and extrapolated by drone
             # init drone state if it has to be init. (The state is measured at the beginning of the last round.)
@@ -521,7 +526,8 @@ class ComputeUnit(net.Agent):
                     self.__current_target_positions[message.ID] = copy.deepcopy(message.content.target_position)
                     self.__drones_prios[message.ID] = message.ID  # change prio for cooperative behaviour
                     # target changed, thus recalculate setpoints
-                    self.__recalculate_setpoints = True
+                    if not self.__use_own_targets:
+                        self.__recalculate_setpoints = True
             else:
                 self.__current_target_positions[message.ID] = copy.deepcopy(message.content.target_position)
 
@@ -770,6 +776,7 @@ class ComputeUnit(net.Agent):
                             self.__num_succ_optimizer_runs += 1
 
                         prios = self.calc_prio()
+                        prios[self.__current_agent] = 0
                         self.__last_received_messages = {
                             self.ID: TrajectoryMessageContent(coefficients=calc_coeff,
                                                               init_state=self.__trajectory_tracker.get_information(current_id).content[0].current_state,
@@ -822,8 +829,9 @@ class ComputeUnit(net.Agent):
                 with open(f'../../experiment_measurements/num_trigger_times{self.ID}_{int(self.__alpha_1)}_{int(self.__alpha_2)}_{int(self.__alpha_3)}_{int(self.__alpha_4)}.p', 'wb') as handle:
                     pickle.dump({"num_trigger_times": self.__num_trigger_times, "selected_UAVs": self.__selected_UAVs}, handle)
 
+
         if int(round(self.__current_time / self.__communication_delta_t)) % 5 == 0 and not self.__simulated:
-            with open(f'../../experiment_measurements/num_trigger_times_sim{self.ID}_{int(self.__alpha_1)}_{int(self.__alpha_2)}_{int(self.__alpha_3)}_{int(self.__alpha_4)}.p', 'wb') as handle:
+            with open(f'../../experiment_measurements/num_trigger_times_{self.__name_run}_{self.ID}_{int(self.__alpha_1)}_{int(self.__alpha_2)}_{int(self.__alpha_3)}_{int(self.__alpha_4)}.p', 'wb') as handle:
                 pickle.dump({"num_trigger_times": self.__num_trigger_times, "selected_UAVs": self.__selected_UAVs}, handle)
 
         if int(round(self.__current_time / self.__communication_delta_t)) in self.__save_snapshot_times:
@@ -1055,7 +1063,7 @@ class ComputeUnit(net.Agent):
             if own_id in self.__state_feedback_triggered:
                 prios[i] += state_feeback_triggered_prio
 
-            if i in np.argsort(-np.array(self.__prio_consensus))[0:len(self.__computing_agents_ids)]:
+            if i in np.argsort(-np.array(self.__prio_consensus))[0:len(self.__computing_agents_ids)] and self.__ignore_message_loss:
                 prios[i] += -100000000 * self.__alpha_4
 
 
@@ -1123,6 +1131,7 @@ class ComputeUnit(net.Agent):
         # if the CU is not the one calculating the high level targets, do not calculate them.
         if not self.__send_setpoints: #and self.__simulated:
             return
+        self.print("round started!!!!")
         # get the current position of all agents.
         current_pos = {}
         for drone_id in self.__drones_ids:
@@ -1132,6 +1141,7 @@ class ComputeUnit(net.Agent):
                     current_pos[drone_id] = trajectory.current_state[0:3]
                 else:
                     current_pos[drone_id] = None
+                    print("---------------------------------------")
 
         # check if we already know the target or current positions. If we do not know all (one drones has not sent it),
         # do not calculate. This usually happens, when a drone is freshly added to the swarm.
@@ -1139,6 +1149,7 @@ class ComputeUnit(net.Agent):
             if self.get_targets()[drone_id] is None or current_pos[drone_id] is None:
                 return
 
+        print(f"pppppppppppppppppp {self.__recalculate_setpoints}")
         # if we do not block the hlp, after it has been called, it will be called multiple times in a row,
         # because the drones need a while to move and it will otherwise think, the drones are in a deadlock again
         self.__hlp_lock += 1
@@ -1452,7 +1463,7 @@ class RemoteDroneAgent(net.Agent):
                                                                trajectory_start_time=self.__planned_trajectory_start_time,
                                                                init_state=self.__init_state,
                                                                trajectory_calculated_by=self.__current_trajectory_calculated_by,
-                                                               prios=np.array([255 for _ in range(len(self.__other_drones_ids))]))))
+                                                               prios=np.array([1 for _ in range(len(self.__other_drones_ids))]))))
             self.__send_trajectory_message_to = []
             return message
 

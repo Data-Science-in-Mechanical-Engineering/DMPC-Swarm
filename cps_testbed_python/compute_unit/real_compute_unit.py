@@ -1,3 +1,5 @@
+import random
+
 import compute_unit.uart.uart_interface as uart_interface
 from compute_unit.uart.user_input_thread import UserInputThread as UI
 import compute_unit.agents as da
@@ -11,6 +13,8 @@ import compute_unit.uart.message as message
 import copy
 
 import os
+
+import pickle
 
 
 def parallel_simulation_wrapper(computation_unit):
@@ -727,6 +731,8 @@ class ComputingUnit:
 
         self.__wants_to_leave = False   # we set this true, if the CU wants to leave the swarm.
 
+        self.__drone_trajectory_logger = {}
+
         if os.path.exists(f"../../experiment_measurements/ShutdownCU{self.__cu_id}.txt"):
             os.remove(f"../../experiment_measurements/ShutdownCU{self.__cu_id}.txt")
 
@@ -794,12 +800,12 @@ class ComputingUnit:
                 for m in messages_rx:
                     if isinstance(m, NetworkMembersMessage):
                         received_network_members_message = 1
-                        print("---------------")
-                        print(m.message_layer_area_agent_id)
-                        print(m.ids)
-                        print(m.types)
-                        print(m.manager_wants_to_leave_network_in)
-                        print(m.id_new_network_manager)
+                        self.print("---------------")
+                        self.print(m.message_layer_area_agent_id)
+                        self.print(m.ids)
+                        self.print(m.types)
+                        self.print(m.manager_wants_to_leave_network_in)
+                        self.print(m.id_new_network_manager)
                         num_connected_drones = 0
                         for t in m.types:
                             if t == 1:
@@ -829,21 +835,21 @@ class ComputingUnit:
                     for m in messages_rx:
                         if isinstance(m, NetworkMembersMessage):
                             if not self.__cu_id in m.ids:
-                                print("Left the swarm, shutting down.")
+                                self.print("Left the swarm, shutting down.")
                                 exit(0)
 
                 # check if a new agent is inside the swarm
                 received_network_members_message = False
-                print(messages_rx)
+                self.print(messages_rx)
                 for m in messages_rx:
                     if isinstance(m, NetworkMembersMessage):
                         received_network_members_message = True
-                        print("---------------")
-                        print(m.message_layer_area_agent_id)
-                        print(m.ids)
-                        print(m.types)
-                        print(m.manager_wants_to_leave_network_in)
-                        print(m.id_new_network_manager)
+                        self.print("---------------")
+                        self.print(m.message_layer_area_agent_id)
+                        self.print(m.ids)
+                        self.print(m.types)
+                        self.print(m.manager_wants_to_leave_network_in)
+                        self.print(m.id_new_network_manager)
 
                         # check if there is a new agent in the swarm
                         for i, t in enumerate(m.types):
@@ -864,14 +870,14 @@ class ComputingUnit:
                         # check if an agent has left the swarm
                         for cu in self.__cus_in_swarm:
                             if not cu in m.ids:
-                                print(f"Removed CU {cu}")
+                                self.print(f"Removed CU {cu}")
                                 self.__computation_agent.remove_computation_agent(cu)
                                 self.__cus_in_swarm.remove(cu)
                         for drone in self.__drones_in_swarm:
                             if not drone in m.ids:
                                 self.__computation_agent.remove_drone(drone)
                                 self.__drones_in_swarm.remove(drone)
-                                print(f"Removed drone {drone}")
+                                self.print(f"Removed drone {drone}")
 
                 # only if we want to leave and are sure that we still are eligible to send, then
                 # send that we want to leave
@@ -895,7 +901,7 @@ class ComputingUnit:
 
     def connect_to_cp(self):
         """ DEFINE FREQUENTLY USED MESSAGES """
-        print("Start Connecting")
+        self.print("Start Connecting")
         # connect to CP
         self.uart_interface.initialize()  # initialize communication with CP
         ack_message = MetadataMessage()
@@ -915,14 +921,31 @@ class ComputingUnit:
         messages_tx = []
         num_all_targets_reached = 0
         round_mbr = None
+
+        current_targets = self.__computation_agent.get_targets()
+
         for m in messages_rx:
+
+            if isinstance(m, StateMessage):
+                if m.m_id not in self.__drone_trajectory_logger:
+                    self.__drone_trajectory_logger[m.m_id] = {}
+
+                self.__drone_trajectory_logger[m.m_id][self.__round_nmbr] = (
+                        copy.deepcopy(m.state[0:3]),
+                        copy.deepcopy(current_targets[m.m_id]))
+
+            # message loss
+            if (self.__ARGS.message_loss_period_start <= self.__round_nmbr <= self.__ARGS.message_loss_period_end
+                    and random.random() < self.__ARGS.message_loss_probability):
+                print("Message lost.!!!!!!!!!!!!!!!!!!")
+                continue
+
             m_temp = None
             if isinstance(m, EmptyMessage):
                 content_temp = da.EmtpyContent(prios=m.prios[0:len(self.__drones_in_swarm)])
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
-            elif isinstance(m, StateMessage) and (self.__round_nmbr < self.__ARGS.message_loss_period_start \
-                    or self.__round_nmbr > self.__ARGS.message_loss_period_end):
+            elif isinstance(m, StateMessage):
                 content_temp = da.StateMessageContent(state=m.state, target_position=m.current_target,
                                                       trajectory_start_time=m.trajectory_start_time / self.__ARGS.communication_freq_hz,
                                                       trajectory_calculated_by=m.calculated_by,
@@ -932,8 +955,7 @@ class ComputingUnit:
                                      content=content_temp)
                 if m.status == STATUS_ALL_TARGETS_REACHED:
                     num_all_targets_reached += 1
-            elif isinstance(m, TrajectoryMessage) and (self.__round_nmbr < self.__ARGS.message_loss_period_start \
-                    or self.__round_nmbr > self.__ARGS.message_loss_period_end):
+            elif isinstance(m, TrajectoryMessage):
                 content_temp = da.TrajectoryMessageContent(id=m.drone_id, coefficients=tg.TrajectoryCoefficients(
                     coefficients=m.trajectory, valid=True, alternative_trajectory=None),
                                                            init_state=m.init_state,
@@ -942,12 +964,7 @@ class ComputingUnit:
                                                            prios=m.prios[0:len(self.__drones_in_swarm)])
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
-                # print("Trajectory received")
-                # print(m.calculated_by)
-                # print(m.drone_id)
-                # print(m.trajectory_start_time / self.__ARGS.communication_freq_hz)
-            elif isinstance(m, TrajectoryReqMessage) and (self.__round_nmbr < self.__ARGS.message_loss_period_start \
-                    or self.__round_nmbr > self.__ARGS.message_loss_period_end):
+            elif isinstance(m, TrajectoryReqMessage):
                 content_temp = da.RecoverInformationNotifyContent(cu_id=m.cu_id, drone_id=m.drone_id)
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
@@ -1012,7 +1029,7 @@ class ComputingUnit:
             m_temp.m_id = traj_message.ID
             m_temp.drone_id = traj_message.content.drone_id
             m_temp.cu_id = traj_message.content.cu_id
-            print(f"Requesting new trajectory! {m_temp.drone_id}, {traj_message.content.drone_id}, {m_temp.cu_id}")
+            self.print(f"Requesting new trajectory! {m_temp.drone_id}, {traj_message.content.drone_id}, {m_temp.cu_id}")
             messages_tx.append(m_temp)
 
         setpoint_message = self.__computation_agent.get_message(self.__slot_group_setpoints_id)
@@ -1023,6 +1040,10 @@ class ComputingUnit:
             m_temp.m_id = 200
             m_temp.target_positions = setpoint_message.content.setpoints
             messages_tx.append(m_temp)
+
+        if self.__round_nmbr % 5 == 0:
+            with open(f'../../experiment_measurements/drone_trajectory_logger_{self.__ARGS.name}.p', 'wb') as handle:
+                pickle.dump(self.__drone_trajectory_logger, handle)
 
         return messages_tx
 
@@ -1124,8 +1145,7 @@ class ComputingUnit:
             width_band=self.__ARGS.width_band,
         )
 
-        if self.__ARGS.dynamic_swarm:
-            self.__ARGS.computing_agent_ids = [self.__cu_id]
+        self.__ARGS.computing_agent_ids = [self.__cu_id]
 
         self.computation_agent = da.ComputeUnit(ID=self.__cu_id,
                                                 slot_group_planned_trajectory_id=self.__message_type_trajectory_id,
@@ -1145,15 +1165,16 @@ class ComputingUnit:
                                                 simulated=False,
                                                 ignore_message_loss=self.__ARGS.ignore_message_loss,
                                                 use_high_level_planner=self.__ARGS.use_high_level_planner,
-                                                use_own_targets=True,  #not self.__ARGS.dynamic_swarm,
-                                                #use_optimized_constraints=self.__ARGS.use_optimized_constraints,
+                                                use_own_targets=True,
                                                 setpoint_creator=self.__ARGS.setpoint_creator,
                                                 slot_group_setpoints_id=self.__slot_group_setpoints_id,
                                                 weight_band=self.__ARGS.weight_band,
                                                 send_setpoints=self.__is_initiator,  # self.__cu_id == 20,
                                                 save_snapshot_times=self.__ARGS.save_snapshot_times,
                                                 show_animation=True,
-                                                min_num_drones=self.__num_static_drones
+                                                min_num_drones=self.__num_static_drones,
+                                                show_print=self.__ARGS.show_print,
+                                                name_run=self.__ARGS.name
                                                 )
 
     def send_socket(self, message: message.MixerMessage):
@@ -1161,6 +1182,10 @@ class ComputingUnit:
             return
 
         self.socket.sendall(message.serialize())
+
+    def print(self, msg):
+        if self.__ARGS.show_print:
+            print(f"{self.__cu_id}: [{msg}]")
 
     @property
     def uart_interface(self):

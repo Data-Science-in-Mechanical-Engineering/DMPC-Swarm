@@ -12,11 +12,11 @@ if __name__ == "__main__":
     probs = [int(1*i) for i in range(10)]
     csv_path = "/home/alex/Documents/009_Paper/robot_swarm_science_robotics/Images"
 
+    folder_name = "hpc_runs/DMPC_test"
 
     for num_cus in [2, 3, 5, 7, 9, 11]:
         num_cu_data[num_cus] = []
         for message_loss_prob in probs:
-            folder_name = "cu_number"
             path = os.path.dirname(os.path.abspath(__file__)) + f"/../../../{folder_name}/" \
                    + f"dmpc_simulation_results_iml{ignore_message_loss}_{message_loss_prob}_{num_cus}cus_{'quant' if simulate_quantization else ''}"
 
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     for num_cus in num_cu_data:
         plt.plot(probs, num_cu_data[num_cus], label=f"{num_cus} CUs")
         df = pd.DataFrame({"p": probs, "s": num_cu_data[num_cus]})
-        df.to_csv(f"{csv_path}/SuccRateCUs{num_cus}.csv", sep=",")
+        df.to_csv(f"{csv_path}/SuccRateNumDrones{num_drones}CUs{num_cus}.csv", sep=",")
 
     plt.xlabel("Message loss probability (%)")
     plt.ylabel("Success rate")

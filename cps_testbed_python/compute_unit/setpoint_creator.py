@@ -15,6 +15,7 @@ RANDOM = 6
 DYNAMIC_SWARM = 7
 MULTI_HOP = 8
 DEMO_AI_WEEK = 9
+CIRCLE_PERIODIC = 10
 
 DEMO_AI_WEEK_IDLE = 0
 DEMO_AI_WEEK_CIRCLE = 1
@@ -140,6 +141,8 @@ class SetpointCreator:
 				self.__current_setpoints[drone_id] = self.generate_new_multi_hop_setpoint(drone_id)
 			elif self.__demo_setpoints == DEMO_AI_WEEK:
 				self.__current_setpoints[drone_id] = self.generate_new_demo_ai_week_setpoint(drone_id)
+			elif self.__demo_setpoints == CIRCLE_PERIODIC:
+				self.__current_setpoints[drone_id] = self.generate_circle_periodic_setpoint(drone_id)
 
 		setpoints_changed = False
 		for k in self.__current_setpoints:
@@ -147,6 +150,9 @@ class SetpointCreator:
 				setpoints_changed = True
 
 		return self.__current_setpoints, setpoints_changed
+
+	def get_current_setpoints(self, drone_id):
+		return self.__current_setpoints[drone_id]
 
 	def generate_new_circle_setpoint(self, drone_id):
 		if drone_id == 10:
@@ -400,6 +406,21 @@ class SetpointCreator:
 			back_pos = np.array([[-1.0, 1.0, 0.7], [0.0, 1.0, 0.7], [1.0, 1.0, 0.7],
 								[-1.5, 0.0, 0.7], [-0.5, 0.0, 0.7], [0.5, 0.0, 0.7], [1.5, 0.0, 0.7]])
 			return back_pos[drone_id - 1]
+
+	def generate_circle_periodic_setpoint(self, drone_id):
+		if drone_id not in self.__angles:
+			return np.array([0, 0, 0])
+		name_testbed = self.__drones[drone_id]
+		min_pos = np.array(self.__testbeds[name_testbed][0])
+		max_pos = np.array(self.__testbeds[name_testbed][1])
+		offset = np.array(self.__testbeds[name_testbed][2])
+		dpos = [1.5, 1.5]
+		mean = (min_pos + max_pos) / 2
+		angle = self.__angles[drone_id]
+		mean[2] = BASIS_HEIGHT
+		if self.__round % 300 < 150:
+			angle += math.pi #* 0.9
+		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean + offset
 
 	def add_drone(self, drone_id, state, round):
 		"""
