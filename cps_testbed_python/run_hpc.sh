@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task=6
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=alexander.graefe@dsme.rwth-aachen.de
-#SBATCH --mem-per-cpu=2.7GB # memory per node
+#SBATCH --mem-per-cpu=2700MB # memory per node
 #SBATCH --time=0-05:00:00
 #SBATCH --array=0-175
 
