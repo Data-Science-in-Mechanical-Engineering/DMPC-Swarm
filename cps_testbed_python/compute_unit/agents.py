@@ -158,7 +158,8 @@ class ComputeUnit(net.Agent):
                  simulate_quantization=False,
                  show_animation=False,
                  min_num_drones=0,
-                 show_print=True
+                 show_print=True,
+                 name_run="",
                  ):
         """
 
@@ -315,6 +316,8 @@ class ComputeUnit(net.Agent):
         self.__min_num_drones = min_num_drones    # minimum number of drones over which the CU starts running
 
         self.__show_print = show_print
+
+        self.__name_run = name_run
 
     def load_trigger(self, trigger):
         self.__trigger = trigger
@@ -773,6 +776,7 @@ class ComputeUnit(net.Agent):
                             self.__num_succ_optimizer_runs += 1
 
                         prios = self.calc_prio()
+                        prios[self.__current_agent] = 0
                         self.__last_received_messages = {
                             self.ID: TrajectoryMessageContent(coefficients=calc_coeff,
                                                               init_state=self.__trajectory_tracker.get_information(current_id).content[0].current_state,
@@ -827,7 +831,7 @@ class ComputeUnit(net.Agent):
 
 
         if int(round(self.__current_time / self.__communication_delta_t)) % 5 == 0 and not self.__simulated:
-            with open(f'../../experiment_measurements/num_trigger_times_sim{self.ID}_{int(self.__alpha_1)}_{int(self.__alpha_2)}_{int(self.__alpha_3)}_{int(self.__alpha_4)}.p', 'wb') as handle:
+            with open(f'../../experiment_measurements/num_trigger_times_{self.__name_run}_{self.ID}_{int(self.__alpha_1)}_{int(self.__alpha_2)}_{int(self.__alpha_3)}_{int(self.__alpha_4)}.p', 'wb') as handle:
                 pickle.dump({"num_trigger_times": self.__num_trigger_times, "selected_UAVs": self.__selected_UAVs}, handle)
 
         if int(round(self.__current_time / self.__communication_delta_t)) in self.__save_snapshot_times:
@@ -1059,7 +1063,7 @@ class ComputeUnit(net.Agent):
             if own_id in self.__state_feedback_triggered:
                 prios[i] += state_feeback_triggered_prio
 
-            if i in np.argsort(-np.array(self.__prio_consensus))[0:len(self.__computing_agents_ids)]:
+            if i in np.argsort(-np.array(self.__prio_consensus))[0:len(self.__computing_agents_ids)] and self.__ignore_message_loss:
                 prios[i] += -100000000 * self.__alpha_4
 
 
@@ -1459,7 +1463,7 @@ class RemoteDroneAgent(net.Agent):
                                                                trajectory_start_time=self.__planned_trajectory_start_time,
                                                                init_state=self.__init_state,
                                                                trajectory_calculated_by=self.__current_trajectory_calculated_by,
-                                                               prios=np.array([255 for _ in range(len(self.__other_drones_ids))]))))
+                                                               prios=np.array([1 for _ in range(len(self.__other_drones_ids))]))))
             self.__send_trajectory_message_to = []
             return message
 

@@ -1174,6 +1174,7 @@ class ComputingUnit:
                                                 show_animation=True,
                                                 min_num_drones=self.__num_static_drones,
                                                 show_print=self.__ARGS.show_print,
+                                                name_run=self.__ARGS.name
                                                 )
 
     def send_socket(self, message: message.MixerMessage):

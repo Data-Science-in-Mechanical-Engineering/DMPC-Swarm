@@ -132,10 +132,10 @@ if __name__ == "__main__":
     # !!!!!!!!!!!!!!!! Downwash simulation is unrealistic atm.
     parser = argparse.ArgumentParser(
         description='CPS Testbed Simulator')
-    #parser.add_argument('--param_path', default="parameters/batch_simulation.yaml", type=str,
-    #                    help='yaml file for parameters', metavar='')
-    parser.add_argument('--param_path', default="parameters/hyperparameter_opt.yaml", type=str,
-    					help='yaml file for parameters', metavar='')
+    parser.add_argument('--param_path', default="parameters/batch_simulation.yaml", type=str,
+                        help='yaml file for parameters', metavar='')
+    #parser.add_argument('--param_path', default="parameters/hyperparameter_opt.yaml", type=str,
+    #					help='yaml file for parameters', metavar='')
 
     # the following are only needed for the hpc
     parser.add_argument('-i', "--iter_id", default=None, type=int, help='id of slurm job', metavar='')
@@ -272,8 +272,8 @@ if __name__ == "__main__":
         ARGS_array.append(ARGS_for_simulation)
 
     if ARGS.sweep_parameters and ARGS.iter_id is None:
-        for num_cus in [2, 3, 5, 7, 9, 11, 13, 15]:
-            for message_loss_prob in [0.01*i for i in range(11)]:
+        for num_cus in [5, 7, 9, 11, 13, 15]:
+            for message_loss_prob in [0.1]:
                 for simulate_quantization in [False]:
                     for ignore_message_loss in [False]:
                         call_batch_simulation_param_varying(ARGS_array,

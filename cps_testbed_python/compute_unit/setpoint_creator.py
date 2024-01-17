@@ -418,8 +418,8 @@ class SetpointCreator:
 		mean = (min_pos + max_pos) / 2
 		angle = self.__angles[drone_id]
 		mean[2] = BASIS_HEIGHT
-		if self.__round % 200 < 100:
-			angle += math.pi * 0.9
+		if self.__round % 300 < 150:
+			angle += math.pi #* 0.9
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean + offset
 
 	def add_drone(self, drone_id, state, round):
