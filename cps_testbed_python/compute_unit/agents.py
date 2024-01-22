@@ -1107,8 +1107,8 @@ class ComputeUnit(net.Agent):
             pass
 
         file_postfix = f"{self.ID}_{datetime.now().strftime('%Y%m%d%H%M%S%Z.%f').replace('.', '_')}"
-        self.__log_optimizer_output_buffer.tofile(self.__log_optimizer_path + f"/output_{file_postfix}.npy")
-        self.__log_optimizer_input_buffer.tofile(self.__log_optimizer_path + f"/input_{file_postfix}.npy")
+        self.__log_optimizer_output_buffer[0:self.__log_optimizer_num_elements, :].tofile(self.__log_optimizer_path + f"/output_{file_postfix}.npy")
+        self.__log_optimizer_input_buffer[0:self.__log_optimizer_num_elements, :].tofile(self.__log_optimizer_path + f"/input_{file_postfix}.npy")
 
     def get_drone_intermediate_setpoint(self, drone_id):
         """returns the current intermediate setpoint the CU should steer the drone to."""
