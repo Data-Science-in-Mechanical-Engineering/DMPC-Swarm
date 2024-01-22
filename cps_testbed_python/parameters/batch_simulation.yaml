@@ -10,6 +10,10 @@ testbeds:                               # this is only relevant for testbed runs
 num_drones: 15
 
 # simulation setup
+run_dampc: False
+dampc_path: "/home/alex/hpc_data/DAMPC_Test/trainer"
+dampc_num_layers: 5
+dampc_num_neurons: 500
 simulated: True     # set false for real testbed (when it runs on a testbed, it saves a bit more data for debugging)
 duration_sec: 200   # duration of simulation
 abort_simulation: True  # exit simulation earlier, if drones crash or all targets reached.

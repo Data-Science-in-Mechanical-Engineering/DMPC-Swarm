@@ -132,8 +132,10 @@ if __name__ == "__main__":
     # !!!!!!!!!!!!!!!! Downwash simulation is unrealistic atm.
     parser = argparse.ArgumentParser(
         description='CPS Testbed Simulator')
-    parser.add_argument('--param_path', default="parameters/hyperparameter_opt.yaml", type=str,
+    parser.add_argument('--param_path', default="parameters/dampc_run.yaml", type=str,
                         help='yaml file for parameters', metavar='')
+    #parser.add_argument('--param_path', default="parameters/hyperparameter_opt.yaml", type=str,
+    #                    help='yaml file for parameters', metavar='')
     #parser.add_argument('--param_path', default="parameters/hyperparameter_opt.yaml", type=str,
     #					help='yaml file for parameters', metavar='')
 

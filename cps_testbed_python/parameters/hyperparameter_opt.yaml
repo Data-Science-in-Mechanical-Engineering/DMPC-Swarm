@@ -38,6 +38,10 @@ use_own_targets: True         # if the cus should use their own targets. This is
 scenario_setpoint_creator:
 
 # Controller options
+run_dampc: False
+dampc_path: "/home/alex/hpc_data/DAMPC_Test/trainer"
+dampc_num_layers: 5
+dampc_num_neurons: 500
 control_steps_per_round: 12
 use_communication_freq_hz: True  #weather to calculate communication_freq_hz based on formulas for mixer rounds or to use param communication_freq_hz#
 communication_freq_hz: 5

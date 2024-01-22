@@ -273,7 +273,12 @@ class Simulation:
                                                  show_animation=i==self.__ARGS.num_drones and self.__ARGS.show_animation,
                                                  show_print=ARGS.show_print,
                                                  log_optimizer=ARGS.log_optimizer,
-                                                 log_optimizer_path=ARGS.log_optimizer_path)
+                                                 log_optimizer_path=ARGS.log_optimizer_path,
+                                                 use_dampc=ARGS.run_dampc,
+                                                 dampc_model_path=ARGS.dampc_path,
+                                                 dampc_num_layers=ARGS.dampc_num_layers,
+                                                 dampc_num_neurons=ARGS.dampc_num_neurons
+                                                 )
 
                 for drone_id in self.__ARGS.drone_ids:
                     computing_agent.add_new_drone(drone_id)

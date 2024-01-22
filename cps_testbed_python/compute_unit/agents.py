@@ -1,6 +1,10 @@
 import math
 import os
 
+import yaml
+
+from compute_unit.neural_networks.jax_models import AMPCNN
+from compute_unit.trajectory_generation.interpolation import TrajectoryCoefficients
 from network import network as net
 import compute_unit.trajectory_generation.trajectory_generation as tg
 
@@ -20,6 +24,9 @@ import pickle
 import cu_animator as cu_animator
 
 from datetime import datetime
+
+import jax
+import jax.numpy as jnp
 
 NORMAL = 0
 INFORMATION_DEPRECATED = 1
@@ -135,6 +142,40 @@ def calculate_band_weight(p_target, p_self, p_other, weight=1.0, weight_angle=2)
     return weight_mult * weight * math.exp(math.sin(angle) * weight_angle)
 
 
+def normalize(data, normalization_params):
+    return (data - normalization_params[0]) / normalization_params[1]
+
+
+def denormalize(data, normalization_params):
+    return data * normalization_params[1] + normalization_params[0]
+
+
+def call_ampc(x, model, normalization):
+    x = normalize(x, normalization["x"])
+    u = model(x)
+
+    u = denormalize(u, normalization["u"])
+    return u
+
+
+def load_ampc_model(model_path, num_layers, num_neurons, iteration=0):
+    path = f"{model_path}/model_{num_layers}x{num_neurons}/It{iteration}"
+    parameter_path = path + "/params.yaml"
+    with open(parameter_path, "r") as file:
+        params = yaml.safe_load(file)
+
+    normalization_path = path + "/normalization.p"
+    with open(normalization_path, "rb") as file:
+        normalization = pickle.load(file)
+    init_key = jax.random.PRNGKey(1)
+    model = AMPCNN(num_layers=params["num_layers"], num_neurons=params["num_neurons"],
+                   num_sys_states=params["num_sys_states"], num_sys_inputs=params["num_sys_inputs"],
+                   num_aug_params=params["num_aug_params"], rng_key=init_key,
+                   activation_function=params["activation_function"])
+    model = model.load_model_from_file(path)
+
+    return model, normalization
+
 class ComputeUnit(net.Agent):
     """this class represents a computation agent inside the network.
     Every agent is allowed to send in multiple slot groups. This is needed if e.g. the agent should send his sensor
@@ -171,7 +212,11 @@ class ComputeUnit(net.Agent):
                  show_print=True,
                  name_run="",
                  log_optimizer=False,
-                 log_optimizer_path=""
+                 log_optimizer_path="",
+                 use_dampc=False,
+                 dampc_model_path="",
+                 dampc_num_neurons="",
+                 dampc_num_layers=""
                  ):
         """
 
@@ -342,7 +387,13 @@ class ComputeUnit(net.Agent):
         self.__log_optimizer_num_elements = 0
         self.__log_optimizer_path = log_optimizer_path
 
-        assert log_optimizer == ignore_message_loss, "Not implemented."
+        self.__use_dampc = use_dampc
+
+        self.__dampc_model, self.__dampc_normalization = load_ampc_model(dampc_model_path, dampc_num_layers,
+                                                                         dampc_num_neurons, iteration=0)
+
+        if log_optimizer:
+            assert log_optimizer == ignore_message_loss, "Not implemented."
 
     def load_trigger(self, trigger):
         self.__trigger = trigger
@@ -902,7 +953,7 @@ class ComputeUnit(net.Agent):
                     pickle.dump(self.__setpoint_history, out_file)
 
     def __calculate_trajectory(self, current_id, ordered_indexes):
-        if self.__log_optimizer:
+        if self.__log_optimizer or self.__use_dampc:
             if self.__log_optimizer_input_buffer is None:
                 self.__log_optimizer_input_buffer = (
                     np.zeros((1000, len(self.__drones_ids) * (self.__prediction_horizon * 3 + 9 + 1) + 3)))
@@ -1026,7 +1077,7 @@ class ComputeUnit(net.Agent):
                 [previous_solution_shifted[min((i + delay_timesteps, len(self.__breakpoints) - 2))]
                  for i in range(len(self.__breakpoints) - 1)])
 
-        if self.__log_optimizer:
+        if self.__log_optimizer or self.__use_dampc:
             num_elements_per_drone_trajectory = self.__prediction_horizon * 3 + 9
             offset = num_elements_per_drone_trajectory + 3 + 1
             for j in range(len(self.__drones_ids)):
@@ -1047,26 +1098,30 @@ class ComputeUnit(net.Agent):
 
                     offset += num_elements_per_drone_trajectory + 1
 
-
-        coeff =  self.__trajectory_generator.calculate_trajectory(
-            current_id=current_id,
-            current_state=self.__trajectory_tracker.get_information(current_id).content[0].current_state,
-            target_position=self.get_drone_intermediate_setpoint(current_id),
-            index=index,
-            dynamic_trajectories=np.array(dynamic_trajectories),
-            static_trajectories=np.array(static_trajectories),
-            optimize_constraints=self.__remove_redundant_constraints,
-            previous_solution=previous_solution_shifted,
-            dynamic_target_points=dynamic_target_points,
-            static_target_points=static_target_points,
-            dynamic_coop_prio=dynamic_coop_prio,
-            static_coop_prio=static_coop_prio,
-            band_weights=band_weights,
-            dynamic_trajectory_age=dynamic_trajectory_age,
-            static_trajectory_age=static_trajectory_age,
-            use_nonlinear_mpc=False,
-            high_level_setpoints=None
-        )
+        if self.__use_dampc:
+            coeff = np.array(call_ampc(self.__log_optimizer_input_buffer[self.__log_optimizer_num_elements], self.__dampc_model, self.__dampc_normalization))
+            coeff = np.reshape(coeff, (self.__prediction_horizon, 3))
+            coeff = TrajectoryCoefficients(coefficients=coeff, valid=True, alternative_trajectory=coeff)
+        else:
+            coeff = self.__trajectory_generator.calculate_trajectory(
+                current_id=current_id,
+                current_state=self.__trajectory_tracker.get_information(current_id).content[0].current_state,
+                target_position=self.get_drone_intermediate_setpoint(current_id),
+                index=index,
+                dynamic_trajectories=np.array(dynamic_trajectories),
+                static_trajectories=np.array(static_trajectories),
+                optimize_constraints=self.__remove_redundant_constraints,
+                previous_solution=previous_solution_shifted,
+                dynamic_target_points=dynamic_target_points,
+                static_target_points=static_target_points,
+                dynamic_coop_prio=dynamic_coop_prio,
+                static_coop_prio=static_coop_prio,
+                band_weights=band_weights,
+                dynamic_trajectory_age=dynamic_trajectory_age,
+                static_trajectory_age=static_trajectory_age,
+                use_nonlinear_mpc=False,
+                high_level_setpoints=None
+            )
 
         if self.__log_optimizer:
             self.__log_optimizer_output_buffer[self.__log_optimizer_num_elements, :] = coeff.coefficients.flatten() if coeff.valid else coeff.alternative_trajectory.flatten()
@@ -1100,16 +1155,17 @@ class ComputeUnit(net.Agent):
                                self.__trajectory_tracker.get_information(drone_id).content[0].current_state.flatten()))
 
     def save_log_optimizer(self):
-        try:
-            os.makedirs(self.__log_optimizer_path)
-        except:
-            pass
-        finally:
-            pass
+        if self.__log_optimizer:
+            try:
+                os.makedirs(self.__log_optimizer_path)
+            except:
+                pass
+            finally:
+                pass
 
-        file_postfix = f"{self.ID}_{datetime.now().strftime('%Y%m%d%H%M%S%Z.%f').replace('.', '_')}"
-        self.__log_optimizer_output_buffer[0:self.__log_optimizer_num_elements, :].tofile(self.__log_optimizer_path + f"/output_{file_postfix}.npy")
-        self.__log_optimizer_input_buffer[0:self.__log_optimizer_num_elements, :].tofile(self.__log_optimizer_path + f"/input_{file_postfix}.npy")
+            file_postfix = f"{self.ID}_{datetime.now().strftime('%Y%m%d%H%M%S%Z.%f').replace('.', '_')}"
+            self.__log_optimizer_output_buffer[0:self.__log_optimizer_num_elements, :].tofile(self.__log_optimizer_path + f"/output_{file_postfix}.npy")
+            self.__log_optimizer_input_buffer[0:self.__log_optimizer_num_elements, :].tofile(self.__log_optimizer_path + f"/input_{file_postfix}.npy")
 
     def get_drone_intermediate_setpoint(self, drone_id):
         """returns the current intermediate setpoint the CU should steer the drone to."""
@@ -1313,7 +1369,7 @@ class ComputeUnit(net.Agent):
             if self.get_targets()[drone_id] is None or current_pos[drone_id] is None:
                 return
 
-        print(f"pppppppppppppppppp {self.__recalculate_setpoints}")
+        # print(f"pppppppppppppppppp {self.__recalculate_setpoints}")
         # if we do not block the hlp, after it has been called, it will be called multiple times in a row,
         # because the drones need a while to move and it will otherwise think, the drones are in a deadlock again
         self.__hlp_lock += 1

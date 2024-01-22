@@ -24,8 +24,14 @@ if __name__ == "__main__":
     num_drones = 10
     num_inputs = (num_drones * (prediction_horizon*3+9+1) + 3)
     num_outputs = prediction_horizon*3
-    output_merged = merge([os.path.join(path, f) for f in os.listdir(path) if f.startswith(f"output")], num_outputs)
-    input_merged = merge([os.path.join(path, f) for f in os.listdir(path) if f.startswith(f"input")], num_inputs)
+
+    files = [f[7:] for f in os.listdir(path) if f.startswith(f"output")]
+
+    output_merged = merge([os.path.join(path, f"output_{f}") for f in files], num_outputs)
+    input_merged = merge([os.path.join(path, f"input_{f}") for f in files], num_inputs)
 
     print(output_merged.shape)
     print(input_merged.shape)
+
+    output_merged.tofile("/home/alex/torch_datasets/DAMPC/output.npy")
+    input_merged.tofile("/home/alex/torch_datasets/DAMPC/input.npy")
