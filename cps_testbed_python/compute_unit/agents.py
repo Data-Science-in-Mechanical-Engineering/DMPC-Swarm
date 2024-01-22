@@ -157,7 +157,7 @@ class ComputeUnit(net.Agent):
                  communication_delta_t,
                  trajectory_generator_options, pos_offset, prediction_horizon, num_computing_agents,
                  computing_agents_ids, setpoint_creator, offset=0,
-                 alpha_1=10, alpha_2=1000, alpha_3=1 * 0, alpha_4=0, remove_redundant_constraints=False,
+                 alpha_1=10, alpha_2=1000, alpha_3=1 * 0, alpha_4=0, use_kkt_trigger=False, remove_redundant_constraints=False,
                  slot_group_state_id=None,
                  slot_group_ack_id=100000, ignore_message_loss=False, use_own_targets=False,
                  state_feedback_trigger_dist=0.5, simulated=True, use_high_level_planner=True,
@@ -225,6 +225,7 @@ class ComputeUnit(net.Agent):
         self.__alpha_2 = alpha_2
         self.__alpha_3 = alpha_3
         self.__alpha_4 = alpha_4
+        self.__use_kkt_trigger = use_kkt_trigger
 
         self.__state_feedback_triggered = []
 
@@ -1158,6 +1159,7 @@ class ComputeUnit(net.Agent):
 
         cone_angle = 60.0 * math.pi / 180
 
+        is_in_deadlock = [False for i in range(len(self.__drones_ids))]
         prios = np.zeros((len(self.__drones_ids),))
         for i in range(0, len(self.__drones_ids)):
             own_id = self.__drones_ids[i]
@@ -1194,6 +1196,29 @@ class ComputeUnit(net.Agent):
                     0:len(self.__computing_agents_ids)] and self.__ignore_message_loss:
                 prios[i] += -100000000 * self.__alpha_4
 
+            # KKT trigger.
+            own_pos = self.__trajectory_tracker.get_information(own_id).content[0].current_state[0:3]
+            constraints_vecs = []
+            if self.drone_stands_still(own_id):
+                for other_drone_id in self.__drones_ids:
+                    if other_drone_id == own_id or not self.drone_stands_still(other_drone_id):
+                        continue
+                    for c in self.__trajectory_tracker.get_information(own_id).content:
+                        d_pos = own_pos - c.current_state[0:3]
+                        # pushes in a different direction
+                        if np.dot(d_target, d_pos) < 0:
+                            constraints_vecs.append(d_pos)
+            if len(constraints_vecs) > 0:
+                constraints_vecs = np.array(constraints_vecs).T
+                if np.linalg.matrix_rank(constraints_vecs) == 3:
+                    is_in_deadlock[i] = True
+                else:
+                    b = np.linalg.lstsq(constraints_vecs, d_target)[0]
+                    if np.linalg.norm(constraints_vecs @ b - d_target) < 1e-3:
+                        is_in_deadlock[i] = True
+
+
+
         # quantize prios
         for i in range(len(prios)):
             if prios[i] >= state_feeback_triggered_prio:
@@ -1206,7 +1231,17 @@ class ComputeUnit(net.Agent):
                                 2 ** quantization_bit_number - 1)))
                 if prios[i] > 2 ** quantization_bit_number - 2:
                     prios[i] = int(2 ** quantization_bit_number - 2)
+            if self.__use_kkt_trigger and is_in_deadlock[i]:
+                prios[i] = 1
         return prios
+
+    def drone_stands_still(self, drone_id):
+        for c in self.__trajectory_tracker.get_information(drone_id).content:
+            if c.current_state is not None:
+                coefficients = c.coefficients.coefficients if c.coefficients.valid else c.coefficients.alternative_trajectory
+                if np.linalg.norm(coefficients) > 0.1:
+                    return False
+        return True
 
     def print(self, text):
         if self.__show_print:

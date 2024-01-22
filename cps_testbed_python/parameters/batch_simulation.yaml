@@ -68,6 +68,7 @@ alpha_1: 10.0
 alpha_2: 0
 alpha_3: 0
 alpha_4: 0
+use_kkt_trigger: True
 
 # high level planner options to resolve deadlocks
 use_high_level_planner: True

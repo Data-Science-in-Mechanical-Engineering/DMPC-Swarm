@@ -132,7 +132,7 @@ if __name__ == "__main__":
     # !!!!!!!!!!!!!!!! Downwash simulation is unrealistic atm.
     parser = argparse.ArgumentParser(
         description='CPS Testbed Simulator')
-    parser.add_argument('--param_path', default="parameters/dampc.yaml", type=str,
+    parser.add_argument('--param_path', default="parameters/hyperparameter_opt.yaml", type=str,
                         help='yaml file for parameters', metavar='')
     #parser.add_argument('--param_path', default="parameters/hyperparameter_opt.yaml", type=str,
     #					help='yaml file for parameters', metavar='')
@@ -220,7 +220,7 @@ if __name__ == "__main__":
 
     # only used if use_own_targets is set.
     ARGS.setpoint_creator = setpoint_creator.SetpointCreator(ARGS.drones, ARGS.testbeds,
-                                                             demo_setpoints=setpoint_creator.DEMO)
+                                                             demo_setpoints=setpoint_creator.CIRCLE_PERIODIC)
 
     origin = np.array(ARGS.testbeds["Vicon"][0]) + np.array(ARGS.testbeds["Vicon"][2])
     testbed_size = np.array(ARGS.testbeds["Vicon"][1]) - np.array(ARGS.testbeds["Vicon"][0])

@@ -255,6 +255,7 @@ class Simulation:
                                                               (self.__ARGS.num_computing_agents), 1)),
                                                  alpha_1=self.__ARGS.alpha_1,
                                                  alpha_2=self.__ARGS.alpha_2, alpha_3=self.__ARGS.alpha_3, alpha_4=self.__ARGS.alpha_4,
+                                                 use_kkt_trigger=self.__ARGS.use_kkt_trigger,
                                                  remove_redundant_constraints=self.__ARGS.remove_redundant_constraints,
                                                  ignore_message_loss=self.__ARGS.ignore_message_loss,
                                                  use_high_level_planner=self.__ARGS.use_high_level_planner,

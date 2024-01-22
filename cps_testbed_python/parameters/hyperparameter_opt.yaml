@@ -1,12 +1,14 @@
 name: "demo"
 
+run_on_cluster: False
+
 # this is used to optimize hyperparameters by hand.
 # testbed setup
 computing_agent_ids: [20, 21]           # ids of compute units. Length of array defines number of CUs
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
   "Vicon": [[-1.8, -1.8, 0.3], [1.8, 1.8, 3.0], [0, 0, 0]]
 
-num_drones: 6
+num_drones: 7
 
 # simulation setup
 simulated: True     # set false for real testbed (when it runs on a testbed, it saves a bit more data for debugging)
@@ -19,6 +21,9 @@ simulate_quantization: False  # simulate quantization during communication
 sim_steps_per_control: 4
 
 show_print: True
+
+log_optimizer: False
+log_optimizer_path: "../../dampc_dataset"
 
 message_loss_probability: 0.0
 
@@ -67,6 +72,7 @@ alpha_1: 10.0
 alpha_2: 0
 alpha_3: 0
 alpha_4: 0
+use_kkt_trigger: True
 
 # high level planner options to resolve deadlocks
 use_high_level_planner: True
