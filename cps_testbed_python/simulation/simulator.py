@@ -270,7 +270,9 @@ class Simulation:
                                                  simulate_quantization=self.__ARGS.simulate_quantization,
                                                  save_snapshot_times=self.__ARGS.save_snapshot_times,
                                                  show_animation=i==self.__ARGS.num_drones and self.__ARGS.show_animation,
-                                                 show_print=ARGS.show_print)
+                                                 show_print=ARGS.show_print,
+                                                 log_optimizer=ARGS.log_optimizer,
+                                                 log_optimizer_path=ARGS.log_optimizer_path)
 
                 for drone_id in self.__ARGS.drone_ids:
                     computing_agent.add_new_drone(drone_id)
@@ -535,6 +537,11 @@ class Simulation:
                 os.path.join(self.__ARGS.path, "simulation_result-" + str(self.__ARGS.num_drones) + "_drones_simnr_" + str(self.__id) + ".pkl"), 'wb') \
                 as out_file:
             pickle.dump(self.__easy_logger.get_data(), out_file)
+
+        if self.__ARGS.log_optimizer:
+            for ca in self.__computing_agents:
+                ca.save_log_optimizer()
+
         return True
 
     def save(self, simulation_logger):
