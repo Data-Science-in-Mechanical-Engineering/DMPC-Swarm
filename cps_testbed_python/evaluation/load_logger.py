@@ -83,29 +83,30 @@ def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
 
 	target_reached_times = []
 
-	for num_cus in range(1, num_drones+1, 2):
-		path = "../../../batch_simulation_results/" \
-				f"dmpc/dmpc_simulation_results_ignore_message_loss_{int(round(100 * message_loss))}_{num_cus}cus"
+	for num_cus in range(3, 10, 2):
+		path = "../../../hpc_runs/DMPC_test/" \
+				f"dmpc_simulation_results_iml{ignore_message_loss}_{int(round(100 * message_loss))}_{num_cus}cus_{'quant' if quant else ''}"
 		# f"dmpc/dmpc_simulation_results_iml{ignore_message_loss}_{int(round(100 * message_loss))}_{num_cus}cus_{'' if not quant else 'quant'}"
-		print(path)
+		#print(path)
 		files = [os.path.join(path, f) for f in os.listdir(path) if
 				 f.startswith(f"simulation_result-{num_drones}_drones_simnr_")]
 
 		target_reached_time = []
-		print(files)
+		#print(files)
 		for f in files:
 			result = p.load(open(f, "rb"))
 			if result["crashed"][0]:
 				continue
 			target_reached_time.append(result["target_reached_time"][0])
-
+		print(len(target_reached_time))
 		target_reached_times.append(target_reached_time)
 
+	#print(target_reached_times)
 	target_reached_times_np = np.array(target_reached_times)
 	print(np.max(target_reached_times_np, axis=1))
 
 	boxplot_data = {}
-	boxplot_data["index"] = np.array([i for i in range(1, num_drones+1, 2)])
+	boxplot_data["index"] = np.array([i for i in range(3, 11, 2)])
 	boxplot_data["median"] = np.median(target_reached_times_np, axis=1)
 	boxplot_data["box_top"] = np.percentile(target_reached_times_np, q=75, axis=1)
 	boxplot_data["box_bottom"] = np.percentile(target_reached_times_np, q=25, axis=1)
@@ -123,10 +124,10 @@ def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
 
 
 if __name__ == "__main__":
-	# plot_comparison(10, 0, ignore_message_loss=False, quant=False)
+	plot_comparison(15, 0, ignore_message_loss=False, quant=False)
 
 	ignore_message_loss = False
-	message_loss_prob = 0.1
+	message_loss_prob = 0.09
 	num_cus = 5
 	simulate_quantization = False
 	num_drones = 15
