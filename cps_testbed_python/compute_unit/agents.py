@@ -388,9 +388,9 @@ class ComputeUnit(net.Agent):
         self.__log_optimizer_path = log_optimizer_path
 
         self.__use_dampc = use_dampc
-
-        self.__dampc_model, self.__dampc_normalization = load_ampc_model(dampc_model_path, dampc_num_layers,
-                                                                         dampc_num_neurons, iteration=0)
+        if use_dampc:
+            self.__dampc_model, self.__dampc_normalization = load_ampc_model(dampc_model_path, dampc_num_layers,
+                                                                             dampc_num_neurons, iteration=0)
 
         if log_optimizer:
             assert log_optimizer == ignore_message_loss, "Not implemented."
@@ -1102,6 +1102,8 @@ class ComputeUnit(net.Agent):
             coeff = np.array(call_ampc(self.__log_optimizer_input_buffer[self.__log_optimizer_num_elements], self.__dampc_model, self.__dampc_normalization))
             coeff = np.reshape(coeff, (self.__prediction_horizon, 3))
             coeff = TrajectoryCoefficients(coefficients=coeff, valid=True, alternative_trajectory=coeff)
+            print("-----------------------------------------")
+            print(coeff.coefficients)
         else:
             coeff = self.__trajectory_generator.calculate_trajectory(
                 current_id=current_id,
@@ -1122,6 +1124,8 @@ class ComputeUnit(net.Agent):
                 use_nonlinear_mpc=False,
                 high_level_setpoints=None
             )
+            #print(coeff.coefficients)
+            #print(coeff.coefficients - coeff1.coefficients)
 
         if self.__log_optimizer:
             self.__log_optimizer_output_buffer[self.__log_optimizer_num_elements, :] = coeff.coefficients.flatten() if coeff.valid else coeff.alternative_trajectory.flatten()
@@ -1253,25 +1257,26 @@ class ComputeUnit(net.Agent):
                 prios[i] += -100000000 * self.__alpha_4
 
             # KKT trigger.
-            own_pos = self.__trajectory_tracker.get_information(own_id).content[0].current_state[0:3]
-            constraints_vecs = []
-            if self.drone_stands_still(own_id):
-                for other_drone_id in self.__drones_ids:
-                    if other_drone_id == own_id or not self.drone_stands_still(other_drone_id):
-                        continue
-                    for c in self.__trajectory_tracker.get_information(own_id).content:
-                        d_pos = own_pos - c.current_state[0:3]
-                        # pushes in a different direction
-                        if np.dot(d_target, d_pos) < 0:
-                            constraints_vecs.append(d_pos)
-            if len(constraints_vecs) > 0:
-                constraints_vecs = np.array(constraints_vecs).T
-                if np.linalg.matrix_rank(constraints_vecs) == 3:
-                    is_in_deadlock[i] = True
-                else:
-                    b = np.linalg.lstsq(constraints_vecs, d_target)[0]
-                    if np.linalg.norm(constraints_vecs @ b - d_target) < 1e-3:
+            if self.__trajectory_tracker.get_information(own_id).content[0].current_state is not None:
+                own_pos = self.__trajectory_tracker.get_information(own_id).content[0].current_state[0:3]
+                constraints_vecs = []
+                if self.drone_stands_still(own_id):
+                    for other_drone_id in self.__drones_ids:
+                        if other_drone_id == own_id or not self.drone_stands_still(other_drone_id):
+                            continue
+                        for c in self.__trajectory_tracker.get_information(own_id).content:
+                            d_pos = own_pos - c.current_state[0:3]
+                            # pushes in a different direction
+                            if np.dot(d_target, d_pos) < 0:
+                                constraints_vecs.append(d_pos)
+                if len(constraints_vecs) > 0:
+                    constraints_vecs = np.array(constraints_vecs).T
+                    if np.linalg.matrix_rank(constraints_vecs) == 3:
                         is_in_deadlock[i] = True
+                    else:
+                        b = np.linalg.lstsq(constraints_vecs, d_target)[0]
+                        if np.linalg.norm(constraints_vecs @ b - d_target) < 1e-3:
+                            is_in_deadlock[i] = True
 
 
 

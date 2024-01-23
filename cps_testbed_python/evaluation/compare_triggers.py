@@ -7,12 +7,15 @@ import pickle as p
 
 def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
     colors = ["b", "r", "g"]
-    for i, name_trigger in enumerate(["DMPC_RR", "DMPC_test", "DMPC_DT"]):
+    for i, name_trigger in enumerate(["DMPC_RR", "DMPC_KKT"]):
         target_reached_times = []
 
         for num_cus in range(3, 10, 2):
             path = f"../../../hpc_runs/{name_trigger}/" \
                    f"dmpc_simulation_results_iml{ignore_message_loss}_{int(round(100 * message_loss))}_{num_cus}cus_{'quant' if quant else ''}"
+            print(f"../../../hpc_runs/{name_trigger}/" \
+                   f"dmpc_simulation_results_iml{ignore_message_loss}_{int(round(100 * message_loss))}_{num_cus}cus_{'quant' if quant else ''}"
+           )
             # f"dmpc/dmpc_simulation_results_iml{ignore_message_loss}_{int(round(100 * message_loss))}_{num_cus}cus_{'' if not quant else 'quant'}"
             # print(path)
             files = [os.path.join(path, f) for f in os.listdir(path) if
@@ -52,4 +55,4 @@ def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
     plt.show()
 
 if __name__ == "__main__":
-    plot_comparison(num_drones=15, message_loss=0.01, ignore_message_loss=False, quant=False)
+    plot_comparison(num_drones=10, message_loss=0.0, ignore_message_loss=False, quant=False)

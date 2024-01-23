@@ -49,5 +49,7 @@ if __name__ == "__main__":
     for comb_idx in range(len(swept_params)):
         with open(param_target_path + f"params{comb_idx}.yaml", "w") as file:
             params = yaml.safe_dump(swept_params[comb_idx], file)
+            if swept_params[comb_idx]["num_computing_agents"] == 11 and swept_params[comb_idx]["num_drones"] == 15 and 0.019 <swept_params[comb_idx]["message_loss_probability"] < 0.022:
+                print(comb_idx)
 
 
