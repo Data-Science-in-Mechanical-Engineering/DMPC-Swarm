@@ -3,11 +3,11 @@
 #SBATCH --job-name=dampc
 #SBATCH --output=/home/mf724021/hpc_data/slurm_output/%A_%a.out
 #SBATCH --account=rwth1483
-#SBATCH --cpus-per-task=6
+#SBATCH --cpus-per-task=24
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=alexander.graefe@dsme.rwth-aachen.de
 #SBATCH --mem-per-cpu=2700MB # memory per node
-#SBATCH --time=0-05:00:00
+#SBATCH --time=2-00:00:00
 #SBATCH --array=0-0
 
 module load GCCcore/.9.3.0
