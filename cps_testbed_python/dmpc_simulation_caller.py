@@ -95,7 +95,8 @@ def call_batch_simulation_hpc(ARGS_array):
 
     #with open(ARGS_array[0].path + f"/ARGS_{ARGS_array[0].num_drones}_drones.pkl", 'wb') as out_file:
         #pickle.dump(ARGS_array, out_file)
-
+    if ARGS_array[0].name_job == "DAMPC":
+        ARGS_array = ARGS_array[3000:]
     print(f"Running {multiprocessing.cpu_count()} simulations in parallel.")
     max_threads = multiprocessing.cpu_count()
     p = mp.Pool(processes=np.min((max_threads, ARGS_array[0].num_simulations)), maxtasksperchild=1)  #
