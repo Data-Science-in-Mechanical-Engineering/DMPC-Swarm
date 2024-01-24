@@ -1265,10 +1265,11 @@ class ComputeUnit(net.Agent):
                         if other_drone_id == own_id or not self.drone_stands_still(other_drone_id):
                             continue
                         for c in self.__trajectory_tracker.get_information(other_drone_id).content:
-                            d_pos = own_pos - c.current_state[0:3]
-                            # pushes in a different direction
-                            if np.dot(d_target, d_pos) < 0 and np.linalg.norm(d_pos) < 1.1*self.__options.r_min:
-                                constraints_vecs.append(d_pos)
+                            if c.current_state is not None:
+                                d_pos = own_pos - c.current_state[0:3]
+                                # pushes in a different direction
+                                if np.dot(d_target, d_pos) < 0 and np.linalg.norm(d_pos) < 1.1*self.__options.r_min:
+                                    constraints_vecs.append(d_pos)
                 if len(constraints_vecs) > 0:
                     #print("cccccccccccccccccccccccccccc")
                     constraints_vecs = np.array(constraints_vecs).T
