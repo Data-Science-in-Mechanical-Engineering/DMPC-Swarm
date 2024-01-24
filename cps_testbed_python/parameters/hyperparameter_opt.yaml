@@ -8,7 +8,7 @@ computing_agent_ids: [20, 21]           # ids of compute units. Length of array 
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
   "Vicon": [[-1.8, -1.8, 0.3], [1.8, 1.8, 3.0], [0, 0, 0]]
 
-num_drones: 6
+num_drones: 7
 
 # simulation setup
 simulated: True     # set false for real testbed (when it runs on a testbed, it saves a bit more data for debugging)
