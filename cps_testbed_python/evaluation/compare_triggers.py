@@ -7,7 +7,7 @@ import pickle as p
 
 def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
     colors = ["b", "r", "g"]
-    for i, name_trigger in enumerate(["DMPC_RR", "DMPC_KKT"]):
+    for i, name_trigger in enumerate(["DMPC_RR", "DMPC_HT", "DMPC_DT"]):
         target_reached_times = []
 
         for num_cus in range(3, 10, 2):
@@ -55,4 +55,4 @@ def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
     plt.show()
 
 if __name__ == "__main__":
-    plot_comparison(num_drones=10, message_loss=0.0, ignore_message_loss=False, quant=False)
+    plot_comparison(num_drones=15, message_loss=0.01, ignore_message_loss=False, quant=False)

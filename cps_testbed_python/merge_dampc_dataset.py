@@ -4,17 +4,16 @@ import numpy as np
 
 
 def merge(files, num_elem):
-    data = None
-
-    for f in files:
+    data = np.zeros((int(10e6), num_elem))
+    offset = 0
+    for i, f in enumerate(files):
         d = np.fromfile(f)
         num_trajs = d.shape[0] // num_elem
         d = d.reshape((num_trajs, num_elem))
-        if data is None:
-            data = d
-        else:
-            data = np.concatenate((data, d))
-    return data
+        data[offset:offset+num_trajs, :] = d
+        offset += num_trajs
+        print(f"{i} / {len(files)}")
+    return data[0:offset, :]
 
 
 if __name__ == "__main__":
