@@ -1102,9 +1102,9 @@ class ComputeUnit(net.Agent):
             coeff = np.array(call_ampc(self.__log_optimizer_input_buffer[self.__log_optimizer_num_elements], self.__dampc_model, self.__dampc_normalization))
             coeff = np.reshape(coeff, (self.__prediction_horizon, 3))
             coeff1 = TrajectoryCoefficients(coefficients=coeff, valid=True, alternative_trajectory=coeff)
-            print("-----------------------------------------")
-            print(coeff1.coefficients)
-        #else:
+            #print("-----------------------------------------")
+            #print(coeff1.coefficients)
+        else:
             coeff = self.__trajectory_generator.calculate_trajectory(
                 current_id=current_id,
                 current_state=self.__trajectory_tracker.get_information(current_id).content[0].current_state,
@@ -1124,8 +1124,8 @@ class ComputeUnit(net.Agent):
                 use_nonlinear_mpc=False,
                 high_level_setpoints=None
             )
-            print(coeff.coefficients)
-            print(coeff.coefficients - coeff1.coefficients)
+            # print(coeff.coefficients)
+            # print(coeff.coefficients - coeff1.coefficients)
 
         if self.__log_optimizer:
             self.__log_optimizer_output_buffer[self.__log_optimizer_num_elements, :] = coeff.coefficients.flatten() if coeff.valid else coeff.alternative_trajectory.flatten()
@@ -1260,26 +1260,25 @@ class ComputeUnit(net.Agent):
             if self.__trajectory_tracker.get_information(own_id).content[0].current_state is not None:
                 own_pos = self.__trajectory_tracker.get_information(own_id).content[0].current_state[0:3]
                 constraints_vecs = []
-                if self.drone_stands_still(own_id):
+                if self.drone_stands_still(own_id) and np.linalg.norm(d_target) > 0.1:
                     for other_drone_id in self.__drones_ids:
                         if other_drone_id == own_id or not self.drone_stands_still(other_drone_id):
                             continue
                         for c in self.__trajectory_tracker.get_information(other_drone_id).content:
                             d_pos = own_pos - c.current_state[0:3]
                             # pushes in a different direction
-                            if np.dot(d_target, d_pos) < 0 and np.linalg.norm(d_pos) < 1.01*self.__options.r_min:
+                            if np.dot(d_target, d_pos) < 0 and np.linalg.norm(d_pos) < 1.1*self.__options.r_min:
                                 constraints_vecs.append(d_pos)
                 if len(constraints_vecs) > 0:
+                    #print("cccccccccccccccccccccccccccc")
                     constraints_vecs = np.array(constraints_vecs).T
                     if np.linalg.matrix_rank(constraints_vecs) == 3:
                         is_in_deadlock[i] = True
-                        #print("cccccccccccccccccccccccccccc")
                     else:
                         b = np.linalg.lstsq(constraints_vecs, d_target)[0]
-                        if np.linalg.norm(constraints_vecs @ b - d_target) < 1e-3:
+                        # print(np.linalg.norm(constraints_vecs @ b - d_target))
+                        if np.linalg.norm(constraints_vecs @ b - d_target) < 1e-2:
                             is_in_deadlock[i] = True
-                            print("cccccccccccccccccccccccccccc")
-                            assert False
 
 
 
@@ -1303,7 +1302,7 @@ class ComputeUnit(net.Agent):
         for c in self.__trajectory_tracker.get_information(drone_id).content:
             if c.current_state is not None:
                 coefficients = c.coefficients.coefficients if c.coefficients.valid else c.coefficients.alternative_trajectory
-                if np.linalg.norm(coefficients) > 0.1:
+                if np.linalg.norm(coefficients.flatten()) > 0.1*self.__prediction_horizon:
                     return False
         return True
 

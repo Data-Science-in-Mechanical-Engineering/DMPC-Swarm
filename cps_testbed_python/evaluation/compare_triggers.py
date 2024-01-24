@@ -9,8 +9,8 @@ def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
     colors = ["b", "r", "g"]
     for i, name_trigger in enumerate(["DMPC_RR", "DMPC_HT", "DMPC_DT"]):
         target_reached_times = []
-
-        for num_cus in range(3, 10, 2):
+        cu_numbers = [2] + [i for i in range(3, 10, 2)]
+        for num_cus in cu_numbers:
             path = f"../../../hpc_runs/{name_trigger}/" \
                    f"dmpc_simulation_results_iml{ignore_message_loss}_{int(round(100 * message_loss))}_{num_cus}cus_{'quant' if quant else ''}"
             print(f"../../../hpc_runs/{name_trigger}/" \
@@ -35,7 +35,7 @@ def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
         target_reached_times_np = np.array(target_reached_times)
 
         boxplot_data = {}
-        boxplot_data["index"] = np.array([i for i in range(3, 11, 2)])
+        boxplot_data["index"] = np.array(cu_numbers)
         boxplot_data["median"] = np.median(target_reached_times_np, axis=1)
         boxplot_data["box_top"] = np.percentile(target_reached_times_np, q=75, axis=1)
         boxplot_data["box_bottom"] = np.percentile(target_reached_times_np, q=25, axis=1)
@@ -55,4 +55,4 @@ def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
     plt.show()
 
 if __name__ == "__main__":
-    plot_comparison(num_drones=15, message_loss=0.01, ignore_message_loss=False, quant=False)
+    plot_comparison(num_drones=10, message_loss=0.01, ignore_message_loss=False, quant=False)
