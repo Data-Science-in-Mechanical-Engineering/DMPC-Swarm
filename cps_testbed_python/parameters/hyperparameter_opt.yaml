@@ -6,7 +6,7 @@ computing_agent_ids: [20, 21]           # ids of compute units. Length of array 
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
   "Vicon": [[-1.8, -1.8, 0.3], [1.8, 1.8, 3.0], [0, 0, 0]]
 
-num_drones: 6
+num_drones: 7
 
 # simulation setup
 simulated: True     # set false for real testbed (when it runs on a testbed, it saves a bit more data for debugging)
@@ -35,7 +35,7 @@ scenario_setpoint_creator:
 # Controller options
 control_steps_per_round: 12
 use_communication_freq_hz: True  #weather to calculate communication_freq_hz based on formulas for mixer rounds or to use param communication_freq_hz#
-communication_freq_hz: 5
+communication_freq_hz: 10
 
 prediction_horizon: 15           # prediction horizon in time is prediction_horizon / communication_freq_hz
 r_min: 0.4                       # distance to used during optimization
