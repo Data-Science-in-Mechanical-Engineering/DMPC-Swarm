@@ -95,7 +95,8 @@ def call_batch_simulation_hpc(ARGS_array):
 
     #with open(ARGS_array[0].path + f"/ARGS_{ARGS_array[0].num_drones}_drones.pkl", 'wb') as out_file:
         #pickle.dump(ARGS_array, out_file)
-
+    if ARGS_array[0].name_job == "DAMPC":
+        ARGS_array = ARGS_array[3000:]
     print(f"Running {multiprocessing.cpu_count()} simulations in parallel.")
     max_threads = multiprocessing.cpu_count()
     p = mp.Pool(processes=np.min((max_threads, ARGS_array[0].num_simulations)), maxtasksperchild=1)  #
@@ -132,10 +133,13 @@ if __name__ == "__main__":
     # !!!!!!!!!!!!!!!! Downwash simulation is unrealistic atm.
     parser = argparse.ArgumentParser(
         description='CPS Testbed Simulator')
-    #parser.add_argument('--param_path', default="parameters/batch_simulation.yaml", type=str,
+
+    #parser.add_argument('--param_path', default="parameters/dampc_run.yaml", type=str,
     #                    help='yaml file for parameters', metavar='')
     parser.add_argument('--param_path', default="parameters/hyperparameter_opt.yaml", type=str,
-    					help='yaml file for parameters', metavar='')
+                        help='yaml file for parameters', metavar='')
+    #parser.add_argument('--param_path', default="parameters/batch_simulation.yaml", type=str,
+    #					help='yaml file for parameters', metavar='')
 
     # the following are only needed for the hpc
     parser.add_argument('-i', "--iter_id", default=None, type=int, help='id of slurm job', metavar='')
@@ -271,8 +275,9 @@ if __name__ == "__main__":
         ARGS_for_simulation.sim_id = i + 1
         ARGS_array.append(ARGS_for_simulation)
 
-    if ARGS.sweep_parameters and ARGS.iter_id is None:
-        for num_cus in [5, 7, 9, 11, 13, 15]:
+    if ARGS.run_on_cluster:
+        call_batch_simulation_hpc(ARGS_array)
+        """for num_cus in [5, 7, 9, 11, 13, 15]:
             for message_loss_prob in [0.1]:
                 for simulate_quantization in [False]:
                     for ignore_message_loss in [False]:
@@ -282,9 +287,6 @@ if __name__ == "__main__":
                                                             message_loss_probability=message_loss_prob,
                                                             ignore_message_loss=ignore_message_loss,
                                                             num_cus=num_cus,
-                                                            simulate_quantization=simulate_quantization)
-    elif ARGS.iter_id is not None:
-        # we are on the cluster
-        call_batch_simulation_hpc(ARGS_array)
+                                                            simulate_quantization=simulate_quantization)"""
     else:
         call_single_simulation(ARGS_array[0], ARGS.name)

@@ -1,4 +1,5 @@
 name: "batch_simulation"
+run_on_cluster: True
 
 # testbed setup
 computing_agent_ids: [40, 41]           # ids of compute units. Length of array defines number of CUs
@@ -9,6 +10,10 @@ testbeds:                               # this is only relevant for testbed runs
 num_drones: 15
 
 # simulation setup
+run_dampc: False
+dampc_path: "/home/alex/hpc_data/DAMPC_Test/trainer"
+dampc_num_layers: 5
+dampc_num_neurons: 500
 simulated: True     # set false for real testbed (when it runs on a testbed, it saves a bit more data for debugging)
 duration_sec: 200   # duration of simulation
 abort_simulation: True  # exit simulation earlier, if drones crash or all targets reached.
@@ -20,7 +25,10 @@ sim_steps_per_control: 4
 folder_name: "cu_number"
 show_print: False
 
-message_loss_probability: 0.0
+log_optimizer: False
+log_optimizer_path: ""
+
+message_loss_probability: 0.1
 
 sweep_parameters: True   # to sweep number of CUs, message loss probabilities and so on
 
@@ -60,10 +68,11 @@ use_optimized_constraints: True  # remove!!
 guarantee_anti_collision: True   # if false uses a deprecated approach
 
 # event trigger options
-alpha_1: 10.0
+alpha_1: 1.0
 alpha_2: 0
-alpha_3: 0
+alpha_3: 0.0
 alpha_4: 0
+use_kkt_trigger: True
 
 # high level planner options to resolve deadlocks
 use_high_level_planner: True

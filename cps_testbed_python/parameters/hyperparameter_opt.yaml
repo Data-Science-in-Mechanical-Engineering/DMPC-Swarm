@@ -1,5 +1,7 @@
 name: "demo"
 
+run_on_cluster: False
+
 # this is used to optimize hyperparameters by hand.
 # testbed setup
 computing_agent_ids: [20, 21]           # ids of compute units. Length of array defines number of CUs
@@ -20,6 +22,9 @@ sim_steps_per_control: 4
 
 show_print: True
 
+log_optimizer: False
+log_optimizer_path: "../../dampc_dataset"
+
 message_loss_probability: 0.0
 
 sweep_parameters: False
@@ -33,6 +38,10 @@ use_own_targets: True         # if the cus should use their own targets. This is
 scenario_setpoint_creator:
 
 # Controller options
+run_dampc: False
+dampc_path: "/home/alex/hpc_data/DAMPC_Test/trainer"
+dampc_num_layers: 5
+dampc_num_neurons: 500
 control_steps_per_round: 12
 use_communication_freq_hz: True  #weather to calculate communication_freq_hz based on formulas for mixer rounds or to use param communication_freq_hz#
 communication_freq_hz: 10
@@ -67,6 +76,7 @@ alpha_1: 10.0
 alpha_2: 0
 alpha_3: 0
 alpha_4: 0
+use_kkt_trigger: True
 
 # high level planner options to resolve deadlocks
 use_high_level_planner: True

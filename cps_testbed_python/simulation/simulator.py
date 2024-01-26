@@ -255,6 +255,7 @@ class Simulation:
                                                               (self.__ARGS.num_computing_agents), 1)),
                                                  alpha_1=self.__ARGS.alpha_1,
                                                  alpha_2=self.__ARGS.alpha_2, alpha_3=self.__ARGS.alpha_3, alpha_4=self.__ARGS.alpha_4,
+                                                 use_kkt_trigger=self.__ARGS.use_kkt_trigger,
                                                  remove_redundant_constraints=self.__ARGS.remove_redundant_constraints,
                                                  ignore_message_loss=self.__ARGS.ignore_message_loss,
                                                  use_high_level_planner=self.__ARGS.use_high_level_planner,
@@ -270,7 +271,14 @@ class Simulation:
                                                  simulate_quantization=self.__ARGS.simulate_quantization,
                                                  save_snapshot_times=self.__ARGS.save_snapshot_times,
                                                  show_animation=i==self.__ARGS.num_drones and self.__ARGS.show_animation,
-                                                 show_print=ARGS.show_print)
+                                                 show_print=ARGS.show_print,
+                                                 log_optimizer=ARGS.log_optimizer,
+                                                 log_optimizer_path=ARGS.log_optimizer_path,
+                                                 use_dampc=ARGS.run_dampc,
+                                                 dampc_model_path=ARGS.dampc_path,
+                                                 dampc_num_layers=ARGS.dampc_num_layers,
+                                                 dampc_num_neurons=ARGS.dampc_num_neurons
+                                                 )
 
                 for drone_id in self.__ARGS.drone_ids:
                     computing_agent.add_new_drone(drone_id)
@@ -535,6 +543,11 @@ class Simulation:
                 os.path.join(self.__ARGS.path, "simulation_result-" + str(self.__ARGS.num_drones) + "_drones_simnr_" + str(self.__id) + ".pkl"), 'wb') \
                 as out_file:
             pickle.dump(self.__easy_logger.get_data(), out_file)
+
+        if self.__ARGS.log_optimizer:
+            for ca in self.__computing_agents:
+                ca.save_log_optimizer()
+
         return True
 
     def save(self, simulation_logger):

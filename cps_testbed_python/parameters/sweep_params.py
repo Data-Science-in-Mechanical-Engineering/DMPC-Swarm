@@ -29,7 +29,7 @@ def sweep_parameters(params, params_sweep):
 
 
 if __name__ == "__main__":
-    name = "DMPC_test"
+    name = "DMPC_KKT"
     param_target_path = f"{Path.home()}/hpc_parameters/{name}/"
     param_path = "batch_simulation.yaml"
     param_sweep_path = "batch_simulation_sweep.yaml"
@@ -49,5 +49,7 @@ if __name__ == "__main__":
     for comb_idx in range(len(swept_params)):
         with open(param_target_path + f"params{comb_idx}.yaml", "w") as file:
             params = yaml.safe_dump(swept_params[comb_idx], file)
+
+    print(f"{len(swept_params)} parameter settings")
 
 
