@@ -16,7 +16,7 @@ def define_ARGS():
     parser = argparse.ArgumentParser(
         description='ARGS for the ET-DMPC')
     parser.add_argument('--drones', default={1: "Vicon", 2: "Vicon", 3: "Vicon", 4: "Vicon", 5: "Vicon", 6: "Vicon", 7: "Vicon", 8: "Vicon", 9: "Vicon", 10: "Vicon",
-                                             11: "Vicon", 12: "Vicon", 13: "Vicon", 14: "Vicon"}, type=dict,
+                                             11: "Vicon", 12: "Vicon", 13: "Vicon", 14: "Vicon", 15: "Vicon", 16: "Vicon"}, type=dict,
                         help='drone IDs with name of the testbed', metavar='')
     parser.add_argument('--param_path', default="parameters/testbed_experiment.yaml", type=str,
                         help='yaml file for parameters', metavar='')
@@ -36,7 +36,7 @@ def define_ARGS():
     parser.add_argument("--show_animation", default=False, type=bool,
                         help="This is only needed when we want to live plot what is happening (during operation of the testbed)")
 
-    parser.add_argument("--num_static_drones", default=7, type=int, help="")
+    parser.add_argument("--num_static_drones", default=16, type=int, help="")
     parser.add_argument('--dynamic_swarm', default=True, type=bool)  # if drones should be added dynamically or not.
 
     ARGS = parser.parse_args()
@@ -63,7 +63,7 @@ def define_ARGS():
         ARGS.max_positions[key] = np.array(ARGS.testbeds[testbed][1]) + offset
         print(f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
 
-    ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=sc.CIRCLE_PERIODIC)
+    ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=sc.RANDOM)
 
     path = ""
     with open(path + "ARGS_for_testbed.pkl", 'wb') as out_file:

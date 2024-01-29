@@ -103,8 +103,8 @@ STATUS_ALL_TARGETS_REACHED = 5
 STATUS_LANDING = 6
 STATUS_LANDED = 7
 
-MAX_NUM_DRONES = 15
-MAX_NUM_AGENTS = 20
+MAX_NUM_DRONES = 16
+MAX_NUM_AGENTS = 25
 
 
 class TrajectoryMessage(message.MessageType):
@@ -768,6 +768,7 @@ class ComputingUnit:
 
         counter = 0
         while True:
+            print("--------------------------------------------------------")
             new_round = False
             messages_rx = self.read_data_from_cp()
             messages_tx = []

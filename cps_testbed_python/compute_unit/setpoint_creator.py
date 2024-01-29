@@ -246,12 +246,12 @@ class SetpointCreator:
 		return np.array(targets[drone_id])
 
 	def generate_new_random_setpoint(self, drone_id):
-		if drone_id == 11 or drone_id == 12:
-			return self.generate_new_dynamic_circle_setpoint(drone_id)
+		#if drone_id == 11 or drone_id == 12:
+		#	return self.generate_new_dynamic_circle_setpoint(drone_id)
 
 		if drone_id not in self.__random_setpoints_calculated:
 			self.__random_setpoints_calculated[drone_id] = False
-		if (self.__round % 25 == 0 and not self.__random_setpoints_calculated[drone_id]) or drone_id not in self.__random_setpoints:
+		if (self.__round % 50 == 0 and not self.__random_setpoints_calculated[drone_id]) or drone_id not in self.__random_setpoints:
 			name_testbed = self.__drones[drone_id]
 			min_pos = np.array(self.__testbeds[name_testbed][0]) * 0.8
 			max_pos = np.array(self.__testbeds[name_testbed][1]) * 0.8
@@ -262,7 +262,7 @@ class SetpointCreator:
 				self.__random_setpoints[drone_id][2] = 0.8
 
 			self.__random_setpoints[drone_id] += offset
-		elif self.__round % 25 != 0:
+		elif self.__round % 50 != 0:
 			self.__random_setpoints_calculated[drone_id] = False
 
 		return self.__random_setpoints[drone_id]

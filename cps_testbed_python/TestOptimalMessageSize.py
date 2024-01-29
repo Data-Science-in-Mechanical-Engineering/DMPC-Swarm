@@ -42,13 +42,15 @@ def get_min(arr):
 
 
 if __name__ == "__main__":
+	MAX_NUM_DRONES = 16
+	MAX_NUM_AGENTS = 25
 	state_message_size = 2+2*9+1+2*3+2+1+1
 	print(state_message_size)
-	trajectory_message_size = 2+2*45+2*9+2+1+1 + 15
-	setpoint_message_size = 2 + 10 + 3 * 2 * 15
-	network_manager_message_size = 3 * 20 + 2
+	trajectory_message_size = 2+2*45+2*9+2+1+1 + MAX_NUM_DRONES
+	setpoint_message_size = 2 + MAX_NUM_DRONES + 3 * 2 * MAX_NUM_DRONES
+	network_manager_message_size = 3 * MAX_NUM_AGENTS + 2
 	print(trajectory_message_size)
-	message_list = [state_message_size] + [state_message_size]*10 + [trajectory_message_size]*2 + [setpoint_message_size] + [network_manager_message_size]
+	message_list = [state_message_size] + [state_message_size]*16 + [trajectory_message_size]*3 + [setpoint_message_size] + [network_manager_message_size]
 	sizes = [i for i in range(10, 100)]
 	num_messages = [calculate_num_messages(s, message_list) for s in sizes]
 	round_times = [calculate_round_time(sizes[i], num_messages[i]) for i in range(len(sizes))]

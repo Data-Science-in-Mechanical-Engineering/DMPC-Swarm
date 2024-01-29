@@ -3,7 +3,7 @@ import os
 
 import yaml
 
-from compute_unit.neural_networks.jax_models import AMPCNN
+# from compute_unit.neural_networks.jax_models import AMPCNN
 from compute_unit.trajectory_generation.interpolation import TrajectoryCoefficients
 from network import network as net
 import compute_unit.trajectory_generation.trajectory_generation as tg
@@ -25,8 +25,8 @@ import cu_animator as cu_animator
 
 from datetime import datetime
 
-import jax
-import jax.numpy as jnp
+# import jax
+# import jax.numpy as jnp
 
 NORMAL = 0
 INFORMATION_DEPRECATED = 1
