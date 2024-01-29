@@ -329,14 +329,14 @@ class Simulation:
         focal_length_video = resolution_video[1] / (2 * math.tan(math.pi / 180 * 45 / 2))
 
         viewMatrix4 = p.computeViewMatrix(
-            cameraEyePosition=[2, -4, 1.8],
-            cameraTargetPosition=[2, 2, 3],
+            cameraEyePosition=[-3, -3, 5],
+            cameraTargetPosition=[0, 0, 2],
             cameraUpVector=[0, 0, 1])
 
-        viewMatrix4 = p.computeViewMatrix(
+        """viewMatrix4 = p.computeViewMatrix(
             cameraEyePosition=[0, 0, 8],
             cameraTargetPosition=[0, 0, 0],
-            cameraUpVector=[1, 0, 0])
+            cameraUpVector=[1, 0, 0])"""
 
         """viewMatrix4 = p.computeViewMatrix(
             cameraEyePosition=[2, 2, 7],
@@ -425,6 +425,16 @@ class Simulation:
 
                 # do low level control
                 if self.__ARGS.save_video and i % 16 == 0:
+                    angle = 2*math.pi / 8000 * i
+                    viewMatrix4 = p.computeViewMatrix(
+                        cameraEyePosition=[3*np.sin(angle), 3*np.cos(angle), 6],
+                        cameraTargetPosition=[0, 0, 1],
+                        cameraUpVector=[0, 0, 1])
+                    intrinsic_matrix = np.array([[-focal_length_video, 0, resolution_video[0] / 2, 0],
+                                                 [0, focal_length_video, resolution_video[1] / 2, 0],
+                                                 [0, 0, 1, 0],
+                                                 [0, 0, 0, 0]])
+                    trans = np.reshape(np.array(viewMatrix4), (4, 4), 'F')
                     width, height, rgbImg, depthImg, segImg = p.getCameraImage(
                         width=resolution_video[0],
                         height=resolution_video[1],
