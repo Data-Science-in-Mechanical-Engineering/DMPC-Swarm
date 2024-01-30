@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import math
-
+import numpy as np
 
 def calculate_num_rounds(num_messages):
 	base_num_rounds = 100
@@ -66,6 +66,8 @@ if __name__ == "__main__":
 	print(f"#define MX_ROUND_LENGTH {num_rounds[best_ind]}")
 	print(f"#define MX_SLOT_LENGTH GPI_TICK_US_TO_HYBRID2({round(slot_times[best_ind])})")
 	print(f"#define MX_GENERATION_SIZE {num_messages[best_ind]}")
+	print(np.sum(np.array(message_list)))
+	print(state_message_size)
 	fig = plt.figure()
 	plt.plot(sizes, num_messages)
 	plt.xlabel("Mixer messages size")

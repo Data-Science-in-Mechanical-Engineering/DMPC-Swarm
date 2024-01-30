@@ -5,7 +5,7 @@ import pandas as pd
 
 if __name__ == "__main__":
     name_run = "testbed_experiment_dyna"
-    csv_path = "/home/alex/Documents/009_Paper/robot_swarm_science_robotics/Images"
+    csv_path = "/users/mf724021/Documents/009_Paper/robot_swarm_science_robotics/Images"
     starting_time = 100
     with open(f'../../../experiment_measurements/drone_trajectory_logger_{name_run}.p', 'rb') as handle:
         drone_trajectory_logger = pickle.load(handle)
@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
 
     df = pd.DataFrame({"t": (times-starting_time)*0.2, "d": max_dists, "m": min_inter_dists})
-    df.to_csv(f"{csv_path}/MessageLossHardwareExperimentsDyna.csv", sep=",")
+    # df.to_csv(f"{csv_path}/MessageLossHardwareExperiments_{name_run}.csv", sep=",")
 
     plt.plot(max_dists) #times, max_dists)
     plt.show()

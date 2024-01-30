@@ -9,10 +9,10 @@ testbeds:                               # this is only relevant for testbed runs
 num_drones: 15
 
 folder_name: "testbed_experiments"
-show_print: True
+show_print: False
 
-message_loss_probability: 0.1
-message_loss_period_start: 600000
+message_loss_probability: 0.0
+message_loss_period_start: 600
 message_loss_period_end: 1150
 
 #options for target points

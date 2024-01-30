@@ -807,6 +807,7 @@ class ComputingUnit:
                         self.print(m.types)
                         self.print(m.manager_wants_to_leave_network_in)
                         self.print(m.id_new_network_manager)
+                        print(len(messages_rx)-2)
                         num_connected_drones = 0
                         for t in m.types:
                             if t == 1:
@@ -1042,7 +1043,7 @@ class ComputingUnit:
             m_temp.target_positions = setpoint_message.content.setpoints
             messages_tx.append(m_temp)
 
-        if self.__round_nmbr % 5 == 0:
+        if self.__round_nmbr % 50 == 0 and self.__cu_id == 20:
             with open(f'../../experiment_measurements/drone_trajectory_logger_{self.__ARGS.name}.p', 'wb') as handle:
                 pickle.dump(self.__drone_trajectory_logger, handle)
 

@@ -33,8 +33,8 @@ typedef struct message_assignment_t_tag
 static const uint8_t nodes[]	= {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 20, 21, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39};//{1, 2, 3, 20, 30, 31, 32, 33, 34};//{1, 2, 20, 21};
 static const uint8_t cu_nodes[] = {20, 21, 22};
 static const uint8_t cf_nodes[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
-static const uint8_t relay_nodes[] = {30, 31, 32, 33, 34, 36, 37, 38, 39};
-static const uint8_t shutdown_node = 35;
+static const uint8_t relay_nodes[] = {30, 31, 32, 33, 34, 35, 36, 37, 38};
+static const uint8_t shutdown_node = 39;
 
 // ids of message slots
 // corresponding sizes (in bytes) of message slots
