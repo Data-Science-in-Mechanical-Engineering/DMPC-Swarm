@@ -4,15 +4,15 @@ name: "testbed_experiment_dyna"
 computing_agent_ids: [20, 21]           # ids of compute units. Length of array defines number of CUs
 num_computing_agents: 2
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
-  Vicon: [[-1.8, -1.8, 0.3], [1.8, 1.8, 3.0], [0, 0, 0]]  #
+  Vicon: [[-1.8, -1.8, 0.4], [1.8, 1.8, 3.0], [0, 0, 0]]  #
 
 num_drones: 15
 
 folder_name: "testbed_experiments"
-show_print: False
+show_print: True
 
-message_loss_probability: 0.1
-message_loss_period_start: 600000
+message_loss_probability: 0.0
+message_loss_period_start: 600
 message_loss_period_end: 1150
 
 #options for target points

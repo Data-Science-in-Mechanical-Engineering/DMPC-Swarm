@@ -3,7 +3,7 @@ import os
 
 import yaml
 
-from compute_unit.neural_networks.jax_models import AMPCNN
+# from compute_unit.neural_networks.jax_models import AMPCNN
 from compute_unit.trajectory_generation.interpolation import TrajectoryCoefficients
 from network import network as net
 import compute_unit.trajectory_generation.trajectory_generation as tg
@@ -25,8 +25,8 @@ import cu_animator as cu_animator
 
 from datetime import datetime
 
-import jax
-import jax.numpy as jnp
+# import jax
+# import jax.numpy as jnp
 
 NORMAL = 0
 INFORMATION_DEPRECATED = 1
@@ -1214,8 +1214,8 @@ class ComputeUnit(net.Agent):
         state_feeback_triggered_prio = 10000
         quantization_bit_number = 8
         max_time = self.__prediction_horizon * self.__communication_delta_t * self.__num_computing_agents
-        max_time = self.__prediction_horizon * self.__communication_delta_t * len(
-            self.__drones_ids) / self.__num_computing_agents
+        max_time = self.__prediction_horizon * self.__communication_delta_t * len(self.__drones_ids) / self.__num_computing_agents
+        max_time = self.__communication_delta_t * len(self.__drones_ids) / self.__num_computing_agents
 
         cone_angle = 60.0 * math.pi / 180
 
