@@ -768,6 +768,7 @@ class ComputingUnit:
 
         counter = 0
         while True:
+            start_time = time.time()
             print("--------------------------------------------------------")
             new_round = False
             messages_rx = self.read_data_from_cp()
@@ -807,6 +808,7 @@ class ComputingUnit:
                         self.print(m.types)
                         self.print(m.manager_wants_to_leave_network_in)
                         self.print(m.id_new_network_manager)
+                        print(len(messages_rx)-2)
                         num_connected_drones = 0
                         for t in m.types:
                             if t == 1:
@@ -895,10 +897,16 @@ class ComputingUnit:
                     messages_tx = self.dmpc_step(messages_rx, received_network_members_message)
 
             # send data to CP
+            write_data_to_cp_time = time.time()
             self.write_data_to_cp(messages_tx)
+            print(f"write_data_to_cp: {time.time()-write_data_to_cp_time}")
 
             if state == STATE_SYS_RUN:
+                round_started_time = time.time()
                 self.__computation_agent.round_started()
+                print(f"round_started_time: {time.time() - round_started_time}")
+
+            print(f"total_time: {time.time() - start_time}")
 
     def connect_to_cp(self):
         """ DEFINE FREQUENTLY USED MESSAGES """
@@ -1042,7 +1050,7 @@ class ComputingUnit:
             m_temp.target_positions = setpoint_message.content.setpoints
             messages_tx.append(m_temp)
 
-        if self.__round_nmbr % 5 == 0:
+        if self.__round_nmbr % 50 == 0 and self.__cu_id == 20:
             with open(f'../../experiment_measurements/drone_trajectory_logger_{self.__ARGS.name}.p', 'wb') as handle:
                 pickle.dump(self.__drone_trajectory_logger, handle)
 

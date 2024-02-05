@@ -18,6 +18,8 @@ DEMO_AI_WEEK = 9
 CIRCLE_PERIODIC = 10
 CIRCLE_PYRAMID = 11
 
+PHOTO = 12
+
 DEMO_AI_WEEK_IDLE = 0
 DEMO_AI_WEEK_CIRCLE = 1
 DEMO_AI_WEEK_CIRCLE2 = 2  # like DEMO_AI_WEEK_CIRCLE, just +pi on angle
@@ -152,6 +154,8 @@ class SetpointCreator:
 				self.__current_setpoints[drone_id] = self.generate_circle_periodic_setpoint(drone_id)
 			elif self.__demo_setpoints == CIRCLE_PYRAMID:
 				self.__current_setpoints[drone_id] = self.generate_circle_pyramid_setpoint(drone_id)
+			elif self.__demo_setpoints == PHOTO:
+				self.__current_setpoints[drone_id] = self.generate_photo_setpoint(drone_id)
 
 		setpoints_changed = False
 		for k in self.__current_setpoints:
@@ -451,6 +455,40 @@ class SetpointCreator:
 									idx=self.__circle_pyramid_idx[drone_id] - num_middle1_drones - num_lower_drones,
 									z=1.5, angle_offset=2*math.pi/num_middle1_drones/2)
 		return np.array([0, 0, 2.0])
+
+	def generate_photo_setpoint(self, drone_id):
+		if drone_id > 16:
+			return np.array([0.0, 0.0, 0.0])
+
+		offset = np.array([0.0, 0.0, 0.0])
+
+		setpoints = np.array([[1.2, 0.0, 1.5],
+							  [0.6, 0.0, 2.2],
+							  [1.4, -0.3, 1.3],
+							  [1.4, 0.3, 1.3],
+
+							  [0.8, -0.4, 1.5],
+							  [0.8, 0.4, 1.5],
+
+							  [0.5, 0.5, 2.0],
+							  [0.5, -0.5, 2.0],
+
+							  [0.3, -0.7, 1.6],
+							  [0.3, 0.7, 1.6],
+
+							  [0.3, -1.5, 1.4],
+							  [0.3, 1.5, 1.4],
+
+							  [-0.3, -1.2, 2.0],
+							  [-0.3, 1.2, 2.0],
+
+							  [-0.6, 0.7, 1.9],
+							  [-0.6, -0.7, 1.9],
+
+
+
+							  ], dtype=np.float32)
+		return setpoints[drone_id-1] + offset
 
 	def add_drone(self, drone_id, state, round):
 		"""

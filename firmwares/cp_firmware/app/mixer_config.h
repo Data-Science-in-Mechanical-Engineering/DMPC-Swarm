@@ -30,11 +30,11 @@ typedef struct message_assignment_t_tag
 /* basic settings ************************************************************/
 
 // The array contains physical node IDs and their position in the array is the logical node ID.
-static const uint8_t nodes[]	= {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 20, 21, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39};//{1, 2, 3, 20, 30, 31, 32, 33, 34};//{1, 2, 20, 21};
+static const uint8_t nodes[]	= {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 20, 21, 22, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39};//{1, 2, 3, 20, 30, 31, 32, 33, 34};//{1, 2, 20, 21};
 static const uint8_t cu_nodes[] = {20, 21, 22};
 static const uint8_t cf_nodes[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
-static const uint8_t relay_nodes[] = {30, 31, 32, 33, 34, 36, 37, 38, 39};
-static const uint8_t shutdown_node = 35;
+static const uint8_t relay_nodes[] = {30, 31, 32, 33, 34, 35, 36, 37, 38};
+static const uint8_t shutdown_node = 39;
 
 // ids of message slots
 // corresponding sizes (in bytes) of message slots
@@ -87,7 +87,7 @@ static message_assignment_t constant_message_assignment[] = {
 	// Entries in the plants array send probability values.
 	static const uint8_t plants[] = {1, 2}; //, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
 
-	#define MX_ROUND_LENGTH				150 // in #slots
+	#define MX_ROUND_LENGTH				120 // in #slots
 	#define ROUND_PERIOD				GPI_TICK_MS_TO_HYBRID2(ROUND_LENGTH_MS)
 	#define MX_SLOT_LENGTH				8710 //GPI_TICK_US_TO_HYBRID2(1460) //GPI_TICK_US_TO_HYBRID2(1100)
 #endif
@@ -108,7 +108,7 @@ static message_assignment_t constant_message_assignment[] = {
 // Values mentioned in the manual (nRF52840_PS_v1.1):
 // +8dBm,  +7dBm,  +6dBm,  +5dBm,  +4dBm,  +3dBm, + 2dBm,
 //  0dBm,  -4dBm,  -8dBm, -12dBm, -16dBm, -20dBm, -40dBm
-#define MX_TX_PWR_DBM			-4
+#define MX_TX_PWR_DBM			-8
 
 /*****************************************************************************/
 /* special settings **********************************************************/
