@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
 
     df = pd.DataFrame({"t": (times-starting_time)*0.2, "d": max_dists, "m": min_inter_dists})
-    df.to_csv(f"{csv_path}/MessageLossHardwareExperimentsDyna.csv", sep=",")
+    df.to_csv(f"{csv_path}/HardwareExperiments_{name_run}.csv", sep=",")
 
     plt.plot(max_dists) #times, max_dists)
     plt.show()
