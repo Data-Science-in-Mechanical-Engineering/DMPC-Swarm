@@ -1345,6 +1345,7 @@ class ComputeUnit(net.Agent):
 
     def round_started(self):
         self.print("round started!")
+        start_time = time.time()
         if not self.__use_high_level_planner:
             return
 
@@ -1436,6 +1437,8 @@ class ComputeUnit(net.Agent):
             # no need to calculate the high level planner
             return
 
+        print(f"detect: {start_time - time.time()}")
+        start_time = time.time()
         # calculate intermediate targets based on a similar algorithm given in Park et al. 2020
         self.__high_level_setpoints = {drone_id: self.get_targets()[drone_id] for drone_id in self.__drones_ids}
         self.__deadlock_breaker_agents = []
@@ -1472,6 +1475,7 @@ class ComputeUnit(net.Agent):
                     self.__high_level_setpoints[drone_id] = current_pos[
                                                                 drone_id] + dodge_direction * self.__agent_dodge_distance + np.random.randn(
                         3) * 0.1
+            print(f"calc: {start_time - time.time()}")
 
     def __scaled_norm(self, vector):
         return np.linalg.norm(self.__downwash_scaling @ vector)
