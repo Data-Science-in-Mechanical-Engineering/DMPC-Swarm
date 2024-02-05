@@ -29,7 +29,7 @@ def sweep_parameters(params, params_sweep):
 
 
 if __name__ == "__main__":
-    name = "DMPC_KKT"
+    name = "DMPC_DT"
     param_target_path = f"{Path.home()}/hpc_parameters/{name}/"
     param_path = "batch_simulation.yaml"
     param_sweep_path = "batch_simulation_sweep.yaml"
