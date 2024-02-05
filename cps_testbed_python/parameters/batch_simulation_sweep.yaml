@@ -1,5 +1,13 @@
-num_drones: [10, 15]
-num_computing_agents: [1, 2, 3, 4, 5, 7, 9, 11]
-message_loss_probability: [0.01]
+
+num_drones: [10, 16]
+message_loss_probability: [0.0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1]
+ignore_message_loss: [False, True]
+
+# -------------- experiments about num_cus
+# num_drones: [10, 15]
+# num_computing_agents: [1, 2, 3, 4, 5, 7, 9, 11]
+# message_loss_probability: [0.01]
+
+# ----------- big experiments
 # message_loss_probability: [0.0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1]
 # ignore_message_loss: [False, True]

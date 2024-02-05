@@ -303,6 +303,7 @@ class Simulation:
         self.__easy_logger.add_data_point("INIT_XYZS", self.__ARGS.INIT_XYZS)
         self.__easy_logger.add_data_point("INIT_targets", self.__INIT_TARGETS)
 
+        self.__min_inter_drone_dist = 1e6
                                           # load testbed
         #urdf_path = os.path.dirname(os.path.abspath(__file__)) + "/../../cube/"
         #p.loadURDF(os.path.join(urdf_path, "testbed.urdf"))
@@ -504,10 +505,13 @@ class Simulation:
                 for j in range(0, self.__ARGS.num_drones):
                     # for n in range(0, self.__ARGS.num_drones):
                     scaling_matrix = np.diag([1, 1, 1.0 / float(self.__ARGS.downwash_scaling_factor_crit)])
-                    if any([np.linalg.norm(
-                            (self.__agents[j].state[0:3] - self.__agents[
-                                n].state[0:3]) @ scaling_matrix) < self.__ARGS.r_min_crit for n in
-                            range(0, self.__ARGS.num_drones) if n != j]):
+
+                    inter_agent_dists = [np.linalg.norm((self.__agents[j].state[0:3] - self.__agents[n].state[0:3]) @ scaling_matrix)
+                                         for n in range(0, self.__ARGS.num_drones) if n != j]
+                    min_dist = min(inter_agent_dists)
+                    if self.__min_inter_drone_dist > min_dist:
+                        self.__min_inter_drone_dist = min_dist
+                    if min_dist < self.__ARGS.r_min_crit:
                         """print([np.linalg.norm(
                             (self.__agents[j].position - self.__agents[n].position) @ scaling_matrix) for n in
                             range(0, self.__ARGS.num_drones) if n != j])"""
@@ -548,6 +552,7 @@ class Simulation:
         self.__easy_logger.add_data_point("num_succ_optimizer_runs", num_succ_optimizer_runs)
         self.__easy_logger.add_data_point("target_reached_time", current_time)
         self.__easy_logger.add_data_point("num_targets_reached", num_targets_reached)
+        self.__easy_logger.add_data_point("min_inter_drone_dist", self.__min_inter_drone_dist)
 
         with open(
                 os.path.join(self.__ARGS.path, "simulation_result-" + str(self.__ARGS.num_drones) + "_drones_simnr_" + str(self.__id) + ".pkl"), 'wb') \
