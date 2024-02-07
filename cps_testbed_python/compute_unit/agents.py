@@ -1266,7 +1266,7 @@ class ComputeUnit(net.Agent):
                             continue
                         for c in self.__trajectory_tracker.get_information(other_drone_id).content:
                             if c.current_state is not None:
-                                d_pos = own_pos - c.current_state[0:3]
+                                d_pos = self.__downwash_scaling @ (own_pos - c.current_state[0:3])
                                 # pushes in a different direction
                                 if np.dot(d_target, d_pos) < 0 and np.linalg.norm(d_pos) < 1.1*self.__options.r_min:
                                     constraints_vecs.append(d_pos)
@@ -1296,6 +1296,7 @@ class ComputeUnit(net.Agent):
                 if prios[i] > 2 ** quantization_bit_number - 2:
                     prios[i] = int(2 ** quantization_bit_number - 2)
             if self.__use_kkt_trigger and is_in_deadlock[i]:
+                print("öööööööööööööööööööö")
                 prios[i] = 1
         return prios
 
@@ -1303,7 +1304,7 @@ class ComputeUnit(net.Agent):
         for c in self.__trajectory_tracker.get_information(drone_id).content:
             if c.current_state is not None:
                 coefficients = c.coefficients.coefficients if c.coefficients.valid else c.coefficients.alternative_trajectory
-                if np.linalg.norm(coefficients.flatten()) > 0.1*self.__prediction_horizon:
+                if np.linalg.norm(coefficients.flatten()) > 0.01*self.__prediction_horizon:
                     return False
         return True
 

@@ -426,7 +426,7 @@ class Simulation:
 
                 # do low level control
                 if self.__ARGS.save_video and i % 16 == 0:
-                    angle = 2*math.pi / 8000 * i
+                    angle = 2*math.pi / 12000 * i
                     viewMatrix4 = p.computeViewMatrix(
                         cameraEyePosition=[3*np.sin(angle), 3*np.cos(angle), 6],
                         cameraTargetPosition=[0, 0, 1],
