@@ -7,7 +7,7 @@ num_computing_agents: 2
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
   Vicon: [[-2.0, -2.0, 0.3], [2.0, 2.0, 3.0], [0, 0, 0]]  #
 
-num_drones: 15
+num_drones: 16
 
 # simulation setup
 run_dampc: False
@@ -28,7 +28,7 @@ show_print: False
 log_optimizer: False
 log_optimizer_path: ""
 
-message_loss_probability: 0.1
+message_loss_probability: 0.01
 
 sweep_parameters: True   # to sweep number of CUs, message loss probabilities and so on
 
@@ -63,7 +63,7 @@ weight_acc: 0.005
 weight_jerk: 0.001
 weight_band: 0.5                # weight for band that introduces a rotation to the anti collisions constraints
 width_band: 0.3                 # width of the band
-ignore_message_loss: False      # ignore the occurences of message loss
+ignore_message_loss: True      # ignore the occurences of message loss
 use_optimized_constraints: True  # remove!!
 guarantee_anti_collision: True   # if false uses a deprecated approach
 

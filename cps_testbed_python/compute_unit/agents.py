@@ -1311,40 +1311,32 @@ class ComputeUnit(net.Agent):
         if self.__show_print:
             print("[" + str(self.ID) + "]: " + str(text))
 
-    def deadlock_breaker_condition(self, drone_id, other_drone_id, check_time=False):
+    def deadlock_breaker_condition(self, drone_id, other_drone_id, own_pos, other_pos, inter_dist, own_dist_to_target,
+                                   other_agent_dist_to_target):
         if other_drone_id == drone_id:
             return False
-        current_pos = {}
-        trajectory = self.__trajectory_tracker.get_information(drone_id).content[0]
-        current_pos[drone_id] = trajectory.current_state[0:3]
-        trajectory = self.__trajectory_tracker.get_information(other_drone_id).content[0]
-        current_pos[other_drone_id] = trajectory.current_state[0:3]
 
-        own_dist_to_target = np.linalg.norm(current_pos[drone_id] - self.get_targets()[drone_id])
-        other_agent_dist_to_target = np.linalg.norm(
-            current_pos[other_drone_id] - self.get_targets()[other_drone_id])
         if other_agent_dist_to_target < self.__options.r_min * 0.9 and other_agent_dist_to_target < own_dist_to_target:
             return False
         elif other_agent_dist_to_target > own_dist_to_target:
-            if self.__trajectory_tracker.get_information(other_drone_id).content[0].current_state is not None:
-                # if self.__scaled_norm(
-                #        current_pos[other_drone_id][0:2] - current_pos[drone_id][0:2]) < self.__options.r_min * 1.05:
-                if np.linalg.norm(
-                        current_pos[other_drone_id][0:2] - current_pos[drone_id][0:2]) < self.__options.r_min * 2.0:
-                    if np.dot(
-                            self.__trajectory_tracker.get_information(other_drone_id).content[0].current_state[3:6],
-                            current_pos[drone_id] - current_pos[other_drone_id]) > 0 or np.dot(
-                        self.get_targets()[other_drone_id] -
-                        self.__trajectory_tracker.get_information(other_drone_id).content[0].current_state[0:3],
-                        current_pos[drone_id] - current_pos[other_drone_id]) > 0:
-                        return True
-                    if np.dot(self.get_targets()[other_drone_id][0:3] - current_pos[other_drone_id][0:3],
-                              current_pos[drone_id][0:3] - current_pos[other_drone_id][0:3]) > 0:
-                        return True
+            # if self.__scaled_norm(
+            #        other_pos[0:2] - own_pos[0:2]) < self.__options.r_min * 1.05:
+            if inter_dist < self.__options.r_min * 2.0:
+                if np.dot(
+                        self.__trajectory_tracker.get_information(other_drone_id).content[0].current_state[3:6],
+                        own_pos - other_pos) > 0 or np.dot(
+                    self.get_targets()[other_drone_id] -
+                    self.__trajectory_tracker.get_information(other_drone_id).content[0].current_state[0:3],
+                    own_pos - other_pos) > 0:
+                    return True
+                if np.dot(self.get_targets()[other_drone_id][0:3] - other_pos[0:3],
+                          own_pos[0:3] - other_pos[0:3]) > 0:
+                    return True
         return False
 
     def round_started(self):
         self.print("round started!")
+        start_time = time.time()
         if not self.__use_high_level_planner:
             return
 
@@ -1362,11 +1354,17 @@ class ComputeUnit(net.Agent):
         self.print("round started!!!!")
         # get the current position of all agents.
         current_pos = {}
-        for drone_id in self.__drones_ids:
+        current_pos_list = []
+        target_pos_list = []
+        drone_idxs = {}
+        for i, drone_id in enumerate(self.__drones_ids):
             if len(self.__trajectory_tracker.get_information(drone_id).content) != 0:
                 trajectory = self.__trajectory_tracker.get_information(drone_id).content[0]
                 if trajectory.current_state is not None:
                     current_pos[drone_id] = trajectory.current_state[0:3]
+                    current_pos_list.append(trajectory.current_state[0:3])
+                    target_pos_list.append(self.get_targets()[drone_id])
+                    drone_idxs[drone_id] = i
                 else:
                     current_pos[drone_id] = None
                     print("---------------------------------------")
@@ -1404,13 +1402,29 @@ class ComputeUnit(net.Agent):
                 all_agents_in_deadlock = False
                 break
 
+        drone_dists_mult = np.tile(np.array(current_pos_list), (1, len(current_pos_list))) - np.tile(np.array([np.array(current_pos_list).flatten()]), (len(current_pos_list), 1))
+
+        drone_dists_mult = np.abs(drone_dists_mult)
+        drone_dists_mult = np.reshape(drone_dists_mult, (drone_dists_mult.size//3, 3))
+
+        drone_dists_norm = np.linalg.norm((self.__downwash_scaling @ drone_dists_mult.T).T, axis=1)
+        drone_dists_norm[drone_dists_norm<0.01] = 1e5
+
+        drones_dist_to_target = np.linalg.norm(np.array(target_pos_list) - np.array(current_pos_list), axis=1)
+
         # check if not all deadlock breaker conditions are fulfilled, if not, then the deadlock is broken and we can
         # go back to the original targets.
         deadlock_broken = False
         if len(self.__deadlock_breaker_agents) > 0:
             deadlock_broken = True
             for dba in self.__deadlock_breaker_agents:
-                if self.deadlock_breaker_condition(dba[0], dba[1], check_time=True):
+                if self.deadlock_breaker_condition(dba[0], dba[1],
+                                                   own_pos=current_pos[dba[0]],
+                                                   other_pos=current_pos[dba[1]],
+                                                   inter_dist=drone_dists_norm[len(self.__drones_ids)*drone_idxs[dba[0]] + drone_idxs[dba[1]]],
+                                                   own_dist_to_target=drones_dist_to_target[drone_idxs[dba[0]]],
+                                                   other_agent_dist_to_target=drones_dist_to_target[drone_idxs[dba[1]]]
+                                                   ):
                     deadlock_broken = False
                     break
 
@@ -1436,6 +1450,8 @@ class ComputeUnit(net.Agent):
             # no need to calculate the high level planner
             return
 
+        print(f"detect: {start_time - time.time()}")
+        start_time = time.time()
         # calculate intermediate targets based on a similar algorithm given in Park et al. 2020
         self.__high_level_setpoints = {drone_id: self.get_targets()[drone_id] for drone_id in self.__drones_ids}
         self.__deadlock_breaker_agents = []
@@ -1443,24 +1459,28 @@ class ComputeUnit(net.Agent):
         for drone_id in self.__drones_ids:
             # first determine, which agent, the drone_id has to dodge.
             agents_to_dodge = []
+            drones_dists = []
             for other_drone_id in self.__drones_ids:
                 if other_drone_id == drone_id:
                     continue
-                if self.deadlock_breaker_condition(drone_id, other_drone_id):
+                print(".")
+                if self.deadlock_breaker_condition(drone_id, other_drone_id,
+                                                   own_pos=current_pos[drone_id],
+                                                   other_pos=current_pos[other_drone_id],
+                                                   inter_dist=drone_dists_norm[len(self.__drones_ids)*drone_idxs[drone_id] + drone_idxs[other_drone_id]],
+                                                   own_dist_to_target=drones_dist_to_target[drone_idxs[drone_id]],
+                                                   other_agent_dist_to_target=drones_dist_to_target[drone_idxs[other_drone_id]]
+                                                   ):
                     self.__deadlock_breaker_agents.append((drone_id, other_drone_id))
-                    agents_to_dodge.append(other_drone_id)
+                    agents_to_dodge.append(drone_idxs[other_drone_id])
+                    drones_dists.append(drone_dists_norm[len(self.__drones_ids)*drone_idxs[drone_id] + drone_idxs[other_drone_id]],
+                                                   )
 
             if len(agents_to_dodge) != 0:
                 # first determine the closest of the agents, we need to dodge and then dodge only this one.
-                closest_agent = agents_to_dodge[0]
-                closest_distance = self.__scaled_norm(current_pos[closest_agent] - current_pos[drone_id])
-                for other_drone_id in agents_to_dodge:
-                    if other_drone_id == drone_id:
-                        continue
-                    other_agent_distance = self.__scaled_norm(current_pos[other_drone_id] - current_pos[drone_id])
-                    if closest_distance > other_agent_distance:
-                        closest_agent = other_drone_id
-                        closest_distance = other_agent_distance
+                closest_agent_idx = np.argmin(np.array(drones_dists))
+                closest_agent = self.__drones_ids[agents_to_dodge[closest_agent_idx]]
+                closest_distance = drones_dists[closest_agent_idx]
                 # if an agent is closer to hlp_threshold_distance, use some sort of potential function approach
                 hlp_threshold_distance = 0.6
                 if closest_distance < hlp_threshold_distance:
@@ -1472,6 +1492,7 @@ class ComputeUnit(net.Agent):
                     self.__high_level_setpoints[drone_id] = current_pos[
                                                                 drone_id] + dodge_direction * self.__agent_dodge_distance + np.random.randn(
                         3) * 0.1
+            print(f"calc: {start_time - time.time()}")
 
     def __scaled_norm(self, vector):
         return np.linalg.norm(self.__downwash_scaling @ vector)

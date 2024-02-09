@@ -768,6 +768,7 @@ class ComputingUnit:
 
         counter = 0
         while True:
+            start_time = time.time()
             print("--------------------------------------------------------")
             new_round = False
             messages_rx = self.read_data_from_cp()
@@ -896,10 +897,16 @@ class ComputingUnit:
                     messages_tx = self.dmpc_step(messages_rx, received_network_members_message)
 
             # send data to CP
+            write_data_to_cp_time = time.time()
             self.write_data_to_cp(messages_tx)
+            print(f"write_data_to_cp: {time.time()-write_data_to_cp_time}")
 
             if state == STATE_SYS_RUN:
+                round_started_time = time.time()
                 self.__computation_agent.round_started()
+                print(f"round_started_time: {time.time() - round_started_time}")
+
+            print(f"total_time: {time.time() - start_time}")
 
     def connect_to_cp(self):
         """ DEFINE FREQUENTLY USED MESSAGES """
