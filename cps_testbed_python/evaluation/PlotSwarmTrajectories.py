@@ -7,10 +7,10 @@ import pandas as pd
 
 
 def main():
-    offset = int(0.5 / 0.01)
-    time_length = int(10 / 0.01)
+    offset = 0  #int(0.5 / 0.01)
+    time_length = 40000 # int(10 / 0.01)
     id = 4
-    save_file = "../../../experiment_measurements/ExperimentBigSwarm.pickle"
+    save_file = "../../../experiment_measurements/ExperimentBigSwarmCrash.pickle"
     pos = None
     with open(save_file, 'rb') as handle:
         pos = pickle.load(handle)

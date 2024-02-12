@@ -108,6 +108,8 @@ class SetpointCreator:
 
 		self.__state_demo_ai_week = DEMO_AI_WEEK_IDLE
 
+		np.random.seed(1000)
+
 	@property
 	def drones(self):
 		return self.__drones
