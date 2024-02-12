@@ -22,7 +22,7 @@ def main():
     data = {}
     for i in range(len(pos)):
         print(i)
-        p = np.array(pos[i][offset:offset+time_length])
+        p = np.array(pos[i][:])
         print(p)
         ax.scatter(p[:, 0], p[:, 1], p[:, 2], s=0.1)
         data[f"{i}d0"] = p[0::10, 0]
@@ -43,6 +43,9 @@ def main():
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
+
+    data["mindists"] = min_dists[0::10]
+    data["t"] = np.arange(len(data["mindists"])) * 0.1
     df = pd.DataFrame(data)
     df.to_csv("../../../experiment_measurements/BigSwarm.csv")
     eps = 1e-16

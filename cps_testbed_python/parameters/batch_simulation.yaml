@@ -7,7 +7,7 @@ num_computing_agents: 2
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
   Vicon: [[-2.0, -2.0, 0.3], [2.0, 2.0, 3.0], [0, 0, 0]]  #
 
-num_drones: 15
+num_drones: 16
 
 # simulation setup
 run_dampc: False
@@ -17,7 +17,7 @@ dampc_num_neurons: 500
 simulated: True     # set false for real testbed (when it runs on a testbed, it saves a bit more data for debugging)
 duration_sec: 200   # duration of simulation
 abort_simulation: True  # exit simulation earlier, if drones crash or all targets reached.
-num_simulations: 100  # number of simulations to conduct
+num_simulations: 1000  # number of simulations to conduct
 save_video: False
 resolution_video: 512   # width of the video in pixels. Height is calculated as resolution_video*9/16
 simulate_quantization: False  # simulate quantization during communication
@@ -28,7 +28,7 @@ show_print: False
 log_optimizer: False
 log_optimizer_path: ""
 
-message_loss_probability: 0.1
+message_loss_probability: 0.01
 
 sweep_parameters: True   # to sweep number of CUs, message loss probabilities and so on
 
@@ -63,7 +63,7 @@ weight_acc: 0.005
 weight_jerk: 0.001
 weight_band: 0.5                # weight for band that introduces a rotation to the anti collisions constraints
 width_band: 0.3                 # width of the band
-ignore_message_loss: False      # ignore the occurences of message loss
+ignore_message_loss: True      # ignore the occurences of message loss
 use_optimized_constraints: True  # remove!!
 guarantee_anti_collision: True   # if false uses a deprecated approach
 
