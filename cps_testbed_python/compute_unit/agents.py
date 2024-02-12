@@ -518,12 +518,20 @@ class ComputeUnit(net.Agent):
             message: Message
                 message to send.
         """
+
+        round_nr = int(round(self.__current_time / self.__communication_delta_t))
+        prob_temp = 1.0
+        starting_round_temp = 150
+        ending_round_temp = 170
+
         if message is None:
             return
         if message.slot_group_id == self.__slot_group_ack_id:
             self.__ack_message = copy.deepcopy(message)
         # if the message is from leader agent set new reference point
         if message.slot_group_id == self.__slot_group_planned_trajectory_id:
+            if ending_round_temp > round_nr > starting_round_temp and random.random() < prob_temp:
+                return
             self.__num_trajectory_messages_received += 1
             if isinstance(message.content, TrajectoryMessageContent):
                 message.content.init_state[0:3] += self.__pos_offset[message.content.id]
@@ -543,6 +551,8 @@ class ComputeUnit(net.Agent):
                 assert message.ID == self.ID
 
         if message.slot_group_id == self.__slot_group_drone_state:
+            if ending_round_temp > round_nr > starting_round_temp and random.random() < prob_temp:
+                return
             if message.ID not in self.__trajectory_tracker.keys:
                 return
             message.content.state[0:3] += self.__pos_offset[message.ID]
