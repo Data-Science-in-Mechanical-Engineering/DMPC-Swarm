@@ -8,9 +8,9 @@ import pandas as pd
 
 def main():
     offset = 0  #int(0.5 / 0.01)
-    time_length = 40000 # int(10 / 0.01)
+    time_length = 2600 # int(10 / 0.01)
     id = 4
-    save_file = "../../../experiment_measurements/ExperimentBigSwarmCrash.pickle"
+    save_file = "../../../experiment_measurements/ExperimentNoCrash.pickle"
     pos = None
     with open(save_file, 'rb') as handle:
         pos = pickle.load(handle)
@@ -24,10 +24,10 @@ def main():
         print(i)
         p = np.array(pos[i][:])
         print(p)
-        ax.scatter(p[:, 0], p[:, 1], p[:, 2], s=0.1)
-        data[f"{i}d0"] = p[0::10, 0]
-        data[f"{i}d1"] = p[0::10, 1]
-        data[f"{i}d2"] = p[0::10, 2]
+        ax.scatter(p[:time_length, 0], p[:time_length, 1], p[:time_length, 2], s=0.1)
+        data[f"{i}d0"] = p[0:time_length:10, 0]
+        data[f"{i}d1"] = p[0:time_length:10, 1]
+        data[f"{i}d2"] = p[0:time_length:10, 2]
 
     min_dists = np.ones((len(pos[0]),)) * 1000000
     for t in range(len(pos[0])):
@@ -44,10 +44,11 @@ def main():
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
 
-    data["mindists"] = min_dists[0::10]
+    min_dists = min_dists[0:time_length:10]
+    data["mindists"] = min_dists
     data["t"] = np.arange(len(data["mindists"])) * 0.1
     df = pd.DataFrame(data)
-    df.to_csv("../../../experiment_measurements/BigSwarm.csv")
+    df.to_csv("../../../experiment_measurements/NoCrash.csv")
     eps = 1e-16
     ax.axes.set_xlim3d(left=-2-eps, right=2+eps)
     ax.axes.set_ylim3d(bottom=-2-eps, top=2+eps) 
