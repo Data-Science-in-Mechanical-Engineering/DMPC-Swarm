@@ -56,7 +56,7 @@ def main():
     data["mindists"] = min_dists[offset:time_length:10]
     data["t"] = np.arange(len(data["mindists"])) * 0.1
     df = pd.DataFrame(data)
-    df.to_csv("../../../experiment_measurements/BigSwarm.csv")
+    df.to_csv("../../../experiment_measurements/NoCrash.csv")
     eps = 1e-16
     ax.axes.set_xlim3d(left=-2-eps, right=2+eps)
     ax.axes.set_ylim3d(bottom=-2-eps, top=2+eps) 
