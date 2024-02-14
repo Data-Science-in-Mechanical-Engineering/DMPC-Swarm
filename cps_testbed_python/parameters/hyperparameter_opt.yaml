@@ -48,7 +48,7 @@ communication_freq_hz: 10
 
 prediction_horizon: 15           # prediction horizon in time is prediction_horizon / communication_freq_hz
 r_min: 0.25                       # distance to used during optimization
-downwash_scaling_factor: 4
+downwash_scaling_factor: 6
 r_min_crit: 0.1                 # simulation considers drones crashed whe drones closer than this
 downwash_scaling_factor_crit: 4
 use_soft_constraints: False      # always keep this false, true not tested
@@ -67,7 +67,7 @@ weight_jerk: 0.001
 weight_band: 0.5                # weight for band that introduces a rotation to the anti collisions constraints
 width_band: 0.3                 # width of the band
 
-ignore_message_loss: False      # ignore the occurences of message loss
+ignore_message_loss: True      # ignore the occurences of message loss
 use_optimized_constraints: True  # remove!!
 guarantee_anti_collision: True   # if false uses a deprecated approach
 

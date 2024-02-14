@@ -216,7 +216,10 @@ class ComputeUnit(net.Agent):
                  use_dampc=False,
                  dampc_model_path="",
                  dampc_num_neurons="",
-                 dampc_num_layers=""
+                 dampc_num_layers="",
+                 prob_temp_message_loss=0.0,
+                 temp_message_loss_starting_round=-1,
+                 temp_message_loss_ending_round_temp=-1
                  ):
         """
 
@@ -395,6 +398,10 @@ class ComputeUnit(net.Agent):
         if log_optimizer:
             assert log_optimizer == ignore_message_loss, "Not implemented."
 
+        self.__prob_temp_message_loss = prob_temp_message_loss
+        self.__temp_message_loss_starting_round = temp_message_loss_starting_round
+        self.__temp_message_loss_ending_round_temp = temp_message_loss_ending_round_temp
+
     def load_trigger(self, trigger):
         self.__trigger = trigger
 
@@ -520,9 +527,9 @@ class ComputeUnit(net.Agent):
         """
 
         round_nr = int(round(self.__current_time / self.__communication_delta_t))
-        prob_temp = 1.0
-        starting_round_temp = 150
-        ending_round_temp = 170
+
+        if round_nr == self.__temp_message_loss_starting_round:
+            print(f"Message loss starting: {time.time()}")
 
         if message is None:
             return
@@ -530,7 +537,7 @@ class ComputeUnit(net.Agent):
             self.__ack_message = copy.deepcopy(message)
         # if the message is from leader agent set new reference point
         if message.slot_group_id == self.__slot_group_planned_trajectory_id:
-            if ending_round_temp > round_nr > starting_round_temp and random.random() < prob_temp:
+            if self.__temp_message_loss_ending_round_temp > round_nr > self.__temp_message_loss_starting_round and random.random() < self.__prob_temp_message_loss:
                 return
             self.__num_trajectory_messages_received += 1
             if isinstance(message.content, TrajectoryMessageContent):
@@ -551,7 +558,7 @@ class ComputeUnit(net.Agent):
                 assert message.ID == self.ID
 
         if message.slot_group_id == self.__slot_group_drone_state:
-            if ending_round_temp > round_nr > starting_round_temp and random.random() < prob_temp:
+            if self.__temp_message_loss_ending_round_temp > round_nr > self.__temp_message_loss_starting_round and random.random() < self.__prob_temp_message_loss:
                 return
             if message.ID not in self.__trajectory_tracker.keys:
                 return
@@ -606,7 +613,7 @@ class ComputeUnit(net.Agent):
                                                              self.__state_trajectory_vector_matrix[0] @
                                                              trajectory.current_state), self.__last_trajectory_shape)
 
-                    self.print("3333333333333333333")
+                    print(f"3333333333333333333 {message.ID}")
 
                     # also recalculate setpoints
                     self.__recalculate_setpoints = True
