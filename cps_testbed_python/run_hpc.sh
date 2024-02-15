@@ -7,12 +7,12 @@
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=alexander.graefe@dsme.rwth-aachen.de
 #SBATCH --mem-per-cpu=2700MB # memory per node
-#SBATCH --time=0-05:00:00
-#SBATCH --array=0-263
+#SBATCH --time=0-23:00:00
+#SBATCH --array=0-352
 
 module load GCCcore/.9.3.0
 module load Python/3.8.2
 
 source venv/bin/activate
-python dmpc_simulation_caller.py -i $SLURM_ARRAY_TASK_ID -n DMPC_HT
+python dmpc_simulation_caller.py -i $SLURM_ARRAY_TASK_ID -n COMPARISON_DMPC_MLR_DMPC
 deactivate
