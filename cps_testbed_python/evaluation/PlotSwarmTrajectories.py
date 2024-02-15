@@ -39,6 +39,8 @@ def main():
         data[f"{i}d2"] = z
 
     min_dists = np.ones((len(pos[0]),)) * 1000000
+    max_dists = -np.ones((len(pos[0]),)) * 1000000
+    mean_dists = np.zeros((len(pos[0]),))
     for t in range(len(pos[0])):
         for i in range(len(pos)):
             for j in range(len(pos)):
@@ -48,15 +50,20 @@ def main():
                     d = np.linalg.norm(pi - pj)
                     if d < min_dists[t]:
                         min_dists[t] = d
+                    if d > max_dists[t]:
+                        max_dists[t] = d
+                    mean_dists[t] += d / (len(pos)**2 - len(pos))
 
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
 
     data["mindists"] = min_dists[offset:time_length:10]
+    data["maxdists"] = max_dists[offset:time_length:10]
+    data["meandists"] = mean_dists[offset:time_length:10]
     data["t"] = np.arange(len(data["mindists"])) * 0.1
     df = pd.DataFrame(data)
-    df.to_csv("../../../experiment_measurements/NoCrash.csv")
+    df.to_csv("../../../experiment_measurements/BigSwarm.csv")
     eps = 1e-16
     ax.axes.set_xlim3d(left=-2-eps, right=2+eps)
     ax.axes.set_ylim3d(bottom=-2-eps, top=2+eps) 

@@ -1702,6 +1702,8 @@ class RemoteDroneAgent(net.Agent):
 
         self.__show_print = show_print
 
+        self.__current_state = None
+
     def get_prio(self, slot_group_id):
         """returns the priority for the scheulder, because the system is not event triggered, it just returns zero
 
@@ -1812,10 +1814,10 @@ class RemoteDroneAgent(net.Agent):
         self.__received_state_messages = []
 
         # check if trajectory deviates too much from the trajectory received
-        if np.linalg.norm(self.__traj_state[0:3] - self.__state[0:3]) > self.__state_feedback_trigger_dist:
+        """if np.linalg.norm(self.__traj_state[0:3] - self.__state[0:3]) > self.__state_feedback_trigger_dist:
             self.__traj_state[0:3] = self.__state[0:3]
             # self.__traj_state[3:] = 0
-            """if self.__planned_trajectory_coefficients.valid:
+            if self.__planned_trajectory_coefficients.valid:
                 self.__planned_trajectory_coefficients.coefficients = np.zeros(self.__planned_trajectory_coefficients.coefficients.shape)
             else:
                 self.__planned_trajectory_coefficients.alternative_trajectory = np.zeros(
@@ -1846,6 +1848,11 @@ class RemoteDroneAgent(net.Agent):
             self.__current_setpoint = self.__traj_state
             return self.__traj_state
         if self.__planned_trajectory_start_time > 0:
+            # check if trajectory deviates too much from the trajectory received
+            if self.__current_state is not None:
+                if np.linalg.norm(self.__traj_state[0:3] - self.__current_state[0:3]) > self.__state_feedback_trigger_dist:
+                    self.__traj_state[0:3] = self.__current_state[0:3]
+
             self.__traj_state = self.__trajectory_interpolation.interpolate(
                 self.__current_time - self.__planned_trajectory_start_time + delta_t,
                 self.__planned_trajectory_coefficients, integration_start=self.__current_time -
@@ -1896,6 +1903,7 @@ class RemoteDroneAgent(net.Agent):
 
     @state.setter
     def state(self, state):
+        self.__current_state = copy.deepcopy(state)
         if not self.__state_measured:
             self.__state = self.__trajectory_interpolation.interpolate(
                 self.__current_time - self.__planned_trajectory_start_time + self.__communication_delta_t,

@@ -487,7 +487,7 @@ class Simulation:
                                                        obs[str(j)]["state"][2], obs[str(j)]["state"][10],
                                                        obs[str(j)]["state"][11], obs[str(j)]["state"][12],
                                                        0, 0, 0])
-                    next_state[j, :] = np.copy(self.__agents[j].next_planned_state(control_interval))
+                    next_state[j, :] = np.copy(self.__agents[j].next_planned_state(control_interval, ))
                     # print(str(i%COM_EVERY_N_STEPS / CTRL_EVERY_N_STEPS * control_interval) + '\t' + str(next_pos[j, :]))
                     action[str(j)], _, _ = self.__ctrl[j].computeControlFromState(
                         control_timestep=self.__AGGR_PHY_STEPS * self.__env.TIMESTEP,

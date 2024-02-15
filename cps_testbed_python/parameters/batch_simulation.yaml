@@ -17,7 +17,7 @@ dampc_num_neurons: 500
 simulated: True     # set false for real testbed (when it runs on a testbed, it saves a bit more data for debugging)
 duration_sec: 200   # duration of simulation
 abort_simulation: True  # exit simulation earlier, if drones crash or all targets reached.
-num_simulations: 1000  # number of simulations to conduct
+num_simulations: 200  # number of simulations to conduct
 save_video: False
 resolution_video: 512   # width of the video in pixels. Height is calculated as resolution_video*9/16
 simulate_quantization: False  # simulate quantization during communication
@@ -44,9 +44,9 @@ control_steps_per_round: 12
 use_communication_freq_hz: False  #weather to calculate communication_freq_hz based on formulas for mixer rounds or to use param communication_freq_hz#
 communication_freq_hz: 5
 prediction_horizon: 15           # prediction horizon in time is prediction_horizon / communication_freq_hz
-r_min: 0.4                       # distance to used during optimization
+r_min: 0.25                       # distance to used during optimization
 downwash_scaling_factor: 4
-r_min_crit: 0.2                  # simulation considers drones crashed whe drones closer than this
+r_min_crit: 0.12                  # simulation considers drones crashed whe drones closer than this
 downwash_scaling_factor_crit: 4
 use_soft_constraints: False      # always keep this false, true not tested
 soft_constraint_max: 0.2
