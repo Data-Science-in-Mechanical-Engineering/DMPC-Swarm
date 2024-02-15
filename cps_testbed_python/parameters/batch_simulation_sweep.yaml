@@ -5,7 +5,6 @@ num_computing_agents: [1, 2, 3, 4, 5, 7, 9, 11]
 
 # -------------- experiments about num_cus
 # num_drones: [10, 15]
-num_computing_agents: [1, 2, 3, 4, 5, 7, 9, 11]
 # message_loss_probability: [0.01]
 
 # ----------- big experiments

@@ -14,7 +14,7 @@ if __name__ == "__main__":
     num_cus = 2
     simulate_quantization = False
     num_drones = 10
-    folder_name = "hpc_runs/DMPC_MESSAGE_LOSS"
+    folder_name = "hpc_runs/COMPARISON_DMPC_MLR_DMPC"
 
     colors = ["b", "r", "g"]
 

@@ -45,9 +45,9 @@ use_communication_freq_hz: False  #weather to calculate communication_freq_hz ba
 communication_freq_hz: 5
 prediction_horizon: 15           # prediction horizon in time is prediction_horizon / communication_freq_hz
 r_min: 0.25                       # distance to used during optimization
-downwash_scaling_factor: 4
+downwash_scaling_factor: 6
 r_min_crit: 0.12                  # simulation considers drones crashed whe drones closer than this
-downwash_scaling_factor_crit: 4
+downwash_scaling_factor_crit: 6
 use_soft_constraints: False      # always keep this false, true not tested
 soft_constraint_max: 0.2
 weight_soft_constraint: 0.01
