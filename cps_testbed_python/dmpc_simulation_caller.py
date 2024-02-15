@@ -88,7 +88,10 @@ def call_batch_simulation_param_varying(ARGS_array, folder_name, name_files="tes
 
 def call_batch_simulation_hpc(ARGS_array):
     for ARGS in ARGS_array:
-        ARGS.path = os.path.dirname(os.path.abspath(__file__)) + f"/../../hpc_runs/{ARGS.name_job}/" \
+        #ARGS.path = os.path.dirname(os.path.abspath(__file__)) + f"/../../hpc_runs/{ARGS.name_job}/" \
+        #            + f"dmpc_simulation_results_iml{ARGS.ignore_message_loss}_{int(100 * ARGS.message_loss_probability + 1e-7)}_{ARGS.num_computing_agents}cus_{'quant' if ARGS.simulate_quantization else ''}"
+
+        ARGS.path = f"{ARGS.saving_path}/{ARGS.name_job}/" \
                     + f"dmpc_simulation_results_iml{ARGS.ignore_message_loss}_{int(100 * ARGS.message_loss_probability + 1e-7)}_{ARGS.num_computing_agents}cus_{'quant' if ARGS.simulate_quantization else ''}"
 
         create_dir(ARGS.path)
@@ -189,7 +192,7 @@ if __name__ == "__main__":
 
     # if this is set, we are on the cluster. So make some changes.
     if ARGS.iter_id is not None:
-        ARGS.param_path = f"{Path.home()}/hpc_parameters/{ARGS.name_job}/params{ARGS.iter_id}.yaml"
+        ARGS.param_path = f"/work/mf724021/hpc_parameters/{ARGS.name_job}/params{ARGS.iter_id}.yaml"
 
     with open(ARGS.param_path, 'r') as file:
         params = yaml.safe_load(file)

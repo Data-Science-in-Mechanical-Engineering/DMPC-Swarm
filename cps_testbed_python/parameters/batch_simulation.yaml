@@ -32,6 +32,8 @@ message_loss_probability: 0.01
 
 sweep_parameters: True   # to sweep number of CUs, message loss probabilities and so on
 
+saving_path: "/work/mf724021/dmpc"
+
 #options for target points
 use_own_targets: False         # if the cus should use their own targets. This is needed, if we want to use the setpoint_creator for e.g. demos.
 

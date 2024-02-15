@@ -53,8 +53,8 @@ if __name__ == "__main__":
         boxplot_data["median"] = np.median(min_dists, axis=1)
         boxplot_data["box_top"] = np.percentile(min_dists, q=75, axis=1)
         boxplot_data["box_bottom"] = np.percentile(min_dists, q=25, axis=1)
-        boxplot_data["whisker_top"] = np.percentile(min_dists, q=99, axis=1)
-        boxplot_data["whisker_bottom"] = np.percentile(min_dists, q=1, axis=1)
+        boxplot_data["whisker_top"] = np.percentile(min_dists, q=100, axis=1)
+        boxplot_data["whisker_bottom"] = np.percentile(min_dists, q=0, axis=1)
         boxplot_data["success_rates"] = np.array(success_rates)*100
 
         df = pd.DataFrame(data=boxplot_data)
