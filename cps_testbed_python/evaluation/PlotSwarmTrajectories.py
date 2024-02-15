@@ -7,14 +7,20 @@ import pandas as pd
 
 
 def main():
-    offset = 0  #int(0.5 / 0.01)
-    time_length = int(10 / 0.01)
+    offset_time_stamp = 0#1707902002.06 # NoCrash: 1707900962.38 Crash: 1707902002.06 #int(0.5 / 0.01)
+    time_length = 3000#2300 # int(10 / 0.01)
     id = 4
-    save_file = "../../../experiment_measurements/ExperimentBigSwarmRandom.pickle"
+    save_file = "../../../experiment_measurements/ExperimentBigSwarm.pickle"
     pos = None
     with open(save_file, 'rb') as handle:
-        pos = pickle.load(handle)
+        data = pickle.load(handle)
     
+    pos = data["logger_pos"]
+    time_stamps = data["time"]
+    offset = 0
+    while time_stamps[offset] < offset_time_stamp:
+        offset += 1
+
     # fft_data = np.fft.fft(pos[2000:, 2] - np.mean(pos[2000:, 2]))
     # f = np.array(range(len(fft_data))) / (0.01*len(fft_data))
     fig = plt.figure()
@@ -24,12 +30,17 @@ def main():
         print(i)
         p = np.array(pos[i][:])
         print(p)
-        ax.scatter(p[:, 0], p[:, 1], p[:, 2], s=0.1)
-        data[f"{i}d0"] = p[0::10, 0]
-        data[f"{i}d1"] = p[0::10, 1]
-        data[f"{i}d2"] = p[0::10, 2]
+        x = p[offset:time_length:10, 0]
+        y = p[offset:time_length:10, 1]
+        z = p[offset:time_length:10, 2]
+        ax.scatter(x, y, z, s=0.1)
+        data[f"{i}d0"] = x
+        data[f"{i}d1"] = y
+        data[f"{i}d2"] = z
 
     min_dists = np.ones((len(pos[0]),)) * 1000000
+    max_dists = -np.ones((len(pos[0]),)) * 1000000
+    mean_dists = np.zeros((len(pos[0]),))
     for t in range(len(pos[0])):
         for i in range(len(pos)):
             for j in range(len(pos)):
@@ -39,12 +50,17 @@ def main():
                     d = np.linalg.norm(pi - pj)
                     if d < min_dists[t]:
                         min_dists[t] = d
+                    if d > max_dists[t]:
+                        max_dists[t] = d
+                    mean_dists[t] += d / (len(pos)**2 - len(pos))
 
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
 
-    data["mindists"] = min_dists[0::10]
+    data["mindists"] = min_dists[offset:time_length:10]
+    data["maxdists"] = max_dists[offset:time_length:10]
+    data["meandists"] = mean_dists[offset:time_length:10]
     data["t"] = np.arange(len(data["mindists"])) * 0.1
     df = pd.DataFrame(data)
     df.to_csv("../../../experiment_measurements/BigSwarm.csv")
@@ -61,7 +77,7 @@ def main():
     plt.show()
 
     plt.figure()
-    plt.plot(min_dists)
+    plt.plot(data["mindists"])
     plt.show()
 
 

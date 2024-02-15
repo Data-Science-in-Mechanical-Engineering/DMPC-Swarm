@@ -216,7 +216,10 @@ class ComputeUnit(net.Agent):
                  use_dampc=False,
                  dampc_model_path="",
                  dampc_num_neurons="",
-                 dampc_num_layers=""
+                 dampc_num_layers="",
+                 prob_temp_message_loss=0.0,
+                 temp_message_loss_starting_round=-1,
+                 temp_message_loss_ending_round_temp=-1
                  ):
         """
 
@@ -395,6 +398,10 @@ class ComputeUnit(net.Agent):
         if log_optimizer:
             assert log_optimizer == ignore_message_loss, "Not implemented."
 
+        self.__prob_temp_message_loss = prob_temp_message_loss
+        self.__temp_message_loss_starting_round = temp_message_loss_starting_round
+        self.__temp_message_loss_ending_round_temp = temp_message_loss_ending_round_temp
+
     def load_trigger(self, trigger):
         self.__trigger = trigger
 
@@ -518,12 +525,20 @@ class ComputeUnit(net.Agent):
             message: Message
                 message to send.
         """
+
+        round_nr = int(round(self.__current_time / self.__communication_delta_t))
+
+        if round_nr == self.__temp_message_loss_starting_round:
+            print(f"Message loss starting: {time.time()}")
+
         if message is None:
             return
         if message.slot_group_id == self.__slot_group_ack_id:
             self.__ack_message = copy.deepcopy(message)
         # if the message is from leader agent set new reference point
         if message.slot_group_id == self.__slot_group_planned_trajectory_id:
+            if self.__temp_message_loss_ending_round_temp > round_nr > self.__temp_message_loss_starting_round and random.random() < self.__prob_temp_message_loss:
+                return
             self.__num_trajectory_messages_received += 1
             if isinstance(message.content, TrajectoryMessageContent):
                 message.content.init_state[0:3] += self.__pos_offset[message.content.id]
@@ -543,6 +558,8 @@ class ComputeUnit(net.Agent):
                 assert message.ID == self.ID
 
         if message.slot_group_id == self.__slot_group_drone_state:
+            if self.__temp_message_loss_ending_round_temp > round_nr > self.__temp_message_loss_starting_round and random.random() < self.__prob_temp_message_loss:
+                return
             if message.ID not in self.__trajectory_tracker.keys:
                 return
             message.content.state[0:3] += self.__pos_offset[message.ID]
@@ -596,7 +613,7 @@ class ComputeUnit(net.Agent):
                                                              self.__state_trajectory_vector_matrix[0] @
                                                              trajectory.current_state), self.__last_trajectory_shape)
 
-                    self.print("3333333333333333333")
+                    print(f"3333333333333333333 {message.ID}")
 
                     # also recalculate setpoints
                     self.__recalculate_setpoints = True
@@ -1685,6 +1702,8 @@ class RemoteDroneAgent(net.Agent):
 
         self.__show_print = show_print
 
+        self.__current_state = None
+
     def get_prio(self, slot_group_id):
         """returns the priority for the scheulder, because the system is not event triggered, it just returns zero
 
@@ -1795,10 +1814,10 @@ class RemoteDroneAgent(net.Agent):
         self.__received_state_messages = []
 
         # check if trajectory deviates too much from the trajectory received
-        if np.linalg.norm(self.__traj_state[0:3] - self.__state[0:3]) > self.__state_feedback_trigger_dist:
+        """if np.linalg.norm(self.__traj_state[0:3] - self.__state[0:3]) > self.__state_feedback_trigger_dist:
             self.__traj_state[0:3] = self.__state[0:3]
             # self.__traj_state[3:] = 0
-            """if self.__planned_trajectory_coefficients.valid:
+            if self.__planned_trajectory_coefficients.valid:
                 self.__planned_trajectory_coefficients.coefficients = np.zeros(self.__planned_trajectory_coefficients.coefficients.shape)
             else:
                 self.__planned_trajectory_coefficients.alternative_trajectory = np.zeros(
@@ -1829,6 +1848,11 @@ class RemoteDroneAgent(net.Agent):
             self.__current_setpoint = self.__traj_state
             return self.__traj_state
         if self.__planned_trajectory_start_time > 0:
+            # check if trajectory deviates too much from the trajectory received
+            if self.__current_state is not None:
+                if np.linalg.norm(self.__traj_state[0:3] - self.__current_state[0:3]) > self.__state_feedback_trigger_dist:
+                    self.__traj_state[0:3] = self.__current_state[0:3]
+
             self.__traj_state = self.__trajectory_interpolation.interpolate(
                 self.__current_time - self.__planned_trajectory_start_time + delta_t,
                 self.__planned_trajectory_coefficients, integration_start=self.__current_time -
@@ -1879,6 +1903,7 @@ class RemoteDroneAgent(net.Agent):
 
     @state.setter
     def state(self, state):
+        self.__current_state = copy.deepcopy(state)
         if not self.__state_measured:
             self.__state = self.__trajectory_interpolation.interpolate(
                 self.__current_time - self.__planned_trajectory_start_time + self.__communication_delta_t,

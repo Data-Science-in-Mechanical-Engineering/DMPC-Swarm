@@ -944,10 +944,10 @@ class ComputingUnit:
                         copy.deepcopy(current_targets[m.m_id]))
 
             # message loss
-            if (self.__ARGS.message_loss_period_start <= self.__round_nmbr <= self.__ARGS.message_loss_period_end
+            """if (self.__ARGS.message_loss_period_start <= self.__round_nmbr <= self.__ARGS.message_loss_period_end
                     and random.random() < self.__ARGS.message_loss_probability):
                 print("Message lost.!!!!!!!!!!!!!!!!!!")
-                continue
+                continue"""
 
             m_temp = None
             if isinstance(m, EmptyMessage):
@@ -1183,7 +1183,10 @@ class ComputingUnit:
                                                 show_animation=True,
                                                 min_num_drones=self.__num_static_drones,
                                                 show_print=self.__ARGS.show_print,
-                                                name_run=self.__ARGS.name
+                                                name_run=self.__ARGS.name,
+                                                prob_temp_message_loss=self.__ARGS.message_loss_probability,
+                                                temp_message_loss_starting_round=self.__ARGS.message_loss_period_start,
+                                                temp_message_loss_ending_round_temp=self.__ARGS.message_loss_period_end
                                                 )
 
     def send_socket(self, message: message.MixerMessage):

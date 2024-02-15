@@ -425,10 +425,10 @@ class Simulation:
                 # (on our real system this is performed in parallel to everything else) ##############
 
                 # do low level control
-                if self.__ARGS.save_video and i % 16 == 0:
-                    angle = 2*math.pi / 12000 * i
+                if self.__ARGS.save_video and i % 32 == 0:
+                    angle = 2*math.pi / 24000 * i
                     viewMatrix4 = p.computeViewMatrix(
-                        cameraEyePosition=[3*np.sin(angle), 3*np.cos(angle), 6],
+                        cameraEyePosition=[2*np.sin(angle), 2*np.cos(angle), 1],
                         cameraTargetPosition=[0, 0, 1],
                         cameraUpVector=[0, 0, 1])
                     intrinsic_matrix = np.array([[-focal_length_video, 0, resolution_video[0] / 2, 0],
@@ -487,7 +487,7 @@ class Simulation:
                                                        obs[str(j)]["state"][2], obs[str(j)]["state"][10],
                                                        obs[str(j)]["state"][11], obs[str(j)]["state"][12],
                                                        0, 0, 0])
-                    next_state[j, :] = np.copy(self.__agents[j].next_planned_state(control_interval))
+                    next_state[j, :] = np.copy(self.__agents[j].next_planned_state(control_interval, ))
                     # print(str(i%COM_EVERY_N_STEPS / CTRL_EVERY_N_STEPS * control_interval) + '\t' + str(next_pos[j, :]))
                     action[str(j)], _, _ = self.__ctrl[j].computeControlFromState(
                         control_timestep=self.__AGGR_PHY_STEPS * self.__env.TIMESTEP,
