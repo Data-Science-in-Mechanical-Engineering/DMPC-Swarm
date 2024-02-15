@@ -1,0 +1,12 @@
+name_sweep: ["DMPC_RR"]
+
+num_drones: [10, 16]
+message_loss_probability: [0.01]
+ignore_message_loss: [False]
+num_computing_agents: [1, 2, 3, 4, 5, 7, 9]
+
+alpha_1: [0.0]
+alpha_2: [1.0]
+alpha_3: [0.0]
+alpha_4: [0]
+use_kkt_trigger: [False]
