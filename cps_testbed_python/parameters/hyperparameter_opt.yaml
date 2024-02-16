@@ -8,14 +8,14 @@ computing_agent_ids: [20, 21]           # ids of compute units. Length of array 
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
   "Vicon": [[-1.8, -1.8, 0.3], [1.8, 1.8, 3.0], [0, 0, 0]]
 
-num_drones: 8
+num_drones: 16
 
 # simulation setup
 simulated: True     # set false for real testbed (when it runs on a testbed, it saves a bit more data for debugging)
 duration_sec: 100   # duration of simulation
 abort_simulation: False  # exit simulation earlier, if drones crash or all targets reached.
 num_simulations: 1  # number of simulations to conduct
-save_video: True
+save_video: False
 resolution_video: 512   # width of the video in pixels. Height is calculated as resolution_video*9/16
 simulate_quantization: False  # simulate quantization during communication
 sim_steps_per_control: 4
@@ -31,7 +31,7 @@ sweep_parameters: False
 
 # Logging options
 log: True
-log_state: False
+log_state: True
 
 #options for target points
 use_own_targets: True         # if the cus should use their own targets. This is needed, if we want to use the setpoint_creator for e.g. demos.
@@ -72,8 +72,8 @@ use_optimized_constraints: True  # remove!!
 guarantee_anti_collision: True   # if false uses a deprecated approach
 
 # event trigger options
-alpha_1: 1.0 # 1
-alpha_2: 0.0
+alpha_1: 0.0 # 1
+alpha_2: 1.0
 alpha_3: 0
 alpha_4: 0
 use_kkt_trigger: False

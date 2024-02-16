@@ -443,7 +443,7 @@ class SetpointCreator:
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean + offset
 
 	def generate_circle_pyramid_setpoint(self, drone_id):
-		if self.__circle_pyramid_idx is None or self.__round % 300 == 150:
+		if self.__circle_pyramid_idx is None or self.__round % 500 == 499:
 			idx = np.arange(len(self.__drones))
 			np.random.shuffle(idx)
 			self.__circle_pyramid_idx = {drone_id_: idx[i] for i, drone_id_ in enumerate(self.__drones)}

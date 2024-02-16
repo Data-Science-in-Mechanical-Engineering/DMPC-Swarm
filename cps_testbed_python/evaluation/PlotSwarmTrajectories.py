@@ -38,6 +38,9 @@ def main():
         data[f"{i}d1"] = y
         data[f"{i}d2"] = z
 
+        data[f"speed{i}"] = np.linalg.norm(p[:len(p)-1, :] - p[1:, :], axis=1) / 0.01
+        data[f"speed{i}"] = data[f"speed{i}"][offset:time_length:10]
+
     min_dists = np.ones((len(pos[0]),)) * 1000000
     max_dists = -np.ones((len(pos[0]),)) * 1000000
     mean_dists = np.zeros((len(pos[0]),))
@@ -78,6 +81,13 @@ def main():
 
     plt.figure()
     plt.plot(data["mindists"])
+    plt.show()
+
+    speeds = []
+    for i in range(len(pos)):
+        plt.plot(data[f"speed{i}"])
+        speeds.append(max(data[f"speed{i}"]))
+    print(max(speeds))
     plt.show()
 
 
