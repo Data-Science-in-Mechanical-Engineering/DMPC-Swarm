@@ -87,7 +87,7 @@ static message_assignment_t constant_message_assignment[] = {
 	// Entries in the plants array send probability values.
 	static const uint8_t plants[] = {1, 2}; //, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
 
-	#define MX_ROUND_LENGTH				120 // in #slots
+	#define MX_ROUND_LENGTH				150 // in #slots
 	#define ROUND_PERIOD				GPI_TICK_MS_TO_HYBRID2(ROUND_LENGTH_MS)
 	#define MX_SLOT_LENGTH				8710 //GPI_TICK_US_TO_HYBRID2(1460) //GPI_TICK_US_TO_HYBRID2(1100)
 #endif
