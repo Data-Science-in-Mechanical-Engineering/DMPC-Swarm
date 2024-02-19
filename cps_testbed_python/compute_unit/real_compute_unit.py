@@ -786,7 +786,7 @@ class ComputingUnit:
                         if m.type == TYPE_METADATA:
                             round_mbr = m.round_mbr
                         target_positions = self.__ARGS.setpoint_creator.next_setpoints(round_mbr)[0]
-                        self.__drone_trajectory_logger[counter] = (
+                        self.__drone_trajectory_logger[round_mbr] = (
                             time.time(),
                             copy.deepcopy(target_positions))
 

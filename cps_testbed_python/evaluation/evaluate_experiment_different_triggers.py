@@ -1,3 +1,4 @@
+import copy
 import os
 import pickle as p
 import matplotlib.pyplot as plt
@@ -12,13 +13,14 @@ import pickle
 if __name__ == "__main__":
     ignore_message_loss = True
     num_drones = 16
+    num_cus = 3
     name = "demo"
-    targets = "../../../experiment_measurements/drone_trajectory_logger_testbed_experiment_demo_one_CU.p"
+    targets = "../../../experiment_measurements/drone_trajectory_logger_testbed_experiment_demo.p"
 
     with open(targets, 'rb') as handle:
         targets = pickle.load(handle)
 
-    trajectories = "../../../experiment_measurements/ExperimentDemo1CU.pickle"
+    trajectories = "../../../experiment_measurements/ExperimentDemo.pickle"
     pos = None
     with open(trajectories, 'rb') as handle:
         data = pickle.load(handle)
@@ -29,6 +31,7 @@ if __name__ == "__main__":
     dists = []
     dists2 = []
     times = []
+    offset = None
     for drone_id in range(1, 17):
         current_target_idx = 0
         while drone_id not in targets[list(targets.keys())[current_target_idx]][1].keys():
@@ -47,13 +50,29 @@ if __name__ == "__main__":
                 else:
                     current_target_idx -= 1
                     break
+            old_current_target = copy.deepcopy(current_target)
             current_target = targets[list(targets.keys())[current_target_idx]][1][drone_id]
+
+            if np.linalg.norm(current_target - old_current_target) > 0.1 and offset is None:
+                offset = time_stamps[t]
+
             dists[-1].append(np.linalg.norm(pos[drone_id-1][t] - current_target))
             times[-1].append(time_stamps[t])
-    time_stamps = np.array(time_stamps) - time_stamps[0]
-    for i in range(len(dists)):
-        plt.plot(np.array(times[i]) - times[0][0], dists[i])
 
+    dists = np.array(dists)
+
+    times = np.array(times) - offset
+
+    dists = dists[:, times[0]>=0]
+    times = times[0, times[0]>=0]
+
+    print(dists.shape)
+    for i in range(len(dists)):
+        plt.plot(times, dists[i])
+
+    df = pd.DataFrame({"t": times[0::10], "dmax": np.max(dists, axis=0)[0::10], "dmin": np.min(dists, axis=0)[0::10], "mean": np.mean(dists, axis=0)[0::10]})
+    df.to_csv(
+        f"/home/alex/Documents/009_Paper/robot_swarm_science_robotics/plot_data/HardwareExperimentFigures_{num_cus}_CUs.csv")
 
     plt.show()
 
