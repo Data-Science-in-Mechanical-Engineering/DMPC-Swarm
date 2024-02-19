@@ -1,10 +1,10 @@
-name: "demo"
+name: "demo_visitors"
 
 run_on_cluster: False
 
 # this is used to optimize hyperparameters by hand.
 # testbed setup
-computing_agent_ids: [20, 21]           # ids of compute units. Length of array defines number of CUs
+computing_agent_ids: [20, 21, 22]           # ids of compute units. Length of array defines number of CUs
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
   "Vicon": [[-1.8, -1.8, 0.3], [1.8, 1.8, 3.0], [0, 0, 0]]
 
@@ -72,8 +72,8 @@ use_optimized_constraints: True  # remove!!
 guarantee_anti_collision: True   # if false uses a deprecated approach
 
 # event trigger options
-alpha_1: 0.0 # 1
-alpha_2: 1.0
+alpha_1: 1.0
+alpha_2: 0.0
 alpha_3: 0
 alpha_4: 0
 use_kkt_trigger: False

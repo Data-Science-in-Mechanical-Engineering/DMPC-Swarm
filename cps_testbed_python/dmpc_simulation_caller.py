@@ -227,7 +227,7 @@ if __name__ == "__main__":
 
     # only used if use_own_targets is set.
     ARGS.setpoint_creator = setpoint_creator.SetpointCreator(ARGS.drones, ARGS.testbeds,
-                                                             demo_setpoints=setpoint_creator.CIRCLE_PYRAMID)
+                                                             demo_setpoints=setpoint_creator.DEMO_VISITORS)
 
     origin = np.array(ARGS.testbeds["Vicon"][0]) + np.array(ARGS.testbeds["Vicon"][2])
     testbed_size = np.array(ARGS.testbeds["Vicon"][1]) - np.array(ARGS.testbeds["Vicon"][0])

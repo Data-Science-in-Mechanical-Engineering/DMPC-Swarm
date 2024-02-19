@@ -12,7 +12,7 @@ if __name__ == "__main__":
     probs = [int(1*i) for i in range(10)]
     csv_path = "/home/alex/Documents/009_Paper/robot_swarm_science_robotics/Images"
 
-    folder_name = "hpc_runs/DMPC_MESSAGE_LOSS"
+    folder_name = "hpc_runs/COMPARISON_DMPC_MLR_DMPC"
 
     for num_cus in [2, 3, 5, 7, 9, 11]:
         num_cu_data[num_cus] = []

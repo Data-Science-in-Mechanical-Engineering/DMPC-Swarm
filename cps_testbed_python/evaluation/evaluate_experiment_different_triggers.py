@@ -10,7 +10,7 @@ import pandas as pd
 if __name__ == "__main__":
     ignore_message_loss = True
     num_drones = 16
-    folder_name = "simulation_results/dmpc/demo"   # hpc_runs/DMPC_MESSAGE_LOSS"
+    folder_name = "simulation_results/dmpc/demo_visitors"   # hpc_runs/DMPC_MESSAGE_LOSS"
     path = os.path.dirname(os.path.abspath(__file__)) + f"/../../../{folder_name}/"
 
     plot_states = False

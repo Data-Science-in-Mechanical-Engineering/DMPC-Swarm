@@ -1250,6 +1250,12 @@ class ComputeUnit(net.Agent):
                 d_target = target_pos - copy.deepcopy(
                     self.__trajectory_tracker.get_information(own_id).content[0].current_state[0:3])
 
+            if target_pos is None or self.__trajectory_tracker.get_information(own_id).content[-1].last_trajectory is None:
+                d_target = 0
+            else:
+                d_target = target_pos - copy.deepcopy(
+                    self.__trajectory_tracker.get_information(own_id).content[-1].last_trajectory[-1][0:3])
+
             dist_to_target = np.linalg.norm(d_target)
 
             prios[i] /= (1.0 * len(self.__drones_ids) * max_dist)  # normalize prio

@@ -426,10 +426,10 @@ class Simulation:
 
                 # do low level control
                 if self.__ARGS.save_video and i % 32 == 0:
-                    angle = 2*math.pi / 24000 * i
+                    angle = 2*math.pi / 40000 * i
                     viewMatrix4 = p.computeViewMatrix(
-                        cameraEyePosition=[2*np.sin(angle), 2*np.cos(angle), 1],
-                        cameraTargetPosition=[0, 0, 1],
+                        cameraEyePosition=[3*np.sin(angle), 3*np.cos(angle), 1.5],
+                        cameraTargetPosition=[0, 0, 1.5],
                         cameraUpVector=[0, 0, 1])
                     intrinsic_matrix = np.array([[-focal_length_video, 0, resolution_video[0] / 2, 0],
                                                  [0, focal_length_video, resolution_video[1] / 2, 0],

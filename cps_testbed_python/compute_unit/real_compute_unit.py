@@ -940,6 +940,7 @@ class ComputingUnit:
                     self.__drone_trajectory_logger[m.m_id] = {}
 
                 self.__drone_trajectory_logger[m.m_id][self.__round_nmbr] = (
+                        time.time(),
                         copy.deepcopy(m.state[0:3]),
                         copy.deepcopy(current_targets[m.m_id]))
 

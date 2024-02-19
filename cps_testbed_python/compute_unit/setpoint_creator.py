@@ -20,6 +20,7 @@ CIRCLE_PYRAMID = 11
 PHOTO = 12
 DEMO_CRASH = 14
 CIRCLE_PERIODIC_SMALL = 15
+DEMO_VISITORS = 16
 
 DEMO_AI_WEEK_IDLE = 0
 DEMO_AI_WEEK_CIRCLE = 1
@@ -163,6 +164,8 @@ class SetpointCreator:
 				self.__current_setpoints[drone_id] = self.generate_photo_setpoint(drone_id)
 			elif self.__demo_setpoints == DEMO_CRASH:
 				self.__current_setpoints[drone_id] = self.generate_demo_crash_setpoint(drone_id)
+			elif self.__demo_setpoints == DEMO_VISITORS:
+				self.__current_setpoints[drone_id] = self.generate_demo_visitors_setpoint(drone_id)
 
 		setpoints_changed = False
 		for k in self.__current_setpoints:
@@ -533,6 +536,57 @@ class SetpointCreator:
 			if drone_id >= 15:
 				p[1] = -p[1]
 		return p
+
+	def generate_demo_visitors_setpoint(self, drone_id):
+		if drone_id > 16:
+			return np.array([0.0, 0.0, 0.0])
+		self.__state_demo_ai_week = "IDLE"
+		if self.__round > 200:
+			self.__state_demo_ai_week = "PYRAMID"
+		if self.__round > 350:
+			self.__state_demo_ai_week = "SQUARE"
+		if self.__round > 500:
+			self.__state_demo_ai_week = "SPHERE"
+		if self.__round > 650:
+			self.__state_demo_ai_week = "RETURN"
+
+		if self.__state_demo_ai_week == "IDLE":
+			return get_circle_point(1.7, drone_id, 16, 1.5)
+
+		if self.__state_demo_ai_week == "PYRAMID":
+			return self.generate_circle_pyramid_setpoint(drone_id)
+
+		if self.__state_demo_ai_week == "SQUARE":
+			if drone_id < 15:
+				temp = np.array([[-1.5, 1.5, 0.5], [-1.5, -1.5, 0.5], [-1.5, 1.5, 2.5], [-1.5, -1.5, 2.5],
+								 [1.5, 1.5, 0.5], [1.5, -1.5, 0.5], [1.5, 1.5, 2.5], [1.5, -1.5, 2.5],
+								 [0.0, 0.0, 0.5], [0.0, 0.0, 2.5], [1.5, 0.0, 1.5], [-1.5, 0.0, 1.5], [0.0, 1.5, 1.5], [0.0, -1.5, 1.5],
+								 ])
+				return temp[drone_id - 1]
+			else:
+				return get_circle_point(0.8, drone_id, 2, 1.5)
+
+		if self.__state_demo_ai_week == "SPHERE":
+			radius = 1.15
+			z_middle = 1.7
+			if drone_id == 1:
+				return np.array([0.0, 0.0, z_middle + radius])
+			if drone_id == 2:
+				return np.array([0.0, 0.0, z_middle - radius])
+			if drone_id <= 6:
+				return get_circle_point(radius*math.cos(math.pi/4), drone_id, 4, z_middle + radius*math.sin(math.pi/4))
+			if drone_id <= 10:
+				return get_circle_point(radius*math.cos(math.pi/4), drone_id, 4, z_middle - radius*math.sin(math.pi/4))
+			else:
+				return get_circle_point(radius, drone_id, 6, z_middle)
+
+		if self.__state_demo_ai_week == "RETURN":
+			temp = np.array([[-1.5, 1.5, 0.5], [-0.5, 1.5, 0.5], [0.5, 1.5, 0.5], [1.5, 1.5, 0.5],
+							 [-1.5, 0.5, 0.5], [-0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [1.5, 0.5, 0.5],
+							 [-1.5, -0.5, 0.5], [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [1.5, -0.5, 0.5],
+							 [-1.5, -1.5, 0.5], [-0.5, -1.5, 0.5], [0.5, -1.5, 0.5], [1.5, -1.5, 0.5],])
+			return temp[drone_id-1]
+
 
 	def add_drone(self, drone_id, state, round):
 		"""

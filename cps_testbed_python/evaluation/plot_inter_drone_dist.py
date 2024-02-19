@@ -13,7 +13,7 @@ if __name__ == "__main__":
     message_loss_prob = 0.01
     num_cus = 2
     simulate_quantization = False
-    num_drones = 10
+    num_drones = 16
     folder_name = "hpc_runs/COMPARISON_DMPC_MLR_DMPC"
 
     colors = ["b", "r", "g"]
