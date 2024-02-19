@@ -13,12 +13,12 @@ if __name__ == "__main__":
     ignore_message_loss = True
     num_drones = 16
     name = "demo"
-    targets = "../../../experiment_measurements/drone_trajectory_logger_testbed_experiment_demo.p"
+    targets = "../../../experiment_measurements/drone_trajectory_logger_testbed_experiment_demo_one_CU.p"
 
     with open(targets, 'rb') as handle:
         targets = pickle.load(handle)
 
-    trajectories = "../../../experiment_measurements/ExperimentDemo.pickle"
+    trajectories = "../../../experiment_measurements/ExperimentDemo1CU.pickle"
     pos = None
     with open(trajectories, 'rb') as handle:
         data = pickle.load(handle)
@@ -28,26 +28,32 @@ if __name__ == "__main__":
 
     dists = []
     dists2 = []
-
+    times = []
     for drone_id in range(1, 17):
-        current_target = targets[drone_id][list(targets[drone_id].keys())[0]][2]
-        current_target_time = targets[drone_id][list(targets[drone_id].keys())[0]][0]
         current_target_idx = 0
+        while drone_id not in targets[list(targets.keys())[current_target_idx]][1].keys():
+            current_target_idx += 1
+
+        current_target = targets[list(targets.keys())[current_target_idx]][1][drone_id]
+        current_target_time = targets[list(targets.keys())[current_target_idx]][0]
         dists.append([])
         dists2.append([])
+        times.append([])
         for t in range(len(pos[drone_id-1])):
             while time_stamps[t] >= current_target_time:
                 current_target_idx += 1
-                current_target_time = targets[drone_id][list(targets[drone_id].keys())[current_target_idx]][0]
-            current_target = targets[drone_id][list(targets[drone_id].keys())[current_target_idx]][2]
+                if current_target_idx < len(targets):
+                    current_target_time = targets[list(targets.keys())[current_target_idx]][0]
+                else:
+                    current_target_idx -= 1
+                    break
+            current_target = targets[list(targets.keys())[current_target_idx]][1][drone_id]
             dists[-1].append(np.linalg.norm(pos[drone_id-1][t] - current_target))
-            dists2[-1].append(np.linalg.norm(targets[drone_id][list(targets[drone_id].keys())[current_target_idx]][1][0:3] - current_target))
+            times[-1].append(time_stamps[t])
     time_stamps = np.array(time_stamps) - time_stamps[0]
-    for d in dists:
-        plt.plot(time_stamps, d)
+    for i in range(len(dists)):
+        plt.plot(np.array(times[i]) - times[0][0], dists[i])
 
-    for d in dists2:
-        plt.plot(time_stamps, d)
 
     plt.show()
 
