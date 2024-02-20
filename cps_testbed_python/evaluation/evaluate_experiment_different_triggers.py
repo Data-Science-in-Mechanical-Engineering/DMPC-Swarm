@@ -47,7 +47,7 @@ if __name__ == "__main__":
         plt.plot(time_stamps, d)
 
     for d in dists2:
-        plt.plot(time_stamps, d)
+        plt.plot(time_stamps+0.5, d)
 
     plt.show()
 

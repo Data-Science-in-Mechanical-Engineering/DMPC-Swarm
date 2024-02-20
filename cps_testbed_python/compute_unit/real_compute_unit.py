@@ -767,11 +767,13 @@ class ComputingUnit:
         state = STATE_NOTIFY_NETWORK_MANAGER
 
         counter = 0
+        start_time = time.time()
         while True:
-            start_time = time.time()
             print("--------------------------------------------------------")
             new_round = False
             messages_rx = self.read_data_from_cp()
+            print(f"total_time: {time.time() - start_time}")
+            start_time = time.time()
             messages_tx = []
 
             counter += 1
@@ -905,8 +907,6 @@ class ComputingUnit:
                 round_started_time = time.time()
                 self.__computation_agent.round_started()
                 print(f"round_started_time: {time.time() - round_started_time}")
-
-            print(f"total_time: {time.time() - start_time}")
 
     def connect_to_cp(self):
         """ DEFINE FREQUENTLY USED MESSAGES """
