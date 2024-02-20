@@ -26,6 +26,28 @@ MAX_POSITION = 5.0
 MAX_VELOCITY = 5.0
 MAX_ACCELERATION = 5.0
 
+def setHighPriority():
+    import sys
+    try:
+        sys.getwindowsversion()
+    except AttributeError:
+        is_windows = False
+    else:
+        is_windows = True
+
+    if is_windows:
+        # Based on:
+        #   "Recipe 496767: Set Process Priority In Windows" on ActiveState
+        #   http://code.activestate.com/recipes/496767/
+        import win32api,win32process,win32con
+
+        pid = win32api.GetCurrentProcessId()
+        handle = win32api.OpenProcess(win32con.PROCESS_ALL_ACCESS, True, pid)
+        win32process.SetPriorityClass(handle, win32process.Test)
+    else:
+        import os
+
+        print(os.nice(-19))
 
 def quantize_float(float, range):
     lower = np.min(range)
@@ -737,6 +759,9 @@ class ComputingUnit:
 
         if os.path.exists(f"../../experiment_measurements/ShutdownCU{self.__cu_id}.txt"):
             os.remove(f"../../experiment_measurements/ShutdownCU{self.__cu_id}.txt")
+
+        # set high os priority.
+        setHighPriority()
 
     def run(self, fileno):
         """ This is the main state machine of the computing unit. """
