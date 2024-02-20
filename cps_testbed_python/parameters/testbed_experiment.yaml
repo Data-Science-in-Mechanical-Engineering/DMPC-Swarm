@@ -1,4 +1,4 @@
-name: "testbed_experiment_demo"
+name: "testbed_experiment_demo_one_CU"
 
 # testbed setup
 computing_agent_ids: [20, 21]           # ids of compute units. Length of array defines number of CUs

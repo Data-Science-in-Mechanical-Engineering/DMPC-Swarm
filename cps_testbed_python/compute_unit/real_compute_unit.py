@@ -672,7 +672,7 @@ class ComputingUnit:
     calculation and an uart interface for communication. The Computing Unit communicates with the computation agent
     by using the net.Message class. For the UART communication, the message.MixerMessage class is used. """
 
-    def __init__(self, ARGS, cu_id, num_static_drones=1, is_initiator=False, sync_movement=False, loose_messages=False, baudrate=921600):
+    def __init__(self, ARGS, cu_id, num_static_drones=1, is_initiator=False, sync_movement=False, loose_messages=False, baudrate=921600, just_sniff=False):
         self.__ARGS = ARGS
         if self.__ARGS.dynamic_swarm:
             self.__ARGS.computing_agent_ids = [cu_id]
@@ -690,6 +690,8 @@ class ComputingUnit:
 
         self.__uart_interface = None
         self.__computation_agent = None
+
+        self.__just_sniff = just_sniff
 
         self.init_uart_interface(baudrate)
         self.init_computation_agent()
@@ -778,125 +780,153 @@ class ComputingUnit:
 
             counter += 1
 
-            # first we try to get a message spot in the message layer
-            # if this is succesfull, we go to the IDLE state.
-            if state == STATE_NOTIFY_NETWORK_MANAGER:
+            if self.__just_sniff:
+                print("Sniffing")
                 for m in messages_rx:
-                    if isinstance(m, NetworkMembersMessage):
-                        if self.__cu_id in m.message_layer_area_agent_id:
-                            self.__uart_interface.print("I got assigned an area.")
-                            self.__network_manager_message = copy.deepcopy(m)
-                            state = STATE_IDLE
-                            break
+                    round_mbr = 0
+                    if isinstance(m, MetadataMessage):
+                        if m.type == TYPE_METADATA:
+                            round_mbr = m.round_mbr
+                        target_positions = self.__ARGS.setpoint_creator.next_setpoints(round_mbr)[0]
+                        self.__drone_trajectory_logger[round_mbr] = (
+                            time.time(),
+                            copy.deepcopy(target_positions))
 
+                        if counter % 50 == 0:
+                            with open(f'../../experiment_measurements/drone_trajectory_logger_{self.__ARGS.name}.p',
+                                      'wb') as handle:
+                                pickle.dump(self.__drone_trajectory_logger, handle)
+
+                m_temp = MetadataMessage()
+                m_temp.type = TYPE_DUMMY
+                m_temp.m_id = self.__cu_id
+                m_temp.num_computing_units = 0
+                m_temp.num_drones = 0
+                m_temp.round_length_ms = 200
+                m_temp.own_id = self.__cu_id
+                m_temp.round_mbr = 0
+                m_temp.is_initiator = 0
+                messages_tx = [m_temp]
+            else:
+                # first we try to get a message spot in the message layer
+                # if this is succesfull, we go to the IDLE state.
                 if state == STATE_NOTIFY_NETWORK_MANAGER:
-                    req_message = NetworkAreaRequestMessage()
-                    req_message.m_id = self.__cu_id
-                    req_message.message_id = self.__cu_id
-                    req_message.agent_type = 0  # 0 is cu, 1 is drone
-                    req_message.max_size_message = TrajectoryMessage().size
-                    messages_tx = [req_message]
-
-            # untill the first drone is into the swarm, dont do anything.
-            if state == STATE_IDLE:
-                received_network_members_message = 0
-                # wait until cp says all agents are ready
-                for m in messages_rx:
-                    if isinstance(m, NetworkMembersMessage):
-                        received_network_members_message = 1
-                        self.print("---------------")
-                        self.print(m.message_layer_area_agent_id)
-                        self.print(m.ids)
-                        self.print(m.types)
-                        self.print(m.manager_wants_to_leave_network_in)
-                        self.print(m.id_new_network_manager)
-                        print(len(messages_rx)-2)
-                        num_connected_drones = 0
-                        for t in m.types:
-                            if t == 1:
-                                num_connected_drones += 1
-                        if self.__num_static_drones <= num_connected_drones:
-                            state = STATE_SYS_RUN
-                ack_message.type = TYPE_AP_ACK
-                messages_tx = [ack_message]
-                if counter is not None:
-                    if counter > 100 and self.__cu_id == 20:
-                        self.__wants_to_leave = False
-
-                # only if we want to leave and are sure that we still are eligible to send, then
-                # send that we want to leave
-                if self.__wants_to_leave:
-                    if received_network_members_message:
-                        free_message = NetworkAreaFreeMessage()
-                        free_message.m_id = self.__cu_id
-                        messages_tx = [free_message]
-                    else:
-                        # do not sent anything (send dummy), because we are not sure of we are eligible to send
-                        ack_message.type = TYPE_DUMMY
-                        messages_tx = [ack_message]
-            elif state == STATE_SYS_RUN:
-                # if we want to leave the swarm, then check if we are in it, if not, then finish.
-                if self.__wants_to_leave:
                     for m in messages_rx:
                         if isinstance(m, NetworkMembersMessage):
-                            if not self.__cu_id in m.ids:
-                                self.print("Left the swarm, shutting down.")
-                                exit(0)
+                            if self.__cu_id in m.message_layer_area_agent_id:
+                                self.__uart_interface.print("I got assigned an area.")
+                                self.__network_manager_message = copy.deepcopy(m)
+                                state = STATE_IDLE
+                                break
 
-                # check if a new agent is inside the swarm
-                received_network_members_message = False
-                self.print(messages_rx)
-                for m in messages_rx:
-                    if isinstance(m, NetworkMembersMessage):
-                        received_network_members_message = True
-                        self.print("---------------")
-                        self.print(m.message_layer_area_agent_id)
-                        self.print(m.ids)
-                        self.print(m.types)
-                        self.print(m.manager_wants_to_leave_network_in)
-                        self.print(m.id_new_network_manager)
+                    if state == STATE_NOTIFY_NETWORK_MANAGER:
+                        req_message = NetworkAreaRequestMessage()
+                        req_message.m_id = self.__cu_id
+                        req_message.message_id = self.__cu_id
+                        req_message.agent_type = 0  # 0 is cu, 1 is drone
+                        req_message.max_size_message = TrajectoryMessage().size
+                        messages_tx = [req_message]
 
-                        # check if there is a new agent in the swarm
-                        for i, t in enumerate(m.types):
-                            if m.ids[i] == 0:
-                                continue
-                            if t == 0:
-                                if m.ids[i] not in self.__cus_in_swarm:
-                                    self.__uart_interface.print(f"CU {m.ids[i]} added to swarm")
-                                    self.__computation_agent.add_new_computation_agent(m.ids[i])
-                                    self.__cus_in_swarm.append(m.ids[i])
+                # untill the first drone is into the swarm, dont do anything.
+                if state == STATE_IDLE:
+                    received_network_members_message = 0
+                    # wait until cp says all agents are ready
+                    for m in messages_rx:
+                        if isinstance(m, NetworkMembersMessage):
+                            received_network_members_message = 1
+                            self.print("---------------")
+                            self.print(m.message_layer_area_agent_id)
+                            self.print(m.ids)
+                            self.print(m.types)
+                            self.print(m.manager_wants_to_leave_network_in)
+                            self.print(m.id_new_network_manager)
+                            print(len(messages_rx)-2)
+                            num_connected_drones = 0
+                            for t in m.types:
+                                if t == 1:
+                                    num_connected_drones += 1
+                            if self.__num_static_drones <= num_connected_drones:
+                                state = STATE_SYS_RUN
+                    ack_message.type = TYPE_AP_ACK
+                    messages_tx = [ack_message]
+                    if counter is not None:
+                        if counter > 100 and self.__cu_id == 20:
+                            self.__wants_to_leave = False
 
-                            elif t == 1:
-                                if m.ids[i] not in self.__drones_in_swarm:
-                                    self.__uart_interface.print(f"Drone {m.ids[i]} added to swarm")
-                                    self.__computation_agent.add_new_drone(m.ids[i])
-                                    self.__drones_in_swarm.append(m.ids[i])
+                    # only if we want to leave and are sure that we still are eligible to send, then
+                    # send that we want to leave
+                    if self.__wants_to_leave:
+                        if received_network_members_message:
+                            free_message = NetworkAreaFreeMessage()
+                            free_message.m_id = self.__cu_id
+                            messages_tx = [free_message]
+                        else:
+                            # do not sent anything (send dummy), because we are not sure of we are eligible to send
+                            ack_message.type = TYPE_DUMMY
+                            messages_tx = [ack_message]
+                elif state == STATE_SYS_RUN:
+                    # if we want to leave the swarm, then check if we are in it, if not, then finish.
+                    if self.__wants_to_leave:
+                        for m in messages_rx:
+                            if isinstance(m, NetworkMembersMessage):
+                                if not self.__cu_id in m.ids:
+                                    self.print("Left the swarm, shutting down.")
+                                    exit(0)
 
-                        # check if an agent has left the swarm
-                        for cu in self.__cus_in_swarm:
-                            if not cu in m.ids:
-                                self.print(f"Removed CU {cu}")
-                                self.__computation_agent.remove_computation_agent(cu)
-                                self.__cus_in_swarm.remove(cu)
-                        for drone in self.__drones_in_swarm:
-                            if not drone in m.ids:
-                                self.__computation_agent.remove_drone(drone)
-                                self.__drones_in_swarm.remove(drone)
-                                self.print(f"Removed drone {drone}")
+                    # check if a new agent is inside the swarm
+                    received_network_members_message = False
+                    self.print(messages_rx)
+                    for m in messages_rx:
+                        if isinstance(m, NetworkMembersMessage):
+                            received_network_members_message = True
+                            self.print("---------------")
+                            self.print(m.message_layer_area_agent_id)
+                            self.print(m.ids)
+                            self.print(m.types)
+                            self.print(m.manager_wants_to_leave_network_in)
+                            self.print(m.id_new_network_manager)
 
-                # only if we want to leave and are sure that we still are eligible to send, then
-                # send that we want to leave
-                if self.__wants_to_leave:
-                    if received_network_members_message:
-                        free_message = NetworkAreaFreeMessage()
-                        free_message.m_id = self.__cu_id
-                        messages_tx = [free_message]
+                            # check if there is a new agent in the swarm
+                            for i, t in enumerate(m.types):
+                                if m.ids[i] == 0:
+                                    continue
+                                if t == 0:
+                                    if m.ids[i] not in self.__cus_in_swarm:
+                                        self.__uart_interface.print(f"CU {m.ids[i]} added to swarm")
+                                        self.__computation_agent.add_new_computation_agent(m.ids[i])
+                                        self.__cus_in_swarm.append(m.ids[i])
+
+                                elif t == 1:
+                                    if m.ids[i] not in self.__drones_in_swarm:
+                                        self.__uart_interface.print(f"Drone {m.ids[i]} added to swarm")
+                                        self.__computation_agent.add_new_drone(m.ids[i])
+                                        self.__drones_in_swarm.append(m.ids[i])
+
+                            # check if an agent has left the swarm
+                            for cu in self.__cus_in_swarm:
+                                if not cu in m.ids:
+                                    self.print(f"Removed CU {cu}")
+                                    self.__computation_agent.remove_computation_agent(cu)
+                                    self.__cus_in_swarm.remove(cu)
+                            for drone in self.__drones_in_swarm:
+                                if not drone in m.ids:
+                                    self.__computation_agent.remove_drone(drone)
+                                    self.__drones_in_swarm.remove(drone)
+                                    self.print(f"Removed drone {drone}")
+
+                    # only if we want to leave and are sure that we still are eligible to send, then
+                    # send that we want to leave
+                    if self.__wants_to_leave:
+                        if received_network_members_message:
+                            free_message = NetworkAreaFreeMessage()
+                            free_message.m_id = self.__cu_id
+                            messages_tx = [free_message]
+                        else:
+                            # do not sent anything (send dummy), because we are not sure of we are eligible to send
+                            ack_message.type = TYPE_DUMMY
+                            messages_tx = [ack_message]
                     else:
-                        # do not sent anything (send dummy), because we are not sure of we are eligible to send
-                        ack_message.type = TYPE_DUMMY
-                        messages_tx = [ack_message]
-                else:
-                    messages_tx = self.dmpc_step(messages_rx, received_network_members_message)
+                        messages_tx = self.dmpc_step(messages_rx, received_network_members_message)
 
             # send data to CP
             write_data_to_cp_time = time.time()
