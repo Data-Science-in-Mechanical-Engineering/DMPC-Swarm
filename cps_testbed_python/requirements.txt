@@ -6,7 +6,7 @@ filterpy~=1.4.5
 scipy~=1.8.1
 matplotlib~=3.5.2
 gym~=0.26.2
-ray
+ray~=1.4.1
 torch
 Pillow~=9.5.0
 cycler~=0.11.0
@@ -22,3 +22,6 @@ diversipy~=0.8
 pyparsing~=3.0.9
 kiwisolver~=1.4.2
 pandas~=2.0.3
+PyYAML~=6.0
+jax~=0.2.10
+equinox~=0.10.4

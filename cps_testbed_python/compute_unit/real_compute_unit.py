@@ -43,11 +43,13 @@ def setHighPriority():
 
         pid = win32api.GetCurrentProcessId()
         handle = win32api.OpenProcess(win32con.PROCESS_ALL_ACCESS, True, pid)
-        win32process.SetPriorityClass(handle, win32process.Test)
+        win32process.SetPriorityClass(handle, win32process.HIGH_PRIORITY_CLASS)
     else:
         import os
 
         print(os.nice(-19))
+
+    print("Set process to high priority")
 
 def quantize_float(float, range):
     lower = np.min(range)
