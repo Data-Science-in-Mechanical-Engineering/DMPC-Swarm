@@ -540,14 +540,14 @@ class SetpointCreator:
 	def generate_demo_visitors_setpoint(self, drone_id):
 		if drone_id > 16:
 			return np.array([0.0, 0.0, 0.0])
-		self.__state_demo_ai_week = "IDLE"
-		if self.__round > 200:
+		self.__state_demo_ai_week = "RETURN"
+		if self.__round > 150:
 			self.__state_demo_ai_week = "PYRAMID"
-		if self.__round > 350:
+		if self.__round > 300:
 			self.__state_demo_ai_week = "SQUARE"
-		if self.__round > 500:
+		if self.__round > 450:
 			self.__state_demo_ai_week = "SPHERE"
-		if self.__round > 650:
+		if self.__round > 600:
 			self.__state_demo_ai_week = "RETURN"
 
 		if self.__state_demo_ai_week == "IDLE":
