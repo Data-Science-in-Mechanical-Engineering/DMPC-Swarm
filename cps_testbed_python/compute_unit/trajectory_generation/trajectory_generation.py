@@ -8,7 +8,7 @@ from compute_unit.trajectory_generation.interpolation import TrajectoryCoefficie
 from compute_unit.trajectory_generation.interpolation import Interpolation
 import numpy as np
 import qpsolvers as qp
-from cvxopt import matrix, solvers
+#from cvxopt import matrix, solvers
 import copy
 import time
 import scipy.optimize as opt
