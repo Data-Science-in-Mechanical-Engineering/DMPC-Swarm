@@ -792,6 +792,8 @@ class ComputeUnit(net.Agent):
         if len(self.__prio_consensus) == 0:
             self.__prio_consensus = [1 for _ in range(len(self.__drones_ids))]
 
+        print("++++++++++++++++++++++++++++")
+        print(self.__prio_consensus)
         # check if a message from another CU was not received. If one was not received, we do not know which information is
         # deprecated, we thus have to check this in the next round
 
@@ -1232,7 +1234,7 @@ class ComputeUnit(net.Agent):
         quantization_bit_number = 8
         max_time = self.__prediction_horizon * self.__communication_delta_t * self.__num_computing_agents
         max_time = self.__prediction_horizon * self.__communication_delta_t * len(self.__drones_ids) / self.__num_computing_agents
-        max_time = self.__communication_delta_t * len(self.__drones_ids) / self.__num_computing_agents
+        max_time = self.__communication_delta_t * (len(self.__drones_ids) / self.__num_computing_agents)
 
         cone_angle = 60.0 * math.pi / 180
 
@@ -1321,6 +1323,10 @@ class ComputeUnit(net.Agent):
             if self.__use_kkt_trigger and is_in_deadlock[i]:
                 print("öööööööööööööööööööö")
                 prios[i] = 1
+        print(prios)
+        print(self.__alpha_1)
+        print(self.__alpha_2)
+        print(self.__alpha_3)
         return prios
 
     def drone_stands_still(self, drone_id):
