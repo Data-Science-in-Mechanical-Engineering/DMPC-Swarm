@@ -792,11 +792,8 @@ class ComputeUnit(net.Agent):
         if len(self.__prio_consensus) == 0:
             self.__prio_consensus = [1 for _ in range(len(self.__drones_ids))]
 
-        print("++++++++++++++++++++++++++++")
-        print(self.__prio_consensus)
         # check if a message from another CU was not received. If one was not received, we do not know which information is
         # deprecated, we thus have to check this in the next round
-
         if (not self.__num_trajectory_messages_received == len(
                 self.__computing_agents_ids)) and not self.__ignore_message_loss:
             for information in self.__trajectory_tracker.get_all_information().values():
@@ -1323,10 +1320,6 @@ class ComputeUnit(net.Agent):
             if self.__use_kkt_trigger and is_in_deadlock[i]:
                 print("öööööööööööööööööööö")
                 prios[i] = 1
-        print(prios)
-        print(self.__alpha_1)
-        print(self.__alpha_2)
-        print(self.__alpha_3)
         return prios
 
     def drone_stands_still(self, drone_id):

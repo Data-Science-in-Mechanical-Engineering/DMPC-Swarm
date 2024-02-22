@@ -14,26 +14,29 @@ if __name__ == "__main__":
     ignore_message_loss = True
     num_drones = 16
     num_cus = 3
-    name = "demo"
-    targets = "../../../experiment_measurements/drone_trajectory_logger_testbed_experiment_demo.p"
+    name = "2CU"
+    targets = f"../../../experiment_measurements/drone_trajectory_logger_testbed_experiment_demo_{name}.p"
 
     with open(targets, 'rb') as handle:
         targets = pickle.load(handle)
 
-    trajectories = "../../../experiment_measurements/ExperimentDemo.pickle"
+    trajectories = f"../../../experiment_measurements/ExperimentDemo{name}.pickle"
     pos = None
     with open(trajectories, 'rb') as handle:
         data = pickle.load(handle)
 
     pos = data["logger_pos"]
     time_stamps = data["time"]
+    print(time_stamps)
+    print(len(targets))
+    print(targets.keys())
 
     dists = []
     dists2 = []
     times = []
     offset = None
     for drone_id in range(1, 17):
-        current_target_idx = 0
+        current_target_idx = 1
         while drone_id not in targets[list(targets.keys())[current_target_idx]][1].keys():
             current_target_idx += 1
 
@@ -42,6 +45,7 @@ if __name__ == "__main__":
         dists.append([])
         dists2.append([])
         times.append([])
+        print("---------------------")
         for t in range(len(pos[drone_id-1])):
             while time_stamps[t] >= current_target_time:
                 current_target_idx += 1
@@ -52,12 +56,19 @@ if __name__ == "__main__":
                     break
             old_current_target = copy.deepcopy(current_target)
             current_target = targets[list(targets.keys())[current_target_idx]][1][drone_id]
-
             if np.linalg.norm(current_target - old_current_target) > 0.1 and offset is None:
                 offset = time_stamps[t]
 
             dists[-1].append(np.linalg.norm(pos[drone_id-1][t] - current_target))
             times[-1].append(time_stamps[t])
+
+            print(current_target_time)
+            print(time_stamps[t])
+            print(current_target)
+            print(dists[-1])
+            print(pos[drone_id-1][t])
+            print(current_target_idx)
+            assert t < 3000
 
     dists = np.array(dists)
 
@@ -72,7 +83,7 @@ if __name__ == "__main__":
 
     df = pd.DataFrame({"t": times[0::10], "dmax": np.max(dists, axis=0)[0::10], "dmin": np.min(dists, axis=0)[0::10], "mean": np.mean(dists, axis=0)[0::10]})
     df.to_csv(
-        f"/home/alex/Documents/009_Paper/robot_swarm_science_robotics/plot_data/HardwareExperimentFigures_{num_cus}_CUs.csv")
+        f"/home/alex/Documents/009_Paper/robot_swarm_science_robotics/plot_data/HardwareExperimentFigures_{name}.csv")
 
     plt.show()
 
