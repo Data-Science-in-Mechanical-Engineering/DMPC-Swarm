@@ -110,8 +110,6 @@ class SetpointCreator:
 
 		self.__state_demo_ai_week = DEMO_AI_WEEK_IDLE
 
-		np.random.seed(1000)
-
 	@property
 	def drones(self):
 		return self.__drones
@@ -445,10 +443,11 @@ class SetpointCreator:
 			angle += math.pi #* 0.9
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean + offset
 
-	def generate_circle_pyramid_setpoint(self, drone_id):
+	def generate_circle_pyramid_setpoint(self, drone_id, randomize=True):
 		if self.__circle_pyramid_idx is None or self.__round % 500 == 499:
 			idx = np.arange(len(self.__drones))
-			np.random.shuffle(idx)
+			if randomize:
+				np.random.shuffle(idx)
 			self.__circle_pyramid_idx = {drone_id_: idx[i] for i, drone_id_ in enumerate(self.__drones)}
 
 		num_lower_drones = 7
@@ -554,7 +553,7 @@ class SetpointCreator:
 			return get_circle_point(1.7, drone_id, 16, 1.5)
 
 		if self.__state_demo_ai_week == "PYRAMID":
-			return self.generate_circle_pyramid_setpoint(drone_id)
+			return self.generate_circle_pyramid_setpoint(drone_id, randomize=False)
 
 		if self.__state_demo_ai_week == "SQUARE":
 			if drone_id < 15:
