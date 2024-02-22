@@ -1321,6 +1321,11 @@ class ComputeUnit(net.Agent):
             if self.__use_kkt_trigger and is_in_deadlock[i]:
                 print("öööööööööööööööööööö")
                 prios[i] = 1
+        print(prios)
+        print(self.__alpha_1)
+        print(self.__alpha_2)
+        print(self.__alpha_3)
+        print(self.__alpha_4)
         return prios
 
     def drone_stands_still(self, drone_id):
