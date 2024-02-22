@@ -55,9 +55,9 @@ use_optimized_constraints: True  # remove!!
 guarantee_anti_collision: True   # if false uses a deprecated approach
 
 # event trigger options
-alpha_1: 0.0
+alpha_1: 1.0
 alpha_2: 0.0
-alpha_3: 1.0
+alpha_3: 0.0
 alpha_4: 0
 
 # high level planner options to resolve deadlocks
