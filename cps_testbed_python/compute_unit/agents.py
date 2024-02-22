@@ -792,6 +792,8 @@ class ComputeUnit(net.Agent):
         if len(self.__prio_consensus) == 0:
             self.__prio_consensus = [1 for _ in range(len(self.__drones_ids))]
 
+        print(f"Consensus: {self.__prio_consensus}")
+
         # check if a message from another CU was not received. If one was not received, we do not know which information is
         # deprecated, we thus have to check this in the next round
 
@@ -1321,6 +1323,7 @@ class ComputeUnit(net.Agent):
             if self.__use_kkt_trigger and is_in_deadlock[i]:
                 print("öööööööööööööööööööö")
                 prios[i] = 1
+        print(f"{self.ID}: {prios}")
         return prios
 
     def drone_stands_still(self, drone_id):
