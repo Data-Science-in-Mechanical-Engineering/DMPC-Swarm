@@ -26,6 +26,30 @@ MAX_POSITION = 5.0
 MAX_VELOCITY = 5.0
 MAX_ACCELERATION = 5.0
 
+def setHighPriority():
+    import sys
+    try:
+        sys.getwindowsversion()
+    except AttributeError:
+        is_windows = False
+    else:
+        is_windows = True
+
+    if is_windows:
+        # Based on:
+        #   "Recipe 496767: Set Process Priority In Windows" on ActiveState
+        #   http://code.activestate.com/recipes/496767/
+        import win32api,win32process,win32con
+
+        pid = win32api.GetCurrentProcessId()
+        handle = win32api.OpenProcess(win32con.PROCESS_ALL_ACCESS, True, pid)
+        win32process.SetPriorityClass(handle, win32process.HIGH_PRIORITY_CLASS)
+    else:
+        import os
+
+        print(os.nice(-19))
+
+    print("Set process to high priority")
 
 def quantize_float(float, range):
     lower = np.min(range)
@@ -738,6 +762,9 @@ class ComputingUnit:
         if os.path.exists(f"../../experiment_measurements/ShutdownCU{self.__cu_id}.txt"):
             os.remove(f"../../experiment_measurements/ShutdownCU{self.__cu_id}.txt")
 
+        # set high os priority.
+        setHighPriority()
+
     def run(self, fileno):
         """ This is the main state machine of the computing unit. """
 
@@ -769,11 +796,13 @@ class ComputingUnit:
         state = STATE_NOTIFY_NETWORK_MANAGER
 
         counter = 0
+        start_time = time.time()
         while True:
-            start_time = time.time()
             print("--------------------------------------------------------")
             new_round = False
             messages_rx = self.read_data_from_cp()
+            print(f"total_time: {time.time() - start_time}")
+            start_time = time.time()
             messages_tx = []
 
             counter += 1
@@ -935,8 +964,6 @@ class ComputingUnit:
                 round_started_time = time.time()
                 self.__computation_agent.round_started()
                 print(f"round_started_time: {time.time() - round_started_time}")
-
-            print(f"total_time: {time.time() - start_time}")
 
     def connect_to_cp(self):
         """ DEFINE FREQUENTLY USED MESSAGES """
