@@ -14,7 +14,7 @@ if __name__ == "__main__":
     ignore_message_loss = True
     num_drones = 16
     num_cus = 3
-    name = "2CU"
+    name = ("DT")
     targets = f"../../../experiment_measurements/drone_trajectory_logger_testbed_experiment_demo_{name}.p"
 
     with open(targets, 'rb') as handle:
@@ -61,14 +61,6 @@ if __name__ == "__main__":
 
             dists[-1].append(np.linalg.norm(pos[drone_id-1][t] - current_target))
             times[-1].append(time_stamps[t])
-
-            print(current_target_time)
-            print(time_stamps[t])
-            print(current_target)
-            print(dists[-1])
-            print(pos[drone_id-1][t])
-            print(current_target_idx)
-            assert t < 3000
 
     dists = np.array(dists)
 

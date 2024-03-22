@@ -14,7 +14,7 @@ num_drones: 10
 simulated: True     # set false for real testbed (when it runs on a testbed, it saves a bit more data for debugging)
 duration_sec: 200   # duration of simulation
 abort_simulation: True  # exit simulation earlier, if drones crash or all targets reached.
-num_simulations: 10000  # number of simulations to conduct
+num_simulations: 100000  # number of simulations to conduct
 save_video: False
 resolution_video: 512   # width of the video in pixels. Height is calculated as resolution_video*9/16
 simulate_quantization: False  # simulate quantization during communication
