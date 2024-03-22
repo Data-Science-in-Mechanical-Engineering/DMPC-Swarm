@@ -2,7 +2,7 @@
 #
 #SBATCH --job-name=dampc
 #SBATCH --output=/home/mf724021/hpc_data/slurm_output/%A_%a.out
-#SBATCH --partition=c23gputest
+#SBATCH --partition=c23test
 #SBATCH --account=supp0006
 # #SBATCH --account=rwth1483
 #SBATCH --cpus-per-task=48
