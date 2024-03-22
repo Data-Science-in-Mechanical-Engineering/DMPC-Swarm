@@ -4,7 +4,7 @@ run_on_cluster: True
 
 # testbed setup
 computing_agent_ids: [40, 41]           # ids of compute units. Length of array defines number of CUs
-num_computing_agents: 2
+num_computing_agents: 10
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
   Vicon: [[-2.0, -2.0, 0.3], [2.0, 2.0, 3.0], [0, 0, 0]]  #
 

@@ -2,7 +2,9 @@
 #
 #SBATCH --job-name=dampc
 #SBATCH --output=/home/mf724021/hpc_data/slurm_output/%A_%a.out
-#SBATCH --account=rwth1483
+#SBATCH --partition=c23gputest
+#SBATCH --account=supp0006
+# #SBATCH --account=rwth1483
 #SBATCH --cpus-per-task=48
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=alexander.graefe@dsme.rwth-aachen.de
