@@ -546,7 +546,7 @@ class SetpointCreator:
 			self.__state_demo_ai_week = "SQUARE"
 		if self.__round > 360:
 			self.__state_demo_ai_week = "SPHERE"
-		if self.__round > 560:
+		if self.__round > 460:
 			self.__state_demo_ai_week = "RETURN"
 
 		if self.__state_demo_ai_week == "IDLE":
