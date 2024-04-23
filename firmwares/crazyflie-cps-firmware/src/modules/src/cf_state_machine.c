@@ -275,7 +275,12 @@ static uint16_t process_VERTICAL_LAUNCH_STATE(cf_state_machine_handle *hstate_ma
 		hstate_machine->current_target_angle = 1.5f*3.1415926535f;
 	}
 	if (status == STATUS_LAUNCHED) {
-		hstate_machine->state = RESERVE_MESSAGE_LAYER_AREA_STATE;
+		float state[9];
+		hstate_machine->get_cf_state(state);
+		// if drones crash at start, do nothing
+		if (state[2] > 0.5f) {
+			hstate_machine->state = RESERVE_MESSAGE_LAYER_AREA_STATE;
+		}
 	}
 
 	// dont send anything yet.
@@ -389,7 +394,7 @@ static uint16_t process_SYS_RUN_STATE(cf_state_machine_handle *hstate_machine, a
 			case TYPE_METADATA:
 				*round_nmbr = rx_data[i]->metadata_message.round_nmbr;
 				#if START_FROM_HAND
-				if (landing_counter > 350) {
+				if (landing_counter > 970) {
 					hstate_machine->wants_to_leave = 1;
 				}
 				#endif

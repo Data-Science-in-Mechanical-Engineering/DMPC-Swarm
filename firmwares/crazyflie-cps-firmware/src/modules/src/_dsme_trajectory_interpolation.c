@@ -161,9 +161,9 @@ static void trajIntTask(void *param)
                     current_setpoint_pos[1] = y_state[0];
                     current_setpoint_pos[2] = z_state[0];
                     if (CF_DIST(current_pos, current_setpoint_pos) > 0.5f) {
-                        //x_state[0] = current_pos[0];
-                        //y_state[0] = current_pos[1];
-                        //z_state[0] = current_pos[2];
+                        x_state[0] = current_pos[0];
+                        y_state[0] = current_pos[1];
+                        z_state[0] = current_pos[2];
 
                         //x_state[1] = 0.0f;
                         //y_state[1] = 0.0f;
@@ -409,19 +409,28 @@ void get_cf_state(float *state)
     float current_y_state[3];
     float current_z_state[3];
 
-    memcpy(current_x_state, x_state, 3*sizeof(float));
-    memcpy(current_y_state, y_state, 3*sizeof(float));
-    memcpy(current_z_state, z_state, 3*sizeof(float));
+    // memcpy(current_x_state, x_state, 3*sizeof(float));
+    // memcpy(current_y_state, y_state, 3*sizeof(float));
+    // memcpy(current_z_state, z_state, 3*sizeof(float));
 
     current_x_state[0] = current_state.position.x;
     current_y_state[0] = current_state.position.y;
     current_z_state[0] = current_state.position.z;
 
+    current_x_state[1] = current_state.velocity.x;
+    current_y_state[1] = current_state.velocity.y;
+    current_z_state[1] = current_state.velocity.z;
+
+    current_x_state[2] = current_state.acc.x;
+    current_y_state[2] = current_state.acc.y;
+    current_z_state[2] = current_state.acc.z;
+    
+
     //ASSERT(current_state.position.z > 0.8f);
 	
     // simulate state one round forward
     for (uint8_t i = 0; i < NUM_INT_POINTS_PER_ROUND; i++) {
-        uint32_t input_idx = round_idx * NUM_INPUT_POINTS_PER_ROUND + ((int_point_idx+i) / NUM_INT_POINTS_PER_INPUT);
+        uint32_t input_idx = round_idx * NUM_INPUT_POINTS_PER_ROUND + ((i) / NUM_INT_POINTS_PER_INPUT);
         // only update states, if the trajectory is not at its end.
         if (input_idx < PREDICTION_HORIZON * NUM_INPUT_POINTS_PER_ROUND) {
             interpolate(current_x_state, current_trajectory.x_coeff[input_idx]);
@@ -443,13 +452,13 @@ void get_cf_state(float *state)
 	state[1] = current_y_state[0]; //current_state.position.y;
 	state[2] = current_z_state[0]; //current_state.position.z;
 
-	state[3] = 0;
-	state[4] = 0;
-	state[5] = 0;
+	state[3] = current_x_state[1];
+	state[4] = current_y_state[1];
+	state[5] = current_z_state[1];
 
-	state[6] = 0;
-	state[7] = 0;
-	state[8] = 0;
+	state[6] = current_x_state[2];
+	state[7] = current_y_state[2];
+	state[8] = current_z_state[2];
 }
 
 bool trajIntTaskTest()
