@@ -139,10 +139,10 @@ if __name__ == "__main__":
 
     #parser.add_argument('--param_path', default="parameters/dampc_run.yaml", type=str,
     #                    help='yaml file for parameters', metavar='')
-    parser.add_argument('--param_path', default="parameters/hyperparameter_opt.yaml", type=str,
-                        help='yaml file for parameters', metavar='')
-    # parser.add_argument('--param_path', default="parameters/batch_simulation.yaml", type=str,
-    #					help='yaml file for parameters', metavar='')
+    #parser.add_argument('--param_path', default="parameters/hyperparameter_opt.yaml", type=str,
+    #                    help='yaml file for parameters', metavar='')
+    parser.add_argument('--param_path', default="parameters/batch_simulation.yaml", type=str,
+    					help='yaml file for parameters', metavar='')
 
     # the following are only needed for the hpc
     parser.add_argument('-i', "--iter_id", default=None, type=int, help='id of slurm job', metavar='')
@@ -200,6 +200,10 @@ if __name__ == "__main__":
     ARGS = parse_params(ARGS, params)
 
     ARGS.path = os.path.dirname(os.path.abspath(__file__)) + "/../../simulation_results/dmpc/demo/"
+
+    ARGS.saving_path =  os.path.dirname(os.path.abspath(__file__)) + f"/../../simulation_results"
+
+    ARGS.name_job = "dmpc/demo"
 
     # we only simulate the vicon testbed
     ARGS.drones = {i: "Vicon" for i in range(1, ARGS.num_drones + 1)}

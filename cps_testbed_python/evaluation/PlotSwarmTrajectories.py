@@ -26,6 +26,8 @@ def main():
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     data = {}
+    speeds_all = {}
+    accs_all = {}
     for i in range(len(pos)):
         print(i)
         p = np.array(pos[i][:])
@@ -39,6 +41,10 @@ def main():
         data[f"{i}d2"] = z
 
         data[f"speed{i}"] = np.linalg.norm(p[:len(p)-1, :] - p[1:, :], axis=1) / 0.01
+        speeds_all[i] = (p[:len(p)-1, :] - p[1:, :]) / 0.01
+        accs_all[i] = np.linalg.norm(speeds_all[i][:len(speeds_all[i])-1, :] - speeds_all[i][1:, :], axis=1) / 0.01
+        speeds_all[i] = np.linalg.norm(speeds_all[i], axis=1)
+
         data[f"speed{i}"] = data[f"speed{i}"][offset:time_length:10]
 
     min_dists = np.ones((len(pos[0]),)) * 1000000
@@ -84,10 +90,13 @@ def main():
     plt.show()
 
     speeds = []
+    accs = []
     for i in range(len(pos)):
-        plt.plot(data[f"speed{i}"])
-        speeds.append(max(data[f"speed{i}"]))
+        plt.plot(speeds_all[i])
+        speeds.append(max(speeds_all[i]))
+        accs.append(max(accs_all[i]))
     print(max(speeds))
+    print(max(accs))
     plt.show()
 
 

@@ -4,9 +4,9 @@ run_on_cluster: False
 
 # this is used to optimize hyperparameters by hand.
 # testbed setup
-computing_agent_ids: [20, 21d]           # ids of compute units. Length of array defines number of CUs
+computing_agent_ids: [20, 21]           # ids of compute units. Length of array defines number of CUs
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
-  "Vicon": [[-1.8, -1.8, 0.3], [1.8, 1.8, 3.0], [0, 0, 0]]
+  "Vicon": [[-1.7, -1.7, 0.3], [1.7, 1.7, 3.0], [0, 0, 0]]
 
 num_drones: 16
 
@@ -20,7 +20,7 @@ resolution_video: 512   # width of the video in pixels. Height is calculated as 
 simulate_quantization: False  # simulate quantization during communication
 sim_steps_per_control: 4
 
-show_print: False
+show_print: True
 
 log_optimizer: False
 log_optimizer_path: "../../dampc_dataset"
