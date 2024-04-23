@@ -402,6 +402,8 @@ class ComputeUnit(net.Agent):
         self.__temp_message_loss_starting_round = temp_message_loss_starting_round
         self.__temp_message_loss_ending_round_temp = temp_message_loss_ending_round_temp
 
+        self.__drone_states_received = {}
+
     def load_trigger(self, trigger):
         self.__trigger = trigger
 
@@ -565,6 +567,8 @@ class ComputeUnit(net.Agent):
             message.content.state[0:3] += self.__pos_offset[message.ID]
             self.print(f"Received pos from {message.ID}: {message.content.state}")
 
+            self.__drone_states_received[message.ID] = message.content.state
+
             message.content.target_position += self.__pos_offset[message.ID]
             # The state is measured at the beginning of the round and extrapolated by drone
             # init drone state if it has to be init. (The state is measured at the beginning of the last round.)
@@ -656,7 +660,7 @@ class ComputeUnit(net.Agent):
                 self.print(f"New setpoints: {self.__received_setpoints}")
             pass
 
-    def __update_information_tracker(self):
+    def __update_information_tracker(self, drone_states_received):
         # update trajectories (leads to a faster calculation)
         delay_timesteps = self.__communication_delta_t / (self.__options.collision_constraint_sample_points[1] -
                                                           self.__options.collision_constraint_sample_points[0])
@@ -690,6 +694,11 @@ class ComputeUnit(net.Agent):
             for trajectory in self.__trajectory_tracker.get_information(id).content:
                 if trajectory.init_state is None:
                     continue
+
+                # now update states, because otherwise before, we would use the received ones
+                if id in drone_states_received:
+                    trajectory.current_state = drone_states_received[id]
+
                 trajectory.current_state = self.__trajectory_interpolation.interpolate(
                     self.__current_time - trajectory.trajectory_start_time + self.__communication_delta_t,
                     trajectory.coefficients,
@@ -723,6 +732,10 @@ class ComputeUnit(net.Agent):
         self.__selected_UAVs["round"].append(round_nmbr)
         self.__last_system_state = self.__system_state
         self.ordered_indexes = None
+
+        drone_states_received = self.__drone_states_received
+        self.__drone_states_received = {}
+
         start_time = time.time()
         if round_nmbr is not None:
             self.__current_time = round_nmbr * self.__communication_delta_t
@@ -802,7 +815,7 @@ class ComputeUnit(net.Agent):
         self.__num_trajectory_messages_received = 0
         assert self.__num_trajectory_messages_received <= len(self.__computing_agents_ids)
 
-        self.__update_information_tracker()
+        self.__update_information_tracker(drone_states_received)
 
         # if we are in the normal state and something is deprecated, switch the state
         if self.__system_state == NORMAL and not self.__trajectory_tracker.no_information_deprecated:
@@ -882,14 +895,17 @@ class ComputeUnit(net.Agent):
                             self.__num_succ_optimizer_runs += 1
 
                         prios = self.calc_prio()
-                        prios[self.__current_agent] = 0
-                        self.__last_received_messages = {
-                            self.ID: TrajectoryMessageContent(coefficients=calc_coeff,
-                                                              init_state=self.__trajectory_tracker.get_information(
-                                                                  current_id).content[0].current_state,
-                                                              trajectory_start_time=self.__current_time + self.__communication_delta_t,
-                                                              trajectory_calculated_by=self.ID,
-                                                              id=current_id, prios=prios)}
+                        if calc_coeff.valid:
+                            prios[self.__current_agent] = 0
+                            self.__last_received_messages = {
+                                self.ID: TrajectoryMessageContent(coefficients=calc_coeff,
+                                                                  init_state=self.__trajectory_tracker.get_information(
+                                                                      current_id).content[0].current_state,
+                                                                  trajectory_start_time=self.__current_time + self.__communication_delta_t,
+                                                                  trajectory_calculated_by=self.ID,
+                                                                  id=current_id, prios=prios)}
+                        else:
+                            self.__last_received_messages = {self.ID: EmtpyContent(prios)}
                         self.print('Distance to target for Agent ' + str(current_id) + ': ' + str(np.linalg.norm(
                             self.__trajectory_tracker.get_information(current_id).content[0].current_state[0:3] -
                             self.get_targets()[current_id])) + " m.")

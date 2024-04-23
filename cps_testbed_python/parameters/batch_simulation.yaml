@@ -2,7 +2,7 @@ name: "batch_simulation"
 run_on_cluster: True
 
 # testbed setup
-computing_agent_ids: [40, 41]           # ids of compute units. Length of array defines number of CUs
+computing_agent_ids: [40, 41, 42, 43]           # ids of compute units. Length of array defines number of CUs
 num_computing_agents: 2
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
   Vicon: [[-2.0, -2.0, 0.3], [2.0, 2.0, 3.0], [0, 0, 0]]  #
@@ -28,7 +28,7 @@ show_print: False
 log_optimizer: False
 log_optimizer_path: ""
 
-message_loss_probability: 0.01
+message_loss_probability: 0.03
 
 sweep_parameters: True   # to sweep number of CUs, message loss probabilities and so on
 
