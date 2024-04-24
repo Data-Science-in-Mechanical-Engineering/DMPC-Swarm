@@ -201,7 +201,7 @@ class ComputeUnit(net.Agent):
                  alpha_1=10, alpha_2=1000, alpha_3=1 * 0, alpha_4=0, use_kkt_trigger=False, remove_redundant_constraints=False,
                  slot_group_state_id=None,
                  slot_group_ack_id=100000, ignore_message_loss=False, use_own_targets=False,
-                 state_feedback_trigger_dist=0.5, simulated=True, use_high_level_planner=True,
+                 state_feedback_trigger_dist=0.5e3, simulated=True, use_high_level_planner=True,
                  agent_dodge_distance=0.5, slot_group_setpoints_id=100000, send_setpoints=False,
                  use_given_init_pos=False,
                  use_optimized_constraints=True, weight_band=1.0,
@@ -417,7 +417,7 @@ class ComputeUnit(net.Agent):
                                                     3)))
 
         trajectory_content = TrajectoryContent(coefficients=coeff, last_trajectory=last_trajectory,
-                                               init_state=None, current_state=None,
+                                               init_state=None, current_state=None, current_state_last_round=None,
                                                trajectory_start_time=0, id=m_id, trajectory_calculated_by=-100)
 
         self.__trajectory_tracker.add_unique_information(m_id, trajectory_content)
@@ -565,9 +565,17 @@ class ComputeUnit(net.Agent):
             if message.ID not in self.__trajectory_tracker.keys:
                 return
             message.content.state[0:3] += self.__pos_offset[message.ID]
-            self.print(f"Received pos from {message.ID}: {message.content.state}")
+            print(f"Received state from {message.ID}: {message.content.state}")
+            print(f"Current_state {self.__trajectory_tracker.get_information(message.ID).content[0].current_state_last_round}")
 
-            self.__drone_states_received[message.ID] = message.content.state
+            """if self.__trajectory_tracker.get_information(message.ID).content[0].current_state_last_round is not None:
+                if (np.linalg.norm(message.content.state[0:3] - self.__trajectory_tracker.get_information(message.ID).content[0].current_state_last_round[0:3]) > 0.5
+                        or np.linalg.norm(message.content.state[3:6] - self.__trajectory_tracker.get_information(message.ID).content[0].current_state_last_round[3:6]) > 1):
+                    # assert False
+                    self.__drone_states_received[message.ID] = message.content.state
+                    self.__drone_states_received[message.ID][0:3] += self.__drone_states_received[message.ID][3:6] * self.__communication_delta_t
+                    self.__recalculate_setpoints = True
+                    self.__state_feedback_triggered.append(message.ID)"""
 
             message.content.target_position += self.__pos_offset[message.ID]
             # The state is measured at the beginning of the round and extrapolated by drone
@@ -585,42 +593,48 @@ class ComputeUnit(net.Agent):
                 self.__recalculate_setpoints = True
 
             for trajectory in self.__trajectory_tracker.get_information(message.ID).content:
-                if np.linalg.norm(trajectory.current_state[0:3] - message.content.state[
-                                                                  0:3]) > self.__state_feedback_trigger_dist:
-                    self.print(f"{message.ID}: {trajectory.current_state} {message.content.state[0:3]}")
-                    self.__state_feedback_triggered.append(message.ID)
-                    # trajectory.current_state = np.zeros(trajectory.current_state.shape)
-                    trajectory.current_state[0:3] = copy.deepcopy(message.content.state[0:3])
+                if trajectory.current_state_last_round is not None:
+                    if (np.linalg.norm(message.content.state[0:3] - trajectory.current_state_last_round[0:3]) > 0.5
+                            or np.linalg.norm(message.content.state[3:6] -
+                                              trajectory.current_state_last_round[3:6]) > 1):
 
-                    # update last_trajectory, because we do not have the init state anymore as a state on the trajectory
-                    # (some state in between instead), we have to do a different calculation of the last_trajecotry than
-                    # in round_finished()
-                    coeff = None
-                    if trajectory.coefficients.valid:
-                        # coeff = np.zeros(trajectory.coefficients.coefficients.shape)
-                        # trajectory.coefficients.coefficients = coeff
-                        coeff = trajectory.coefficients.coefficients
-                    else:
-                        # coeff = np.zeros(trajectory.coefficients.alternative_trajectory.shape)
-                        # trajectory.coefficients.alternative_trajectory = coeff
-                        coeff = trajectory.coefficients.alternative_trajectory
-                    delay_timesteps = (self.__current_time - trajectory.trajectory_start_time) \
-                                      / self.__options.optimization_variable_sample_time
-                    delay_timesteps = int(
-                        np.round(delay_timesteps, 0))  # needs to be rounded because if of float inaccuracies
+                        self.print(f"{message.ID}: {trajectory.current_state} {message.content.state[0:3]}")
+                        self.__state_feedback_triggered.append(message.ID)
+                        # trajectory.current_state = np.zeros(trajectory.current_state.shape)
+                        # trajectory.current_state[0:3] = copy.deepcopy(message.content.state[0:3])
+                        self.__drone_states_received[message.ID] = message.content.state
+                        self.__drone_states_received[message.ID][0:3] += self.__drone_states_received[message.ID][
+                                                                         3:6] * self.__communication_delta_t
 
-                    coeff_shifted = np.array([coeff[min((i + delay_timesteps, len(self.__breakpoints) - 2))]
-                                              for i in range(len(self.__breakpoints) - 1)])
-                    coeff_resize = np.reshape(coeff_shifted, (coeff_shifted.size,))
+                        # update last_trajectory, because we do not have the init state anymore as a state on the trajectory
+                        # (some state in between instead), we have to do a different calculation of the last_trajecotry than
+                        # in round_finished()
+                        coeff = None
+                        if trajectory.coefficients.valid:
+                            # coeff = np.zeros(trajectory.coefficients.coefficients.shape)
+                            # trajectory.coefficients.coefficients = coeff
+                            coeff = trajectory.coefficients.coefficients
+                        else:
+                            # coeff = np.zeros(trajectory.coefficients.alternative_trajectory.shape)
+                            # trajectory.coefficients.alternative_trajectory = coeff
+                            coeff = trajectory.coefficients.alternative_trajectory
+                        delay_timesteps = (self.__current_time - self.__communication_delta_t - trajectory.trajectory_start_time) \
+                                          / self.__options.optimization_variable_sample_time
+                        delay_timesteps = int(
+                            np.round(delay_timesteps, 0))  # needs to be rounded because if of float inaccuracies
 
-                    trajectory.last_trajectory = np.reshape((self.__input_trajectory_vector_matrix[0] @ coeff_resize + \
-                                                             self.__state_trajectory_vector_matrix[0] @
-                                                             trajectory.current_state), self.__last_trajectory_shape)
+                        coeff_shifted = np.array([coeff[min((i + delay_timesteps, len(self.__breakpoints) - 2))]
+                                                  for i in range(len(self.__breakpoints) - 1)])
+                        coeff_resize = np.reshape(coeff_shifted, (coeff_shifted.size,))
 
-                    print(f"3333333333333333333 {message.ID}")
+                        trajectory.last_trajectory = np.reshape((self.__input_trajectory_vector_matrix[0] @ coeff_resize + \
+                                                                 self.__state_trajectory_vector_matrix[0] @
+                                                                 message.content.state), self.__last_trajectory_shape)
 
-                    # also recalculate setpoints
-                    self.__recalculate_setpoints = True
+                        print(f"3333333333333333333 {message.ID}")
+
+                        # also recalculate setpoints
+                        self.__recalculate_setpoints = True
 
             # process targets from drone (note, if use_own_targets is true this is ignored)
             if message.ID in self.__current_target_positions.keys():
@@ -695,6 +709,7 @@ class ComputeUnit(net.Agent):
                 if trajectory.init_state is None:
                     continue
 
+                trajectory.current_state_last_round = copy.deepcopy(trajectory.current_state)
                 # now update states, because otherwise before, we would use the received ones
                 if id in drone_states_received:
                     trajectory.current_state = drone_states_received[id]
@@ -770,10 +785,12 @@ class ComputeUnit(net.Agent):
                 trajectory.coefficients,
                 x0=trajectory.init_state,
                 integration_start=0)
+
             new_content = TrajectoryContent(coefficients=copy.deepcopy(trajectory.coefficients),
                                             last_trajectory=None,
                                             init_state=copy.deepcopy(trajectory.init_state),
                                             current_state=copy.deepcopy(current_state),
+                                            current_state_last_round=None,
                                             trajectory_start_time=trajectory.trajectory_start_time, id=trajectory.id,
                                             trajectory_calculated_by=trajectory.trajectory_calculated_by)
             if self.__ignore_message_loss:
