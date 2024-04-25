@@ -15,12 +15,12 @@ simulated: True     # set false for real testbed (when it runs on a testbed, it 
 duration_sec: 100   # duration of simulation
 abort_simulation: False  # exit simulation earlier, if drones crash or all targets reached.
 num_simulations: 1  # number of simulations to conduct
-save_video: False
+save_video: True
 resolution_video: 512   # width of the video in pixels. Height is calculated as resolution_video*9/16
 simulate_quantization: False  # simulate quantization during communication
 sim_steps_per_control: 4
 
-show_print: True
+show_print: False
 
 log_optimizer: False
 log_optimizer_path: "../../dampc_dataset"

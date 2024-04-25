@@ -565,7 +565,8 @@ class ComputeUnit(net.Agent):
             if message.ID not in self.__trajectory_tracker.keys:
                 return
             message.content.state[0:3] += self.__pos_offset[message.ID]
-            self.print(f"Received pos from {message.ID}: {message.content.state}")
+            self.print(f"Received state from {message.ID}: {message.content.state}")
+            self.print(f"Real state from {message.ID}: {self.__trajectory_tracker.get_information(message.ID).content[0].current_state}")
 
             self.__drone_states_received[message.ID] = message.content.state
 
@@ -1740,7 +1741,7 @@ class RemoteDroneAgent(net.Agent):
     def get_message(self, slot_group_id):
         if slot_group_id == self.__slot_group_state_id:
             message = net.Message(self.ID, slot_group_id,
-                                  StateMessageContent(self.__traj_state,
+                                  StateMessageContent(self.__state, #self.__traj_state,
                                                       target_position=self.__target_positions[self.__agent_target_idx],
                                                       target_position_idx=self.__agent_target_idx,
                                                       trajectory_start_time=self.__planned_trajectory_start_time,
