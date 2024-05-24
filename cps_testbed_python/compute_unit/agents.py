@@ -744,6 +744,7 @@ class ComputeUnit(net.Agent):
     def round_finished(self, round_nmbr=None, received_network_members_message=True):
         """this function has to be called at the end of the round to tell the agent that the communication round is
         finished"""
+        print(f"{len(self.__drones_ids)} drones.")
         self.__received_network_members_message = received_network_members_message
         self.__selected_UAVs["selected"].append(-1)
         self.__selected_UAVs["round"].append(round_nmbr)
