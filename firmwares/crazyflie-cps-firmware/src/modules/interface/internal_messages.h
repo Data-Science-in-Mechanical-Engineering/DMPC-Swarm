@@ -11,7 +11,7 @@
 #ifndef INC_INTERNAL_MESSAGES_H_
 #define INC_INTERNAL_MESSAGES_H_
 
-#include <stdint.h>
+#include <stdint.h> 
 
 #define TYPE_ERROR 0  // when something went wrong and the following data should not been used (e.g. CP did not receive any new data from AP)
                       // can be used to check if AP is online and ready

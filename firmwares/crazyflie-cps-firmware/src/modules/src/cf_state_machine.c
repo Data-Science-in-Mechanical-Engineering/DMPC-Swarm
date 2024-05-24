@@ -305,7 +305,7 @@ static uint16_t process_RESERVE_MESSAGE_LAYER_AREA_STATE(cf_state_machine_handle
 				break;
 			case TYPE_METADATA:
 				*round_nmbr = rx_data[i]->metadata_message.round_nmbr;
-				#if START_FROM_HAND
+				#if LAND_AFTER_SOME_TIME
 				if (landing_counter > 970) {
 					hstate_machine->wants_to_leave = 1;
 				}
@@ -401,7 +401,7 @@ static uint16_t process_SYS_RUN_STATE(cf_state_machine_handle *hstate_machine, a
 				break;
 			case TYPE_METADATA:
 				*round_nmbr = rx_data[i]->metadata_message.round_nmbr;
-				#if START_FROM_HAND || LAND_AFTER_SOME_TIME
+				#if LAND_AFTER_SOME_TIME
 				if (landing_counter > 970) {
 					hstate_machine->wants_to_leave = 1;
 				}
