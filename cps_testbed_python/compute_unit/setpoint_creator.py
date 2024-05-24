@@ -15,7 +15,13 @@ RANDOM = 6
 DYNAMIC_SWARM = 7
 MULTI_HOP = 8
 DEMO_AI_WEEK = 9
-DEMO_SCIENCE_NIGHT = 10
+CIRCLE_PERIODIC = 10
+CIRCLE_PYRAMID = 11
+PHOTO = 12
+DEMO_CRASH = 14
+CIRCLE_PERIODIC_SMALL = 15
+DEMO_VISITORS = 16
+DEMO_SCIENCE_NIGHT = 17
 
 DEMO_AI_WEEK_IDLE = 0
 DEMO_AI_WEEK_CIRCLE = 1
@@ -25,6 +31,10 @@ DEMO_AI_WEEK_S = 4
 DEMO_AI_WEEK_M = 5
 DEMO_AI_WEEK_E = 6
 DEMO_AI_WEEK_GO_BACK = 7
+
+def get_circle_point(radius, idx, num_drones, z, angle_offset=0):
+	angle = 2 * math.pi / num_drones * idx + angle_offset
+	return np.array([np.sin(angle)*radius, np.cos(angle)*radius, z])
 
 def get_pos_D(drone_id):
 	if drone_id > 7:
@@ -82,7 +92,7 @@ class SetpointCreator:
 		self.__max_setpoint_age = max_setpoint_age
 		self.__demo_setpoints = demo_setpoints
 
-		self.__round = 0
+		self.__round = -1
 
 		self.__current_setpoints_reached = {drone_id: False for drone_id in drones}
 
@@ -98,6 +108,7 @@ class SetpointCreator:
 		self.__angles = {}
 
 		self.__active_drones = []
+		self.__circle_pyramid_idx = None
 
 		self.__state_demo_ai_week = DEMO_AI_WEEK_IDLE
 
@@ -114,24 +125,7 @@ class SetpointCreator:
 	def testbeds(self):
 		return self.__testbeds
 
-	def check_current_setpoints_reached(self, drones_states):
-		"""
-
-		Returns:
-
-		"""
-		for drone_id in self.__current_setpoints:
-			# self.__current_setpoints_reached[drone_id] = False
-			# check if the crone is in the testbed and we know where it is
-			if self.__current_setpoints_age[drone_id] > self.__max_setpoint_age:
-				self.__current_setpoints_reached[drone_id] = True
-			"""if drone_id in drones_states and self.__current_setpoints[drone_id] is not None:
-				if drones_states[drone_id] is not None:
-					# if np.linalg.norm(drones_states[drone_id][0:3] - self.__current_setpoints[drone_id]) < self.__target_reached_dist \
-					if self.__current_setpoints_age[drone_id] > self.__max_setpoint_age:
-						self.__current_setpoints_reached[drone_id] = True"""
-
-	def next_setpoints(self, drones_states, round_nmbr):
+	def next_setpoints(self, round_nmbr):
 		"""
 
 		Args:
@@ -144,7 +138,6 @@ class SetpointCreator:
 			self.__old_setpoints = copy.deepcopy(self.__current_setpoints)
 			self.__new_round = True
 		self.__round = round_nmbr
-		self.check_current_setpoints_reached(drones_states)
 
 		for drone_id in self.__drones:
 			if self.__demo_setpoints == CIRCLE:
@@ -169,7 +162,20 @@ class SetpointCreator:
 				self.__current_setpoints[drone_id] = self.generate_new_demo_ai_week_setpoint(drone_id)
 			elif self.__demo_setpoints == DEMO_SCIENCE_NIGHT:
 				self.__current_setpoints[drone_id] = self.generate_new_demo_science_night_setpoint(drone_id)
-			self.__new_round = False
+			elif self.__demo_setpoints == CIRCLE_PERIODIC:
+				self.__current_setpoints[drone_id] = self.generate_circle_periodic_setpoint(drone_id)
+			elif self.__demo_setpoints == CIRCLE_PERIODIC_SMALL:
+				self.__current_setpoints[drone_id] = self.generate_circle_periodic_setpoint(drone_id, r=0.8)
+			elif self.__demo_setpoints == CIRCLE_PYRAMID:
+				self.__current_setpoints[drone_id] = self.generate_circle_pyramid_setpoint(drone_id)
+			elif self.__demo_setpoints == PHOTO:
+				self.__current_setpoints[drone_id] = self.generate_photo_setpoint(drone_id)
+			elif self.__demo_setpoints == DEMO_CRASH:
+				self.__current_setpoints[drone_id] = self.generate_demo_crash_setpoint(drone_id)
+			elif self.__demo_setpoints == DEMO_VISITORS:
+				self.__current_setpoints[drone_id] = self.generate_demo_visitors_setpoint(drone_id)
+
+		self.__new_round = False
 
 		setpoints_changed = False
 		for k in self.__current_setpoints:
@@ -177,6 +183,9 @@ class SetpointCreator:
 				setpoints_changed = True
 
 		return self.__current_setpoints, setpoints_changed
+
+	def get_current_setpoints(self, drone_id):
+		return self.__current_setpoints[drone_id]
 
 	def generate_new_circle_setpoint(self, drone_id):
 		if drone_id == 10:
@@ -270,12 +279,12 @@ class SetpointCreator:
 		return np.array(targets[drone_id])
 
 	def generate_new_random_setpoint(self, drone_id):
-		if drone_id == 11 or drone_id == 12:
-			return self.generate_new_dynamic_circle_setpoint(drone_id)
+		#if drone_id == 11 or drone_id == 12:
+		#	return self.generate_new_dynamic_circle_setpoint(drone_id)
 
 		if drone_id not in self.__random_setpoints_calculated:
 			self.__random_setpoints_calculated[drone_id] = False
-		if (self.__round % 25 == 0 and not self.__random_setpoints_calculated[drone_id]) or drone_id not in self.__random_setpoints:
+		if (self.__round % 50 == 0 and not self.__random_setpoints_calculated[drone_id]) or drone_id not in self.__random_setpoints:
 			name_testbed = self.__drones[drone_id]
 			min_pos = np.array(self.__testbeds[name_testbed][0]) * 0.8
 			max_pos = np.array(self.__testbeds[name_testbed][1]) * 0.8
@@ -286,7 +295,7 @@ class SetpointCreator:
 				self.__random_setpoints[drone_id][2] = 0.8
 
 			self.__random_setpoints[drone_id] += offset
-		elif self.__round % 25 != 0:
+		elif self.__round % 50 != 0:
 			self.__random_setpoints_calculated[drone_id] = False
 
 		return self.__random_setpoints[drone_id]
@@ -466,6 +475,164 @@ class SetpointCreator:
 			self.__angles.pop(drone_id)
 			self.__starting_rounds.pop(drone_id)
 
+	def generate_circle_periodic_setpoint(self, drone_id, r=1.5):
+		if drone_id not in self.__angles:
+			return np.array([0, 0, 0])
+		name_testbed = self.__drones[drone_id]
+		min_pos = np.array(self.__testbeds[name_testbed][0])
+		max_pos = np.array(self.__testbeds[name_testbed][1])
+		offset = np.array(self.__testbeds[name_testbed][2])
+		dpos = [r, r]
+		mean = (min_pos + max_pos) / 2
+		angle = self.__angles[drone_id]
+		mean[2] = BASIS_HEIGHT
+		if self.__round % 300 < 150:
+			angle += math.pi #* 0.9
+		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean + offset
+
+	def generate_circle_pyramid_setpoint(self, drone_id, randomize=True):
+		if self.__circle_pyramid_idx is None or self.__round % 500 == 499:
+			idx = np.arange(len(self.__drones))
+			if randomize:
+				np.random.shuffle(idx)
+			self.__circle_pyramid_idx = {drone_id_: idx[i] for i, drone_id_ in enumerate(self.__drones)}
+
+		num_lower_drones = 7
+		num_middle1_drones = 5
+		num_middle2_drones = 3
+		if self.__circle_pyramid_idx[drone_id] < num_lower_drones:
+			return get_circle_point(radius=1.6, num_drones=num_lower_drones, idx=self.__circle_pyramid_idx[drone_id],
+									z=0.5)
+		if self.__circle_pyramid_idx[drone_id] < num_lower_drones + num_middle1_drones:
+			return get_circle_point(radius=1.0, num_drones=num_middle1_drones, idx=self.__circle_pyramid_idx[drone_id] - num_lower_drones,
+									z=1.0, angle_offset=2*math.pi/num_lower_drones/2)
+		if self.__circle_pyramid_idx[drone_id] < num_lower_drones + num_middle1_drones + num_middle2_drones:
+			return get_circle_point(radius=0.4, num_drones=num_middle2_drones,
+									idx=self.__circle_pyramid_idx[drone_id] - num_middle1_drones - num_lower_drones,
+									z=1.5, angle_offset=2*math.pi/num_middle1_drones/2)
+		return np.array([0, 0, 2.0])
+
+	def generate_photo_setpoint(self, drone_id):
+		if drone_id > 16:
+			return np.array([0.0, 0.0, 0.0])
+
+		offset = np.array([0.0, 0.0, 0.0])
+
+		setpoints = np.array([[1.2, 0.0, 1.5],
+							  [0.6, 0.0, 2.2],
+							  [1.4, -0.3, 1.3],
+							  [1.4, 0.3, 1.3],
+
+							  [0.8, -0.4, 1.5],
+							  [0.8, 0.4, 1.5],
+
+							  [0.5, 0.5, 2.0],
+							  [0.5, -0.5, 2.0],
+
+							  [0.3, -0.7, 1.6],
+							  [0.3, 0.7, 1.6],
+
+							  [0.3, -1.5, 1.4],
+							  [0.3, 1.5, 1.4],
+
+							  [-0.3, -1.2, 2.0],
+							  [-0.3, 1.2, 2.0],
+
+							  [-0.6, 0.7, 1.9],
+							  [-0.6, -0.7, 1.9],
+
+
+
+							  ], dtype=np.float32)
+		return setpoints[drone_id-1] + offset
+
+	def generate_demo_crash_setpoint(self, drone_id):
+		setpoints = np.array([[-0.5, 1.5, 1.0],
+							  [0.5, 1.5, 1.0],
+
+							  [-0.5, 1.0, 1.0],
+							  [0.5, 1.0, 1.0],
+
+							  [-0.5, 0.5, 1.0],
+							  [0.5, 0.5, 1.0],
+
+							  [-0.5, 0, 1.0],
+							  [0.5, 0, 1.0],
+
+							  [-0.5, -0.5, 1.0],
+							  [0.5, -0.5, 1.0],
+
+							  [-0.5, -1.0, 1.0],
+							  [0.5, -1.0, 1.0],
+
+							  [-0.5, -1.5, 1.0],
+							  [0.5, -1.5, 1.0],
+
+							  [0.0, 1.7, 1.0],
+							  [0.0, -1.7, 1.0],
+
+							  ])
+
+		if drone_id > 16:
+			return np.array([0.0, 0.0, 0.0])
+
+		p = setpoints[drone_id-1]
+		if self.__round % 300 >= 150:
+			p[0] = -p[0]
+			if drone_id >= 15:
+				p[1] = -p[1]
+		return p
+
+	def generate_demo_visitors_setpoint(self, drone_id):
+		if drone_id > 16:
+			return np.array([0.0, 0.0, 0.0])
+		self.__state_demo_ai_week = "RETURN"
+		if self.__round > 160:
+			self.__state_demo_ai_week = "PYRAMID"
+		if self.__round > 260:
+			self.__state_demo_ai_week = "SQUARE"
+		if self.__round > 360:
+			self.__state_demo_ai_week = "SPHERE"
+		if self.__round > 460:
+			self.__state_demo_ai_week = "RETURN"
+
+		if self.__state_demo_ai_week == "IDLE":
+			return get_circle_point(1.7, drone_id, 16, 1.5)
+
+		if self.__state_demo_ai_week == "PYRAMID":
+			return self.generate_circle_pyramid_setpoint(drone_id, randomize=False)
+
+		if self.__state_demo_ai_week == "SQUARE":
+			if drone_id < 15:
+				temp = np.array([[-1.5, 1.5, 0.5], [-1.5, -1.5, 0.5], [-1.5, 1.5, 2.5], [-1.5, -1.5, 2.5],
+								 [1.5, 1.5, 0.5], [1.5, -1.5, 0.5], [1.5, 1.5, 2.5], [1.5, -1.5, 2.5],
+								 [0.0, 0.0, 0.5], [0.0, 0.0, 2.5], [1.5, 0.0, 1.5], [-1.5, 0.0, 1.5], [0.0, 1.5, 1.5], [0.0, -1.5, 1.5],
+								 ])
+				return temp[drone_id - 1]
+			else:
+				return get_circle_point(0.8, drone_id, 2, 1.5)
+
+		if self.__state_demo_ai_week == "SPHERE":
+			radius = 1.15
+			z_middle = 1.7
+			if drone_id == 1:
+				return np.array([0.0, 0.0, z_middle + radius])
+			if drone_id == 2:
+				return np.array([0.0, 0.0, z_middle - radius])
+			if drone_id <= 6:
+				return get_circle_point(radius*math.cos(math.pi/4), drone_id, 4, z_middle + radius*math.sin(math.pi/4))
+			if drone_id <= 10:
+				return get_circle_point(radius*math.cos(math.pi/4), drone_id, 4, z_middle - radius*math.sin(math.pi/4))
+			else:
+				return get_circle_point(radius, drone_id, 6, z_middle)
+
+		if self.__state_demo_ai_week == "RETURN":
+			temp = np.array([[-1.5, 1.5, 0.5], [-0.5, 1.5, 0.5], [0.5, 1.5, 0.5], [1.5, 1.5, 0.5],
+							 [-1.5, 0.5, 0.5], [-0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [1.5, 0.5, 0.5],
+							 [-1.5, -0.5, 0.5], [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [1.5, -0.5, 0.5],
+							 [-1.5, -1.5, 0.5], [-0.5, -1.5, 0.5], [0.5, -1.5, 0.5], [1.5, -1.5, 0.5],])
+			return temp[drone_id-1]
+
 	def add_drone(self, drone_id, state, round):
 		"""
 
@@ -488,6 +655,8 @@ class SetpointCreator:
 				i += 1
 
 		self.__current_setpoints[drone_id] = self.generate_new_setpoint(self.__drones[drone_id])
+
 		self.__active_drones.append(drone_id)
+		self.__circle_pyramid_idx = None
 
 

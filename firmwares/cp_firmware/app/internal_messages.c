@@ -11,7 +11,7 @@
 
 #include <string.h>
 
-static uint8_t buffer[1024];
+static uint8_t buffer[2048];
 
 uint16_t message_sizes(uint8_t type)
 {

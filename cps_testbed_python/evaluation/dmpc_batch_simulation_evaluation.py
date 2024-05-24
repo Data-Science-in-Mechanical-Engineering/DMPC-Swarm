@@ -122,172 +122,173 @@ def plot_states_(states, targets):
         ax.scatter(target_x, target_y, target_z, c='k')
     plt.show()
 
-path = os.path.dirname(os.path.abspath(__file__)) + \
-       "/../../batch_simulation_results/dmpc/dmpc_simulation_results_test_No_ET_Final/"
-path = "C:\\Users\\mf724021\\Documents\\003_Testbed\\007_Code\\CPSTestbed\\simulation\\CPSTestbed\\batch_simulation_results\\dmpc\\dmpc_simulation_results_test_02_16_2022_10_31_59\\"
+if __name__ == "__main__":
+    path = os.path.dirname(os.path.abspath(__file__)) + \
+           "/../../hpc_runs/DMPC_test/"
+    #path = "C:\\Users\\mf724021\\Documents\\003_Testbed\\007_Code\\CPSTestbed\\simulation\\CPSTestbed\\batch_simulation_results\\dmpc\\dmpc_simulation_results_test_02_16_2022_10_31_59\\"
 
-plot_states = False
+    plot_states = False
 
-files = [os.path.join(path, f) for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)) and not f.startswith("ARGS")]
+    files = [os.path.join(path, f) for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)) and not f.startswith("ARGS")]
 
-if not plot_states:
-    successrate_total = {}
-    successrate = {}
-    number_sims = {}
-    crashrate_total = {}
-    number_sims_agents = {}
-    number_crashes = {}
-    simulation_results = []
-    number_crashes_total = {}
-    for f in files:
-        result = p.load(open(f, "rb" ))
-        simulation_results.append(result)
-        ARGS = result.ARGS
-        logger = result
-        if ARGS.num_drones not in successrate:
-            successrate_total[ARGS.num_drones] = 0
-            successrate[ARGS.num_drones] = 0
-            number_sims[ARGS.num_drones] = 0
-            number_sims_agents[ARGS.num_drones] = 0
-            number_crashes[ARGS.num_drones] = 0
-            number_crashes_total[ARGS.num_drones] = 0
+    if not plot_states:
+        successrate_total = {}
+        successrate = {}
+        number_sims = {}
+        crashrate_total = {}
+        number_sims_agents = {}
+        number_crashes = {}
+        simulation_results = []
+        number_crashes_total = {}
+        for f in files:
+            result = p.load(open(f, "rb" ))
+            simulation_results.append(result)
+            ARGS = result.ARGS
+            logger = result
+            if ARGS.num_drones not in successrate:
+                successrate_total[ARGS.num_drones] = 0
+                successrate[ARGS.num_drones] = 0
+                number_sims[ARGS.num_drones] = 0
+                number_sims_agents[ARGS.num_drones] = 0
+                number_crashes[ARGS.num_drones] = 0
+                number_crashes_total[ARGS.num_drones] = 0
 
-        success = True
-        i = 0
-        for s in logger.successful:
-            success = success and s
-            if s:
-                successrate[ARGS.num_drones] += 1
-            else:
-                if logger.states[i, 0, -1] == 0:
-                    crashrate_total[ARGS.num_drones] += 1
-                """if logger.states[i, 2, -1] < 0.1:
-                    print(logger.states[i, :, -1])
+            success = True
+            i = 0
+            for s in logger.successful:
+                success = success and s
+                if s:
+                    successrate[ARGS.num_drones] += 1
+                else:
                     if logger.states[i, 0, -1] == 0:
-                        scaling_matrix = np.diag([1, 1, 1.0 / float(ARGS.downwash_scaling_factor)])
-                        for b in range(0, ARGS.num_drones):
-                            if b == i:
-                                continue
-                            for sdf in range(logger.states.shape[2]):
-                                n = np.linalg.norm((logger.states[i, 0:3, sdf] - logger.states[b, 0:3, sdf])@scaling_matrix)
-                                if n < ARGS.r_min/2 and logger.states[i, 0, sdf] != 0:
-                                    
-                                    print(f"Collision! {n}")
-                        #plot_states_(logger.states, logger.targets)
-                        #for sdf in range(logger.states.shape[2]):
-                        #    print(logger.states[i, :, sdf])"""
-            number_sims_agents[ARGS.num_drones] += 1
-        crash = False
-        for c in logger.crashed.values():
-            if c:
-                crash = True
-                number_crashes[ARGS.num_drones] += 1
-        if crash:
-            number_crashes_total[ARGS.num_drones] += 1
+                        crashrate_total[ARGS.num_drones] += 1
+                    """if logger.states[i, 2, -1] < 0.1:
+                        print(logger.states[i, :, -1])
+                        if logger.states[i, 0, -1] == 0:
+                            scaling_matrix = np.diag([1, 1, 1.0 / float(ARGS.downwash_scaling_factor)])
+                            for b in range(0, ARGS.num_drones):
+                                if b == i:
+                                    continue
+                                for sdf in range(logger.states.shape[2]):
+                                    n = np.linalg.norm((logger.states[i, 0:3, sdf] - logger.states[b, 0:3, sdf])@scaling_matrix)
+                                    if n < ARGS.r_min/2 and logger.states[i, 0, sdf] != 0:
+                                        
+                                        print(f"Collision! {n}")
+                            #plot_states_(logger.states, logger.targets)
+                            #for sdf in range(logger.states.shape[2]):
+                            #    print(logger.states[i, :, sdf])"""
+                number_sims_agents[ARGS.num_drones] += 1
+            crash = False
+            for c in logger.crashed.values():
+                if c:
+                    crash = True
+                    number_crashes[ARGS.num_drones] += 1
+            if crash:
+                number_crashes_total[ARGS.num_drones] += 1
 
-        if success:
-            successrate_total[ARGS.num_drones] += 1
+            if success:
+                successrate_total[ARGS.num_drones] += 1
 
-        number_sims[ARGS.num_drones] += 1
-        #if number_sims[ARGS.num_drones] >= 10:
-        #    break
+            number_sims[ARGS.num_drones] += 1
+            #if number_sims[ARGS.num_drones] >= 10:
+            #    break
 
-    print(successrate_total)
-    print(number_sims)
-    print(successrate)
-    temp = list(successrate.keys())
-    temp.sort()
-    for l in temp:
-        print(f"{l}: {crashrate_total[l]/number_sims[l]}")
-    print(crashrate_total)
-    print(number_sims_agents)
-    print(number_crashes)
-    temp = list(number_crashes.keys())
-    temp.sort()
-    print([number_crashes[j] / number_sims_agents[j] for j in temp])
-    print([number_crashes_total[j] / number_sims[j] for j in temp])
-    #exit()
-    timestamps, dist_to_target = time_to_target(simulation_results)
-    save(os.path.dirname(os.path.abspath(__file__)) + "/../../batch_simulation_results/dmpc/Plot/Alpha0ETFinal", dist_to_target, timestamps)
+        print(successrate_total)
+        print(number_sims)
+        print(successrate)
+        temp = list(successrate.keys())
+        temp.sort()
+        for l in temp:
+            print(f"{l}: {crashrate_total[l]/number_sims[l]}")
+        print(crashrate_total)
+        print(number_sims_agents)
+        print(number_crashes)
+        temp = list(number_crashes.keys())
+        temp.sort()
+        print([number_crashes[j] / number_sims_agents[j] for j in temp])
+        print([number_crashes_total[j] / number_sims[j] for j in temp])
+        #exit()
+        timestamps, dist_to_target = time_to_target(simulation_results)
+        save(os.path.dirname(os.path.abspath(__file__)) + "/../../batch_simulation_results/dmpc/Plot/Alpha0ETFinal", dist_to_target, timestamps)
 
-    plt.rc('axes', prop_cycle=cycler('color', ['r', 'g', 'b', 'y', 'm', 'c']))
-    fig = plt.figure()
-    ax = fig.add_subplot()
-    ax.set_title('Average Distance To Target \n ' + str(len(simulation_results)) + ' Simulations')
-    ax.set_xlabel('Time [s]')
-    ax.set_ylabel('Distance To Target [m]')
-    ax.grid()
-
-    for key in dist_to_target.keys():
-        y = [np.mean(dist_to_target[key][:, i]) for i in range(len(timestamps[key]))]
-        x = timestamps[key]
-        # plt.errorbar(x, y, err, linestyle='None', fmt='o', c='b', capsize=5)
-        ax.plot(x, y, label=str(key) + ' Drones')
-
-
-    ax.legend()
-    plt.show()
-
-else:
-    file = files[0]
-    result = p.load(open(file, "rb"))
-    states = result.states
-    controls = result.controls
-    timestamps = result.timestamps
-    targets = result.targets
-
-    save_file = os.path.dirname(os.path.abspath(__file__)) + "/../../batch_simulation_results/dmpc/Plot/Example"
-    plot_type = '3D'
-    drone_ids = None
-    if drone_ids is None:
-        drone_ids, _, _ = states.shape
-        drone_ids = range(drone_ids)
-
-    if type(drone_ids) == int:
-        drone_ids = [drone_ids]
-
-    for i in drone_ids:
-        states[i, 0:2, :] = states[i, 0:2, :] - 2
-        save_traj(save_file + str(i) + ".csv", states[i, :, :], result.timestamps)
-
-    if plot_type == '2D':
         plt.rc('axes', prop_cycle=cycler('color', ['r', 'g', 'b', 'y', 'm', 'c']))
-        fig, ax = plt.subplots(1, 1)
-        ax.set_title('2D Position of drones')
-        ax.set_ylabel('y Position [m]')
-        ax.set_xlabel('x Position [m]')
-
+        fig = plt.figure()
+        ax = fig.add_subplot()
+        ax.set_title('Average Distance To Target \n ' + str(len(simulation_results)) + ' Simulations')
+        ax.set_xlabel('Time [s]')
+        ax.set_ylabel('Distance To Target [m]')
         ax.grid()
-        for i in drone_ids:
-            x_pos = states[i, 0, :]
-            y_pos = states[i, 1, :]
-            target_x = targets[i, 0, :]
-            target_y = targets[i, 1, :]
-            ax.plot(x_pos, y_pos, label='Drone ' + str(i))
-            ax.scatter(target_x, target_y, c='k')
 
-        ax.set_aspect('equal', adjustable='datalim')
+        for key in dist_to_target.keys():
+            y = [np.mean(dist_to_target[key][:, i]) for i in range(len(timestamps[key]))]
+            x = timestamps[key]
+            # plt.errorbar(x, y, err, linestyle='None', fmt='o', c='b', capsize=5)
+            ax.plot(x, y, label=str(key) + ' Drones')
+
+
+        ax.legend()
         plt.show()
 
-    if plot_type == '3D':
-        plt.rc('axes', prop_cycle=cycler('color', ['r', 'g', 'b', 'y', 'm', 'c']))
-        fig = plt.figure(figsize=(10, 10))
+    else:
+        file = files[0]
+        result = p.load(open(file, "rb"))
+        states = result.states
+        controls = result.controls
+        timestamps = result.timestamps
+        targets = result.targets
 
-        ax = fig.add_subplot(projection='3d')
-        ax.patch.set_facecolor('white')
-        ax.set_title('3D Position of drones')
-        ax.set_xlabel('x Position [m]')
-        ax.set_ylabel('y Position [m]')
-        ax.set_zlabel('z Position [m]')
+        save_file = os.path.dirname(os.path.abspath(__file__)) + "/../../batch_simulation_results/dmpc/Plot/Example"
+        plot_type = '3D'
+        drone_ids = None
+        if drone_ids is None:
+            drone_ids, _, _ = states.shape
+            drone_ids = range(drone_ids)
+
+        if type(drone_ids) == int:
+            drone_ids = [drone_ids]
 
         for i in drone_ids:
-            x_pos = states[i, 0, :]
-            y_pos = states[i, 1, :]
-            z_pos = states[i, 2, :]
-            target_x = targets[i, 0, :]
-            target_y = targets[i, 1, :]
-            target_z = targets[i, 2, :]
-            ax.scatter(x_pos, y_pos, z_pos, label='Drone ' + str(i), s=1)
-            ax.scatter(target_x, target_y, target_z, c='k')
+            states[i, 0:2, :] = states[i, 0:2, :] - 2
+            save_traj(save_file + str(i) + ".csv", states[i, :, :], result.timestamps)
 
-        plt.show()
+        if plot_type == '2D':
+            plt.rc('axes', prop_cycle=cycler('color', ['r', 'g', 'b', 'y', 'm', 'c']))
+            fig, ax = plt.subplots(1, 1)
+            ax.set_title('2D Position of drones')
+            ax.set_ylabel('y Position [m]')
+            ax.set_xlabel('x Position [m]')
+
+            ax.grid()
+            for i in drone_ids:
+                x_pos = states[i, 0, :]
+                y_pos = states[i, 1, :]
+                target_x = targets[i, 0, :]
+                target_y = targets[i, 1, :]
+                ax.plot(x_pos, y_pos, label='Drone ' + str(i))
+                ax.scatter(target_x, target_y, c='k')
+
+            ax.set_aspect('equal', adjustable='datalim')
+            plt.show()
+
+        if plot_type == '3D':
+            plt.rc('axes', prop_cycle=cycler('color', ['r', 'g', 'b', 'y', 'm', 'c']))
+            fig = plt.figure(figsize=(10, 10))
+
+            ax = fig.add_subplot(projection='3d')
+            ax.patch.set_facecolor('white')
+            ax.set_title('3D Position of drones')
+            ax.set_xlabel('x Position [m]')
+            ax.set_ylabel('y Position [m]')
+            ax.set_zlabel('z Position [m]')
+
+            for i in drone_ids:
+                x_pos = states[i, 0, :]
+                y_pos = states[i, 1, :]
+                z_pos = states[i, 2, :]
+                target_x = targets[i, 0, :]
+                target_y = targets[i, 1, :]
+                target_z = targets[i, 2, :]
+                ax.scatter(x_pos, y_pos, z_pos, label='Drone ' + str(i), s=1)
+                ax.scatter(target_x, target_y, target_z, c='k')
+
+            plt.show()

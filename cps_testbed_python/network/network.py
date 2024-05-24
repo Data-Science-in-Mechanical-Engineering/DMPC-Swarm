@@ -142,7 +142,7 @@ class Network:
         performs one communication round.
     """
 
-    def __init__(self, agents=None, message_loss=0.1, ack_message_loss=0, slot_group_ack_id=100000, rounds_lost=None):
+    def __init__(self, agents=None, message_loss=0.1, ack_message_loss=0, slot_group_ack_id=100000, rounds_lost=None, seed=0):
         """constructor of class network
 
         Parameters
@@ -168,6 +168,8 @@ class Network:
         self.__rounds_lost = rounds_lost
 
         self.__round = 0
+
+        random.seed(seed)
 
     def add_agent(self, agent):
         """adds agent to network
