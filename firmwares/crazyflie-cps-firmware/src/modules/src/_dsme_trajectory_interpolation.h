@@ -45,7 +45,7 @@ void calculateNextState();
 void round_finished(uint32_t round);
 
 void cp_connected_callback(uint8_t id);
-void get_cf_state(float *state);
+void get_cf_state(float *state, uint32_t round);
 uint8_t cf_launch_status();
 uint8_t cf_land_status();
 void init_position(float *pos, uint8_t id);
