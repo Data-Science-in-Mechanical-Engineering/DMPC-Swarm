@@ -25,7 +25,7 @@ void init_cf_state_machine(cf_state_machine_handle *hstate_machine,
 							void (*round_finished)(uint32_t),
 							void (*wait_cf_to_start)(),
 							void (*cp_connected_callback)(uint8_t),
-							void (*get_cf_state)(float *),
+							void (*get_cf_state)(float *, uint32_t),
 							void (*launch_cf)(float, float, float),
 							void (*land_cf)(),
 							uint8_t (*cf_launch_status)(),
@@ -216,7 +216,7 @@ static uint16_t process_WAIT_FOR_LAUNCH_STATE(cf_state_machine_handle *hstate_ma
 {
 	// wait for the UAV to be lifted off the ground
 	float state[9];
-	hstate_machine->get_cf_state(state);
+	hstate_machine->get_cf_state(state, 0);
 
 #if START_FROM_HAND
 	if (state[2] < 0.1f) {
@@ -244,7 +244,7 @@ static uint16_t process_VERTICAL_LAUNCH_STATE(cf_state_machine_handle *hstate_ma
 {
 	// wait for the UAV to be lifted off the ground
 	float state[9];
-	hstate_machine->get_cf_state(state);
+	hstate_machine->get_cf_state(state, 0);
 
 	uint8_t status = hstate_machine->cf_launch_status();
 	if (status == STATUS_IDLE) {
@@ -275,7 +275,12 @@ static uint16_t process_VERTICAL_LAUNCH_STATE(cf_state_machine_handle *hstate_ma
 		hstate_machine->current_target_angle = 1.5f*3.1415926535f;
 	}
 	if (status == STATUS_LAUNCHED) {
-		hstate_machine->state = RESERVE_MESSAGE_LAYER_AREA_STATE;
+		float state[9];
+		hstate_machine->get_cf_state(state, 0);
+		// if drones crash at start, do nothing
+		if (state[2] > 0.5f) {
+			hstate_machine->state = RESERVE_MESSAGE_LAYER_AREA_STATE;
+		}
 	}
 
 	// dont send anything yet.
@@ -284,7 +289,7 @@ static uint16_t process_VERTICAL_LAUNCH_STATE(cf_state_machine_handle *hstate_ma
 	return 1;
 }
 
-static uint16_t process_RESERVE_MESSAGE_LAYER_AREA_STATE(cf_state_machine_handle *hstate_machine, ap_message_t **rx_data, uint16_t size, ap_message_t *tx_data)
+static uint16_t process_RESERVE_MESSAGE_LAYER_AREA_STATE(cf_state_machine_handle *hstate_machine, ap_message_t **rx_data, uint16_t size, ap_message_t *tx_data, uint32_t *round_nmbr)
 {
 	// check if network manager reserved the area, we needed.
 	uint8_t got_area = 0;
@@ -298,6 +303,14 @@ static uint16_t process_RESERVE_MESSAGE_LAYER_AREA_STATE(cf_state_machine_handle
 					}
 				}
 				break;
+			case TYPE_METADATA:
+				*round_nmbr = rx_data[i]->metadata_message.round_nmbr;
+				#if START_FROM_HAND
+				if (landing_counter > 970) {
+					hstate_machine->wants_to_leave = 1;
+				}
+				#endif
+				break;
 			// ignore others
 			default:
 				break;
@@ -306,7 +319,7 @@ static uint16_t process_RESERVE_MESSAGE_LAYER_AREA_STATE(cf_state_machine_handle
 	if (got_area) {
 		hstate_machine->state = SYS_RUN_STATE;
 		float state[9];
-		hstate_machine->get_cf_state(state);
+		hstate_machine->get_cf_state(state, *round_nmbr);
 		tx_data->header.type = TYPE_DRONE_STATE;
 		tx_data->header.id = hstate_machine->id;
 		quantize_state(&tx_data->state_message, state);
@@ -356,7 +369,7 @@ static uint16_t process_SYS_RUN_STATE(cf_state_machine_handle *hstate_machine, a
 				#endif
 				break;
 			case TYPE_SYS_SHUTDOWN:
-				land_drones = 1;
+				hstate_machine->wants_to_leave = 1;
 				break;
 			case TYPE_TRAJECTORY:
 				if (rx_data[i]->trajectory_message.drone_id == hstate_machine->id) {
@@ -388,8 +401,8 @@ static uint16_t process_SYS_RUN_STATE(cf_state_machine_handle *hstate_machine, a
 				break;
 			case TYPE_METADATA:
 				*round_nmbr = rx_data[i]->metadata_message.round_nmbr;
-				#if START_FROM_HAND
-				if (landing_counter > 350) {
+				#if START_FROM_HAND || LAND_AFTER_SOME_TIME
+				if (landing_counter > 970) {
 					hstate_machine->wants_to_leave = 1;
 				}
 				#endif
@@ -439,7 +452,7 @@ static uint16_t process_SYS_RUN_STATE(cf_state_machine_handle *hstate_machine, a
 	// first message we send is the current state.
 	uint16_t num_messages_to_send = 1;
 	float state[9];
-	hstate_machine->get_cf_state(state);
+	hstate_machine->get_cf_state(state, *round_nmbr);
 	tx_data->header.type = TYPE_DRONE_STATE;
 	tx_data->header.id = hstate_machine->id;
 	quantize_state(&tx_data->state_message, state);
@@ -492,7 +505,7 @@ static uint16_t process_SYS_RUN_STATE(cf_state_machine_handle *hstate_machine, a
 
 }
 
-static uint16_t process_SYNC_MOVEMENT_STATE(cf_state_machine_handle *hstate_machine, ap_message_t **rx_data, uint16_t size, ap_message_t *tx_data)
+static uint16_t process_SYNC_MOVEMENT_STATE(cf_state_machine_handle *hstate_machine, ap_message_t **rx_data, uint16_t size, ap_message_t *tx_data, uint32_t *round_nmbr)
 {
 	// iterate through array
 	cf_trajectory *current_traj;
@@ -518,7 +531,7 @@ static uint16_t process_SYNC_MOVEMENT_STATE(cf_state_machine_handle *hstate_mach
 
 	uint8_t status = hstate_machine->cf_launch_status();
 	float state[9];
-	hstate_machine->get_cf_state(state);
+	hstate_machine->get_cf_state(state, *round_nmbr);
 	tx_data->header.type = TYPE_DRONE_STATE;
 	tx_data->header.id = hstate_machine->id;
 	quantize_state(&tx_data->state_message, state);
@@ -529,7 +542,7 @@ static uint16_t process_SYNC_MOVEMENT_STATE(cf_state_machine_handle *hstate_mach
 
 }
 
-static uint16_t process_SYS_SHUTDOWN_STATE(cf_state_machine_handle *hstate_machine, ap_message_t **rx_data, uint16_t size, ap_message_t *tx_data)
+static uint16_t process_SYS_SHUTDOWN_STATE(cf_state_machine_handle *hstate_machine, ap_message_t **rx_data, uint16_t size, ap_message_t *tx_data, uint32_t *round_nmbr)
 {
 	// iterate through array
 	uint16_t num_landed_drones = 0;
@@ -542,6 +555,7 @@ static uint16_t process_SYS_SHUTDOWN_STATE(cf_state_machine_handle *hstate_machi
 					num_landed_drones++;
 				}
 				break;
+			
 			// ignore others
 			default:
 				break;
@@ -555,7 +569,7 @@ static uint16_t process_SYS_SHUTDOWN_STATE(cf_state_machine_handle *hstate_machi
 		//num_landed_drones++;
 	}
 	float state[9];
-	hstate_machine->get_cf_state(state);
+	hstate_machine->get_cf_state(state, *round_nmbr);
 	tx_data->header.type = TYPE_DRONE_STATE;
 	tx_data->header.id = hstate_machine->id;
 	quantize_state(&tx_data->state_message, state);
@@ -572,7 +586,9 @@ static uint16_t process_SYS_SHUTDOWN_STATE(cf_state_machine_handle *hstate_machi
 	}
 
 	if (status == STATUS_LANDED) {
+		#if START_FROM_HAND
 		hstate_machine->state = WAIT_FOR_LAUNCH_STATE;
+		#endif
 		was_low = 0;
 	}
 
@@ -609,16 +625,16 @@ void run_cf_state_machine(cf_state_machine_handle *hstate_machine)
 				tx_size = process_VERTICAL_LAUNCH_STATE(hstate_machine, rx_data, rx_size, tx_data);
 				break;
 			case RESERVE_MESSAGE_LAYER_AREA_STATE:
-				tx_size = process_RESERVE_MESSAGE_LAYER_AREA_STATE(hstate_machine, rx_data, rx_size, tx_data);
+				tx_size = process_RESERVE_MESSAGE_LAYER_AREA_STATE(hstate_machine, rx_data, rx_size, tx_data, &round_nmbr);
 				break;
 			case SYS_RUN_STATE:
 				tx_size = process_SYS_RUN_STATE(hstate_machine, rx_data, rx_size, tx_data, &round_nmbr);
 				break;
 			case SYNC_MOVEMENT_STATE:
-				tx_size = process_SYNC_MOVEMENT_STATE(hstate_machine, rx_data, rx_size, tx_data);
+				tx_size = process_SYNC_MOVEMENT_STATE(hstate_machine, rx_data, rx_size, tx_data, &round_nmbr);
 				break;
 			case SYS_SHUTDOWN_STATE:
-				tx_size = process_SYS_SHUTDOWN_STATE(hstate_machine, rx_data, rx_size, tx_data);
+				tx_size = process_SYS_SHUTDOWN_STATE(hstate_machine, rx_data, rx_size, tx_data, &round_nmbr);
 				break;
 			default:
 				break;

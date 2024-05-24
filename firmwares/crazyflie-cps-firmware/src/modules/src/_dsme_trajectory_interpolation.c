@@ -52,6 +52,7 @@ static uint8_t land_status = STATUS_FLYING;
 static cf_trajectory current_trajectory = {.calculated_by=0, .start_round=0};
 
 static uint32_t round_idx = 0; 	// idx of round in trajectory
+static uint32_t current_round = 0;
 static float int_point_idx = 0;  // index of int point in one round. it is at maximum NUM_INT_POINTS_PER_ROUND . THe current time can be calculate as
 								 // (current_trajectory.start_round + round_idx) * ROUND_LENGTH_S + int_point_idx*INT_INTERVAL_LENGTH_S
 
@@ -70,6 +71,11 @@ static bool isInit = false;
 static float x_state[NUM_STATES];
 static float y_state[NUM_STATES];
 static float z_state[NUM_STATES];
+
+static float old_pos[3];
+
+static float speed_filtered[3] = {0};
+#define FILTER_VALUE (0.1f)
 
 static uint8_t state_directly_set = 0;
 
@@ -161,9 +167,9 @@ static void trajIntTask(void *param)
                     current_setpoint_pos[1] = y_state[0];
                     current_setpoint_pos[2] = z_state[0];
                     if (CF_DIST(current_pos, current_setpoint_pos) > 0.5f) {
-                        //x_state[0] = current_pos[0];
-                        //y_state[0] = current_pos[1];
-                        //z_state[0] = current_pos[2];
+                        x_state[0] = current_pos[0];
+                        y_state[0] = current_pos[1];
+                        z_state[0] = current_pos[2];
 
                         //x_state[1] = 0.0f;
                         //y_state[1] = 0.0f;
@@ -195,6 +201,13 @@ static void trajIntTask(void *param)
                 time_since_last_update++;
                 break;
         }
+
+        state_t current_state;
+        get_state(&current_state);
+        speed_filtered[0] = (1-FILTER_VALUE) * speed_filtered[0] + FILTER_VALUE * current_state.velocity.x;
+        speed_filtered[1] = (1-FILTER_VALUE) * speed_filtered[1] + FILTER_VALUE * current_state.velocity.y;
+        speed_filtered[2] = (1-FILTER_VALUE) * speed_filtered[2] + FILTER_VALUE * current_state.velocity.z;
+
         xSemaphoreGive(dataSemaphore);
         TickType_t delta_t = xTaskGetTickCount() - start_time;
         ASSERT(xTaskGetTickCount() - start_time >= 0);
@@ -281,7 +294,7 @@ void land_crazyflie()
     xSemaphoreTake(dataSemaphore, portMAX_DELAY);
     x_state[0] = setpoint.position.x;
     y_state[0] = setpoint.position.y;
-    z_state[0] = 0.8f;
+    z_state[0] = 0.15f;
 
     traj_int_state = LAND;
     land_status = STATUS_LANDING;
@@ -322,6 +335,7 @@ void calculateNextState()
 
 void round_finished(uint32_t round)
 {
+    current_round = round;
 	round_idx = round - current_trajectory.start_round;
 	int_point_idx = 0;
 	// if we receive a new trajectory, the init state is the current state, because we only update the trajectory,
@@ -338,6 +352,13 @@ void round_finished(uint32_t round)
 		}
 		new_trajectory_received = 0;
 	}
+    xSemaphoreTake(dataSemaphore, portMAX_DELAY);
+    state_t current_state;
+    get_state(&current_state);
+    xSemaphoreGive(dataSemaphore);
+    old_pos[0] = current_state.position.x;
+    old_pos[1] = current_state.position.y;
+    old_pos[2] = current_state.position.z;
 }
 
 uint8_t cf_launch_status()
@@ -398,8 +419,9 @@ void cp_connected_callback(uint8_t id)
 	z_state[0] = init_pos[CF_IDX][2];
 }
 
-void get_cf_state(float *state)
+void get_cf_state(float *state, uint32_t round)
 {
+    //uint32_t round_idx_local = round - current_trajectory.start_round;
     xSemaphoreTake(dataSemaphore, portMAX_DELAY);
     state_t current_state;
     get_state(&current_state);
@@ -417,11 +439,20 @@ void get_cf_state(float *state)
     current_y_state[0] = current_state.position.y;
     current_z_state[0] = current_state.position.z;
 
+    current_x_state[1] = speed_filtered[0]; // current_state.velocity.x;
+    current_y_state[1] = speed_filtered[1]; //current_state.velocity.y;
+    current_z_state[1] = speed_filtered[2]; //current_state.velocity.z;
+
+    /*current_x_state[2] = 0.0f; //current_state.acc.x * 9.81f;
+    current_y_state[2] = 0.0f; //current_state.acc.y * 9.81f;
+    current_z_state[2] = 0.0f; //current_state.acc.z * 9.81f;*/
+
+
     //ASSERT(current_state.position.z > 0.8f);
 	
     // simulate state one round forward
-    for (uint8_t i = 0; i < NUM_INT_POINTS_PER_ROUND; i++) {
-        uint32_t input_idx = round_idx * NUM_INPUT_POINTS_PER_ROUND + ((int_point_idx+i) / NUM_INT_POINTS_PER_INPUT);
+    /*for (uint8_t i = 0; i < NUM_INT_POINTS_PER_ROUND; i++) {
+        uint32_t input_idx = (round_idx_local) * NUM_INPUT_POINTS_PER_ROUND + ((i) / NUM_INT_POINTS_PER_INPUT);
         // only update states, if the trajectory is not at its end.
         if (input_idx < PREDICTION_HORIZON * NUM_INPUT_POINTS_PER_ROUND) {
             interpolate(current_x_state, current_trajectory.x_coeff[input_idx]);
@@ -437,19 +468,19 @@ void get_cf_state(float *state)
             current_z_state[1] = 0.0f;
             current_z_state[2] = 0.0f;
         }
-    }
+    }*/
     
     state[0] = current_x_state[0]; //current_state.position.x;
 	state[1] = current_y_state[0]; //current_state.position.y;
 	state[2] = current_z_state[0]; //current_state.position.z;
 
-	state[3] = 0;
-	state[4] = 0;
-	state[5] = 0;
+	state[3] = current_x_state[1];
+	state[4] = current_y_state[1];
+	state[5] = current_z_state[1];
 
-	state[6] = 0;
-	state[7] = 0;
-	state[8] = 0;
+	state[6] = current_x_state[2];
+	state[7] = current_y_state[2];
+	state[8] = current_z_state[2];
 }
 
 bool trajIntTaskTest()
