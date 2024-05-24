@@ -448,14 +448,14 @@ class SetpointCreator:
 			# this drone lands
 			if self.__round - self.__starting_rounds[other_drone_id] > 940:
 				if other_drone_id == drone_id:
-					return np.array([1.0, -1.0, 0.6])
+					return np.array([-1.0, -1.0, 0.6])
 				else:
 					i = self.__active_drones.index(drone_id)
 					return np.array([-0.5, -0.5 + 0.5*i, 1.0])
 
 		if len(self.__active_drones) < 3:
 			i = self.__active_drones.index(drone_id)
-			return np.array([-0.5, -0.5 + 0.5 * i, 1.0])
+			return np.array([-0.0, -0.5 + 0.5 * i, 1.0])
 
 		angle_offset = 0 if self.__round % 200 <= 100 or self.__round % 200 > 150 else math.pi
 		speed = 2*math.pi / 40 if self.__round % 200 <= 100 else 0

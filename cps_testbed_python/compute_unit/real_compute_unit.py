@@ -801,6 +801,8 @@ class ComputingUnit:
             print("--------------------------------------------------------")
             new_round = False
             messages_rx = self.read_data_from_cp()
+            for m in messages_rx:
+                print(m)
             print(f"total_time: {time.time() - start_time}")
             start_time = time.time()
             messages_tx = []
