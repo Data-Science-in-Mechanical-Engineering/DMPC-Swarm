@@ -89,7 +89,6 @@ void run()
     wait_for_AP(&ap_pkt);
     is_network_manager = ap_pkt.metadata_message.is_initiator;
   }
-
   //is_network_manager = TOS_NODE_ID == 20;
   init_network_manager(&network_members_message);
 

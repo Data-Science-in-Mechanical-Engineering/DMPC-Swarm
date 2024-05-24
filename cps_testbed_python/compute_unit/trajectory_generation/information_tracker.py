@@ -8,6 +8,7 @@ class TrajectoryContent:
 	last_trajectory: any   # trajectory calculated in the last round (to improve performance)
 	init_state: any
 	current_state: any
+	current_state_last_round: any
 	id: int
 	trajectory_calculated_by: int
 

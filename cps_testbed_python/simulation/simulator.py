@@ -109,7 +109,7 @@ class Simulation:
         self.__round_time = calculate_min_round_time(size_cf_messages=2+2*9+1+2*3+2+1+1, num_cf=self.__ARGS.num_drones,
                                                      size_cu_messages=2+2*3*self.__ARGS.prediction_horizon+2*9+2+1+1,
                                                      num_cu=self.__ARGS.num_computing_agents)/1000.0 + 0.1 \
-            if not self.__ARGS.use_constant_freq else 1.0 / self.__ARGS.communication_freq_hz
+            if not self.__ARGS.use_communication_freq_hz else 1.0 / self.__ARGS.communication_freq_hz
 
         print(f"Round length: {self.__round_time}")
 
@@ -195,7 +195,6 @@ class Simulation:
         )
 
         slot_group_trajectory = net.SlotGroup(0, False, self.__ARGS.num_computing_agents)
-        slot_group_initial_state = net.SlotGroup(1, False, self.__ARGS.num_computing_agents)
         slot_group_state = net.SlotGroup(2, False, self.__ARGS.num_drones - self.__ARGS.num_computing_agents)
         slot_group_setpoints = net.SlotGroup(3, False, 1)
 
@@ -210,7 +209,6 @@ class Simulation:
                         trajectory = cu.get_trajectory_tracker().get_information(self.__ARGS.drone_ids[i]).content[0]
                     else:
                         trajectory = cu.get_trajectory_tracker().get_information(self.__ARGS.drone_ids[i]).content[1]
-                        print("44444444444")
                         print(trajectory.trajectory_start_time)
                         if abs(trajectory.trajectory_start_time - (self.__ARGS.load_cus_round_nmbr)*0.2) < 1e-5:
                             assert False
@@ -220,7 +218,6 @@ class Simulation:
                     trajectory_cu_id = trajectory.trajectory_calculated_by
                 print(trajectory_starting_times)
                 trajectory_start_time = min(trajectory_starting_times)
-
 
             drone_id = self.__ARGS.drone_ids[i]
             agent = da.RemoteDroneAgent(ID=drone_id,
@@ -234,10 +231,10 @@ class Simulation:
                                         order_interpolation=self.__ARGS.interpolation_order,
                                         target_positions=self.__INIT_TARGETS[drone_id],
                                         other_drones_ids=self.__ARGS.drone_ids,
-                                        use_demo_setpoints=self.__ARGS.use_demo_setpoints,
                                         load_cus_round_nmbr=0 if not self.__ARGS.load_cus else self.__ARGS.load_cus_round_nmbr + 1,
                                         trajectory_start_time= 0 if not self.__ARGS.load_cus else trajectory_start_time,
-                                        trajectory_cu_id=-1 if not self.__ARGS.load_cus else trajectory_cu_id)
+                                        trajectory_cu_id=-1 if not self.__ARGS.load_cus else trajectory_cu_id,
+                                        show_print=ARGS.show_print)
 
             agent_ids[i] = drone_id
             self.__agents.append(agent)
@@ -246,38 +243,45 @@ class Simulation:
         for i in range(self.__ARGS.num_drones, self.__ARGS.num_drones + min(self.__ARGS.num_computing_agents, 10000)):  #, self.__ARGS.num_drones)):
             if len(cus) == 0:
                 cu_id = self.__ARGS.computing_agent_ids[i-self.__ARGS.num_drones]
-                computing_agent = da.ComputationAgent(ID=cu_id, slot_group_planned_trajectory_id=slot_group_trajectory.id,
-                                                      slot_group_trajectory_initial_state=slot_group_initial_state.id,
-                                                      slot_group_drone_state=slot_group_state.id,
-                                                      init_positions=self.__ARGS.INIT_XYZS_id,
-                                                      target_positions=self.__INIT_TARGETS,
-                                                      computing_agents_ids=self.__ARGS.computing_agent_ids,
-                                                      agents_ids=self.__ARGS.drone_ids, communication_delta_t=delta_t,
-                                                      trajectory_generator_options=trajectory_generator_options,
-                                                      prediction_horizon=self.__ARGS.prediction_horizon,
-                                                      num_computing_agents=self.__ARGS.num_computing_agents,
-                                                      comp_agent_prio=sorted(self.__ARGS.computing_agent_ids).index(
-                                                          cu_id),
-                                                      offset=(cu_id - self.__ARGS.num_drones) * int(
+                computing_agent = da.ComputeUnit(ID=cu_id, slot_group_planned_trajectory_id=slot_group_trajectory.id,
+                                                 slot_group_drone_state=slot_group_state.id,
+                                                 computing_agents_ids=self.__ARGS.computing_agent_ids,
+                                                 communication_delta_t=delta_t,
+                                                 trajectory_generator_options=trajectory_generator_options,
+                                                 prediction_horizon=self.__ARGS.prediction_horizon,
+                                                 num_computing_agents=self.__ARGS.num_computing_agents,
+                                                 offset=(cu_id - self.__ARGS.num_drones) * int(
                                                           self.__ARGS.num_drones / max(
                                                               (self.__ARGS.num_computing_agents), 1)),
-                                                      use_event_trigger=self.__ARGS.event_trigger, alpha_1=self.__ARGS.alpha_1,
-                                                      alpha_2=self.__ARGS.alpha_2, alpha_3=self.__ARGS.alpha_3, alpha_4=self.__ARGS.alpha_4,
-                                                      remove_redundant_constraints=self.__ARGS.remove_redundant_constraints,
-                                                      ignore_message_loss=self.__ARGS.ignore_message_loss,
-                                                      use_high_level_planner=self.__ARGS.use_high_level_planner,
-                                                      agent_dodge_distance=self.__ARGS.agent_dodge_distance,
-                                                      use_own_targets=self.__ARGS.use_own_targets,
-                                                      slot_group_setpoints_id=slot_group_setpoints.id,
-                                                      send_setpoints=i==self.__ARGS.num_drones,
-                                                      simulated=self.__ARGS.simulated,
-                                                      use_optimized_constraints=self.__ARGS.use_optimized_constraints,
-                                                      setpoint_creator=self.__ARGS.setpoint_creator,
-                                                      pos_offset=self.__ARGS.pos_offset,
-                                                      weight_band=self.__ARGS.weight_band,
-                                                      simulate_quantization=self.__ARGS.simulate_quantization,
-                                                      save_snapshot_times=self.__ARGS.save_snapshot_times,
-                                                      show_animation=i==self.__ARGS.num_drones and self.__ARGS.show_animation)
+                                                 alpha_1=self.__ARGS.alpha_1,
+                                                 alpha_2=self.__ARGS.alpha_2, alpha_3=self.__ARGS.alpha_3, alpha_4=self.__ARGS.alpha_4,
+                                                 use_kkt_trigger=self.__ARGS.use_kkt_trigger,
+                                                 remove_redundant_constraints=self.__ARGS.remove_redundant_constraints,
+                                                 ignore_message_loss=self.__ARGS.ignore_message_loss,
+                                                 use_high_level_planner=self.__ARGS.use_high_level_planner,
+                                                 agent_dodge_distance=self.__ARGS.agent_dodge_distance,
+                                                 use_own_targets=self.__ARGS.use_own_targets,
+                                                 slot_group_setpoints_id=slot_group_setpoints.id,
+                                                 send_setpoints=i==self.__ARGS.num_drones,
+                                                 simulated=self.__ARGS.simulated,
+                                                 use_optimized_constraints=self.__ARGS.use_optimized_constraints,
+                                                 setpoint_creator=self.__ARGS.setpoint_creator,
+                                                 pos_offset=self.__ARGS.pos_offset,
+                                                 weight_band=self.__ARGS.weight_band,
+                                                 simulate_quantization=self.__ARGS.simulate_quantization,
+                                                 save_snapshot_times=self.__ARGS.save_snapshot_times,
+                                                 show_animation=i==self.__ARGS.num_drones and self.__ARGS.show_animation,
+                                                 show_print=ARGS.show_print,
+                                                 log_optimizer=ARGS.log_optimizer,
+                                                 log_optimizer_path=ARGS.log_optimizer_path,
+                                                 use_dampc=ARGS.run_dampc,
+                                                 dampc_model_path=ARGS.dampc_path,
+                                                 dampc_num_layers=ARGS.dampc_num_layers,
+                                                 dampc_num_neurons=ARGS.dampc_num_neurons
+                                                 )
+
+                for drone_id in self.__ARGS.drone_ids:
+                    computing_agent.add_new_drone(drone_id)
                 prio += 1
             else:
                 computing_agent = cus[i - self.__ARGS.num_drones]
@@ -289,9 +293,8 @@ class Simulation:
             self.__computing_agents.append(computing_agent)
 
         self.__network = net.Network(self.__agents, rounds_lost=self.__ARGS.rounds_lost,
-                                     message_loss=self.__ARGS.message_loss_probability)
+                                     message_loss=self.__ARGS.message_loss_probability, seed=ARGS.sim_id)
         self.__network.add_slot_group(slot_group_trajectory)
-        self.__network.add_slot_group(slot_group_initial_state)
         self.__network.add_slot_group(slot_group_state)
         self.__network.add_slot_group(slot_group_setpoints)
 
@@ -300,6 +303,7 @@ class Simulation:
         self.__easy_logger.add_data_point("INIT_XYZS", self.__ARGS.INIT_XYZS)
         self.__easy_logger.add_data_point("INIT_targets", self.__INIT_TARGETS)
 
+        self.__min_inter_drone_dist = 1e6
                                           # load testbed
         #urdf_path = os.path.dirname(os.path.abspath(__file__)) + "/../../cube/"
         #p.loadURDF(os.path.join(urdf_path, "testbed.urdf"))
@@ -317,7 +321,7 @@ class Simulation:
                     - INIT_TARGETS: np.array
         """
         num_image = 0
-        resolution_video = [1024 // 2, 576 // 2]
+        resolution_video = [self.__ARGS.resolution_video, int(self.__ARGS.resolution_video*9/16)]
         projectionMatrix_video = p.computeProjectionMatrixFOV(
             fov=45.0,
             aspect=16 / 9,
@@ -326,14 +330,14 @@ class Simulation:
         focal_length_video = resolution_video[1] / (2 * math.tan(math.pi / 180 * 45 / 2))
 
         viewMatrix4 = p.computeViewMatrix(
-            cameraEyePosition=[2, -4, 1.8],
-            cameraTargetPosition=[2, 2, 3],
+            cameraEyePosition=[-3, -3, 5],
+            cameraTargetPosition=[0, 0, 2],
             cameraUpVector=[0, 0, 1])
 
-        viewMatrix4 = p.computeViewMatrix(
+        """viewMatrix4 = p.computeViewMatrix(
             cameraEyePosition=[0, 0, 8],
             cameraTargetPosition=[0, 0, 0],
-            cameraUpVector=[1, 0, 0])
+            cameraUpVector=[1, 0, 0])"""
 
         """viewMatrix4 = p.computeViewMatrix(
             cameraEyePosition=[2, 2, 7],
@@ -385,31 +389,13 @@ class Simulation:
                 obs, reward, done, info = self.__env.step(action)
 
                 if i % (COM_EVERY_N_STEPS) == 0:
-                    # the current position should be set before the network transmits its data (in reality the measurments
-                    # are taken after the end of communication round)
 
-                    all_targets_reached = True
+                    self.__network.step()
+
+                    # the current position should be set after the network transmits its data (because the drones
+                    # send their current position predicted by the whole round time.)
                     for j in range(0, self.__ARGS.num_drones):
                         self.__agents[j].position = obs[str(j)]["state"][0:3]
-
-                        dist_to_target = np.linalg.norm(self.__agents[j].position - self.__agents[j].target_position)
-                        # set transition time only, if it's not already set to not override it
-                        reached_target = self.__agents[j].target_reached
-                        if dist_to_target < critical_dist_to_target and not reached_target:
-                            self.__agents[j].transition_time = i / self.__env.SIM_FREQ
-                            self.__agents[j].target_reached = True
-                        elif dist_to_target >= critical_dist_to_target:
-                            self.__agents[j].transition_time = None
-                            self.__agents[j].target_reached = False
-
-                        all_targets_reached = all_targets_reached and reached_target
-                        # print(self.__agents[j].traj_state[:3])
-
-                    # if all_targets_reached:
-                    #     print("all targets reached")
-
-                    # step network
-                    self.__network.step()
 
                     #for jgh in range(6):
                     #    temp = self.__computing_agents[0].get_pos(jgh)
@@ -439,7 +425,17 @@ class Simulation:
                 # (on our real system this is performed in parallel to everything else) ##############
 
                 # do low level control
-                if self.__ARGS.save_video and i % 16 == 0:
+                if self.__ARGS.save_video and i % 32 == 0:
+                    angle = 2*math.pi / 40000 * i
+                    viewMatrix4 = p.computeViewMatrix(
+                        cameraEyePosition=[3*np.sin(angle), 3*np.cos(angle), 1.5],
+                        cameraTargetPosition=[0, 0, 1.5],
+                        cameraUpVector=[0, 0, 1])
+                    intrinsic_matrix = np.array([[-focal_length_video, 0, resolution_video[0] / 2, 0],
+                                                 [0, focal_length_video, resolution_video[1] / 2, 0],
+                                                 [0, 0, 1, 0],
+                                                 [0, 0, 0, 0]])
+                    trans = np.reshape(np.array(viewMatrix4), (4, 4), 'F')
                     width, height, rgbImg, depthImg, segImg = p.getCameraImage(
                         width=resolution_video[0],
                         height=resolution_video[1],
@@ -451,26 +447,20 @@ class Simulation:
                     bgrImg[:, :, 0] = rgbImg[:, :, 2]
                     bgrImg[:, :, 2] = rgbImg[:, :, 0]
                     bgrImg = np.copy(bgrImg)
-                    color_ind = 0
-                    #for drone_id in self.__logger.positions:
-                    #    for pos in self.__logger.positions[drone_id]:
-                    #        balldetection.draw_point(bgrImg, pos, trans, intrinsic_matrix, colors[color_ind%len(colors)])
-                    #    color_ind += 1
 
                     # paint planned trajectories
                     for agent_idx in range(self.__ARGS.num_drones):
                         # draw target
-                        if self.__agents[self.__ARGS.num_drones].current_target_positions[self.__agents[agent_idx].ID] is not None:
+                        if self.__agents[self.__ARGS.num_drones].get_targets()[self.__agents[agent_idx].ID] is not None:
                             draw_circle(bgrImg,
-                                       self.__agents[self.__ARGS.num_drones].current_target_positions[self.__agents[agent_idx].ID],
+                                       self.__agents[self.__ARGS.num_drones].get_targets()[self.__agents[agent_idx].ID],
                                        trans, intrinsic_matrix,
                                        colors[agent_idx % len(colors)]
                                        )
-                        if self.__agents[self.__ARGS.num_drones].current_intermediate_target is not None:
-                            if self.__agents[agent_idx].ID in self.__agents[self.__ARGS.num_drones].current_intermediate_target:
+                        if self.__agents[self.__ARGS.num_drones].get_drone_intermediate_setpoint(self.__agents[agent_idx].ID) is not None:
                                 draw_cross(bgrImg,
-                                            self.__agents[self.__ARGS.num_drones].current_intermediate_target[
-                                                self.__agents[agent_idx].ID],
+                                            self.__agents[self.__ARGS.num_drones].get_drone_intermediate_setpoint(
+                                                self.__agents[agent_idx].ID),
                                             trans, intrinsic_matrix,
                                             colors[agent_idx % len(colors)],
                                             size=10, width=3
@@ -489,6 +479,7 @@ class Simulation:
                     num_image += 1
 
                 next_state = np.zeros((self.__ARGS.num_drones, 9))
+
                 #### Compute control for the current way point #############
                 for j in range(self.__ARGS.num_drones):
                     control_interval = 1.0 / self.__ARGS.control_freq_hz
@@ -496,7 +487,7 @@ class Simulation:
                                                        obs[str(j)]["state"][2], obs[str(j)]["state"][10],
                                                        obs[str(j)]["state"][11], obs[str(j)]["state"][12],
                                                        0, 0, 0])
-                    next_state[j, :] = np.copy(self.__agents[j].next_planned_state(control_interval))
+                    next_state[j, :] = np.copy(self.__agents[j].next_planned_state(control_interval, ))
                     # print(str(i%COM_EVERY_N_STEPS / CTRL_EVERY_N_STEPS * control_interval) + '\t' + str(next_pos[j, :]))
                     action[str(j)], _, _ = self.__ctrl[j].computeControlFromState(
                         control_timestep=self.__AGGR_PHY_STEPS * self.__env.TIMESTEP,
@@ -508,44 +499,42 @@ class Simulation:
                     if self.__ARGS.log_state:
                         self.__easy_logger.add_data_point(f"state_{j}", self.__agents[j].state)
                         self.__easy_logger.add_data_point(f"state_set{j}", copy.deepcopy(next_state[j, :]))
+
+                if self.__ARGS.log_state:
+                    self.__easy_logger.add_data_point(f"target_pos", copy.deepcopy(self.__computing_agents[0].get_targets()))
+
                 current_time += control_interval
 
                 # check if drones have crashed
                 for j in range(0, self.__ARGS.num_drones):
                     # for n in range(0, self.__ARGS.num_drones):
                     scaling_matrix = np.diag([1, 1, 1.0 / float(self.__ARGS.downwash_scaling_factor_crit)])
-                    if any([np.linalg.norm(
-                            (self.__agents[j].state[0:3] - self.__agents[
-                                n].state[0:3]) @ scaling_matrix) < self.__ARGS.r_min_crit for n in
-                            range(0, self.__ARGS.num_drones) if n != j]):
-                        print([np.linalg.norm(
-                            (self.__agents[j].position - self.__agents[n].position) @ scaling_matrix) for n in
-                            range(0, self.__ARGS.num_drones) if n != j])
-                        self.__agents[j].crashed = True
 
-                #### Log the simulation ####################################
-                if desample_time % self.__desample == 0:
-                    for j in range(self.__ARGS.num_drones):
-                        self.__logger.log(drone=j, timestamp=i / self.__env.SIM_FREQ, state=obs[str(j)]["state"],
-                                          control=np.hstack((next_state[j, :3], next_state[j, 3:6], np.zeros(6))))
-                        self.__logger.log_position(j, i / self.__env.SIM_FREQ, obs[str(j)]["state"][0:3], next_state[j, :3])
+                    inter_agent_dists = [np.linalg.norm((self.__agents[j].state[0:3] - self.__agents[n].state[0:3]) @ scaling_matrix)
+                                         for n in range(0, self.__ARGS.num_drones) if n != j]
+                    min_dist = min(inter_agent_dists)
+                    if self.__min_inter_drone_dist > min_dist:
+                        self.__min_inter_drone_dist = min_dist
+                    if min_dist < self.__ARGS.r_min_crit:
+                        """print([np.linalg.norm(
+                            (self.__agents[j].position - self.__agents[n].position) @ scaling_matrix) for n in
+                            range(0, self.__ARGS.num_drones) if n != j])"""
+                        self.__agents[j].crashed = True
 
                 desample_time += 1
                 #### Sync the simulation ###################################
                 if self.__ARGS.gui:
                     sync(i, START, self.__env.TIMESTEP)
 
-                #### Stop the simulation, if all drones reached their targets or have crashed
+                #### Stop the simulation, if all drones reached their targets or at least one agents has crashed
                 stop = True
                 stop2 = False
                 for j in range(self.__ARGS.num_drones):
+
                     stop = stop and (self.__agents[j].crashed or self.__agents[j].all_targets_reached)
+
                     if self.__agents[j].crashed:
                         stop2 = True
-                for j in range(self.__ARGS.num_computing_agents):
-                    if self.__computing_agents[j].all_targets_reached:
-                        stop2 = True
-                        break
                 if (stop or stop2) and self.__ARGS.abort_simulation:
                     break
 
@@ -567,32 +556,18 @@ class Simulation:
         self.__easy_logger.add_data_point("num_succ_optimizer_runs", num_succ_optimizer_runs)
         self.__easy_logger.add_data_point("target_reached_time", current_time)
         self.__easy_logger.add_data_point("num_targets_reached", num_targets_reached)
+        self.__easy_logger.add_data_point("min_inter_drone_dist", self.__min_inter_drone_dist)
 
         with open(
                 os.path.join(self.__ARGS.path, "simulation_result-" + str(self.__ARGS.num_drones) + "_drones_simnr_" + str(self.__id) + ".pkl"), 'wb') \
                 as out_file:
             pickle.dump(self.__easy_logger.get_data(), out_file)
+
+        if self.__ARGS.log_optimizer:
+            for ca in self.__computing_agents:
+                ca.save_log_optimizer()
+
         return True
-
-        for j in range(self.__ARGS.num_drones):
-            self.__logger.log_static(drone=j, successful=(not self.__agents[j].crashed)
-                                                         and not (self.__agents[j].transition_time is None),
-                                     transition_time=self.__agents[j].transition_time,
-                                     distance_travelled=0,
-                                     target=self.__agents[j].target_position, crashed=self.__agents[j].crashed)
-
-        av_transition_time = np.mean([self.__agents[j].transition_time for j in range(self.__ARGS.num_drones) if self.__agents[j].transition_time is not None])
-        crashed = sum([self.__agents[j].crashed for j in range(self.__ARGS.num_drones)])
-        print('Simulation ' + str(self.__id) + ' done. Average Transition Time: ' + str(np.round(av_transition_time,2)) + 's. ' + str(crashed) + ' Drones crashed.')
-
-        # save the logged data
-        self.save(self.__logger)
-
-        return self.__logger
-        #del self.__logger
-        #gc.collect()
-
-        #return True
 
     def save(self, simulation_logger):
         with open(

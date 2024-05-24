@@ -27,8 +27,8 @@
                                                                   // transformed to the type, which should be sent via spi and mixer
 #define TYPE_DUMMY 255                                            // the AP sends this message (metadata), when the CP should ignore this message (we need this, because otherwise the UART would not work)
 
-#define MAX_NUM_TX_MESSAGES 20
-#define MAX_NUM_RX_MESSAGES 20
+#define MAX_NUM_TX_MESSAGES 30
+#define MAX_NUM_RX_MESSAGES 30
 
 typedef struct __attribute__((packed)) message_t_tag
 {
@@ -79,8 +79,8 @@ typedef struct __attribute__((packed)) init_message_t_tag
 
 #define MAXIMUM_NUMBER_MESSAGES 100 // maximum number expected for one AP-CP communication round
 
-#define MAX_NUM_DRONES 15
-#define MAX_NUM_AGENTS 20
+#define MAX_NUM_DRONES 16
+#define MAX_NUM_AGENTS 25
 
 typedef struct __attribute__((packed)) trajectory_message_t_tag
 {

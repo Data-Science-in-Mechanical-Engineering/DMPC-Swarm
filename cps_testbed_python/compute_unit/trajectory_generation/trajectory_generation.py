@@ -8,7 +8,7 @@ from compute_unit.trajectory_generation.interpolation import TrajectoryCoefficie
 from compute_unit.trajectory_generation.interpolation import Interpolation
 import numpy as np
 import qpsolvers as qp
-from cvxopt import matrix, solvers
+#from cvxopt import matrix, solvers
 import copy
 import time
 import scipy.optimize as opt
@@ -489,18 +489,17 @@ class TrajectoryGenerator:
                     new_target += new_target_temp
                     num_targets += 1
                 q += temp
-        real_target_position = target_position
         if target_changed:
             pass
             #new_target /= num_targets
             #real_target_position = new_target
-        if only_change_target:
-            q = - (np.tile(real_target_position, self.__num_objective_function_sample_points) - future_pos) @ self.__P
+        if high_level_setpoints is not None:
+            print(high_level_setpoints.shape)
+            print(future_pos.shape)
+            q += - (np.reshape(high_level_setpoints, (high_level_setpoints.size,)) - future_pos) @ self.__P
+            assert False, "Untested! handle with care"
         else:
-            if high_level_setpoints is not None:
-                q += - (np.reshape(high_level_setpoints, (high_level_setpoints.size,)) - future_pos) @ self.__P
-            else:
-                q += - (np.tile(target_position, self.__num_objective_function_sample_points_pos) - future_pos) @ self.__P
+            q += - (np.tile(target_position, self.__num_objective_function_sample_points_pos) - future_pos) @ self.__P
 
         # now add weak constraints to objective function
         num_variables = num_weak_variables + self.__num_optimization_variables

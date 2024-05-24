@@ -164,7 +164,7 @@ static uint8_t			agg_input[AGGREGATE_SIZE];
 // ATTENTION: it is important to have TOS_NODE_ID in .data (not in .bss), otherwise tos-set-symbol
 // will not work
 uint16_t __attribute__((section(".data")))	TOS_NODE_ID = 0;
-#define THIS_NODE_ID 35
+#define THIS_NODE_ID 22
 //**************************************************************************************************
 //***** Global Functions ****************************************************************************
 
@@ -553,7 +553,7 @@ static void initialization(void)
 
 	printf("With current configuration: AGGREGATE_SIZE_M_C_PRIORITIES=%u, AGGREGATE_SIZE_ALL_PRIORITIES=%u\n", AGGREGATE_SIZE_M_C_PRIORITIES, AGGREGATE_SIZE_ALL_PRIORITIES);
         #endif
-	//mixer_print_config();
+	mixer_print_config();
 
 	// We send the node ID of the CP to the AP for easier deployment (no need to specify AP node ID).
 	bolt_pkt_t init_pkt = {.type = BOLT_INIT, .init.phyNodeID = TOS_NODE_ID, .init.modeID = DEFAULT_MODE};
