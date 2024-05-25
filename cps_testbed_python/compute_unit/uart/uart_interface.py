@@ -106,6 +106,9 @@ class UartInterface():
 
         """ TRY EVERY AVAILABLE PORT """
         for port in ports:
+            if port == "/dev/ttyUSB1":
+                pass
+                # continue
             try:
                 s = serial.Serial(port=port, baudrate=baudrate, timeout=1.0)
                 init_message = self.read_from_uart(s)

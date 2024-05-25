@@ -42,6 +42,7 @@
 #define STATUS_LANDED 7
 
 #define START_FROM_HAND 0
+#define LAND_AFTER_SOME_TIME 1
 #define LAUNCH_HEIGHT (START_FROM_HAND*0.0f + 1.0f)
 
 #define CF_ABS(X) ((X)>0 ? (X):-(X))
@@ -114,7 +115,7 @@ typedef struct cf_state_machine_handle_tag
 	void (*round_finished)();
 	void (*wait_cf_to_start)();
 	void (*cp_connected_callback)(uint8_t);
-	void (*get_cf_state)(float *);
+	void (*get_cf_state)(float *, uint32_t);
 	void (*launch_cf)(float, float, float);
 	void (*land_cf)();
 	uint8_t (*cf_launch_status)();
@@ -146,7 +147,7 @@ void init_cf_state_machine(cf_state_machine_handle *hstate_machine,
 							void (*round_finished)(uint32_t),
 							void (*wait_cf_to_start)(),
 							void (*cp_connected_callback)(uint8_t),
-							void (*get_cf_state)(float *),
+							void (*get_cf_state)(float *, uint32_t),
 							void (*launch_cf)(float, float, float),
 							void (*land_cf)(),
 							uint8_t (*cf_launch_status)(),
