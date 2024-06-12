@@ -1444,8 +1444,8 @@ class ComputeUnit(net.Agent):
         # check if all agents are close to target, then do nothing
         all_agents_close_to_target = True
         for drone_id in self.__drones_ids:
-            if np.linalg.norm(
-                    current_pos[drone_id] - self.get_targets()[drone_id]) > self.__options.r_min * 0.9:
+            if np.linalg.norm(self.__downwash_scaling @ (
+                    current_pos[drone_id] - self.get_targets()[drone_id])) > self.__options.r_min * 0.9:
                 all_agents_close_to_target = False
         if all_agents_close_to_target:
             self.__high_level_setpoints = {}
