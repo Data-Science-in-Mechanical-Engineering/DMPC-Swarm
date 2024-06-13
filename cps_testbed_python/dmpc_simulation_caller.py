@@ -88,18 +88,13 @@ def call_batch_simulation_param_varying(ARGS_array, folder_name, name_files="tes
 
 def call_batch_simulation_hpc(ARGS_array):
     for ARGS in ARGS_array:
-        #ARGS.path = os.path.dirname(os.path.abspath(__file__)) + f"/../../hpc_runs/{ARGS.name_job}/" \
-        #            + f"dmpc_simulation_results_iml{ARGS.ignore_message_loss}_{int(100 * ARGS.message_loss_probability + 1e-7)}_{ARGS.num_computing_agents}cus_{'quant' if ARGS.simulate_quantization else ''}"
-
-        ARGS.path = f"{ARGS.saving_path}/{ARGS.name_job}/" \
-                    + f"dmpc_simulation_results_iml{ARGS.ignore_message_loss}_{int(100 * ARGS.message_loss_probability + 1e-7)}_{ARGS.num_computing_agents}cus_{'quant' if ARGS.simulate_quantization else ''}"
+        ARGS.path = f"{ARGS.hpc_saving_path}/{ARGS.name}/" \
+                    + f"dmpc_simulation_results_iml{ARGS.ignore_message_loss}_{int(100 * ARGS.message_loss_probability + 1e-7)}_{ARGS.num_computing_agents}cus_{'quant' if ARGS.simulate_quantization else ''}_{ARGS.trigger}"
 
         create_dir(ARGS.path)
 
     #with open(ARGS_array[0].path + f"/ARGS_{ARGS_array[0].num_drones}_drones.pkl", 'wb') as out_file:
         #pickle.dump(ARGS_array, out_file)
-    if ARGS_array[0].name_job == "DAMPC":
-        ARGS_array = ARGS_array[3000:]
     print(f"Running {multiprocessing.cpu_count()} simulations in parallel.")
     max_threads = multiprocessing.cpu_count()
     p = mp.Pool(processes=np.min((max_threads, ARGS_array[0].num_simulations)), maxtasksperchild=1)  #
@@ -109,8 +104,8 @@ def call_batch_simulation_hpc(ARGS_array):
     p.join()
 
 
-def call_single_simulation(ARGS, filename):
-    ARGS.path = os.path.dirname(os.path.abspath(__file__)) + f"/../../simulation_results/dmpc/{filename}"
+def call_single_simulation(ARGS):
+    ARGS.path = os.path.dirname(os.path.abspath(__file__)) + f"/../../simulation_results/dmpc/{ARGS.name}"
     create_dir(ARGS.path)
     ARGS.sim_id = 1
     parallel_simulation_wrapper(ARGS)
@@ -137,16 +132,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='CPS Testbed Simulator')
 
-    #parser.add_argument('--param_path', default="parameters/dampc_run.yaml", type=str,
-    #                    help='yaml file for parameters', metavar='')
-    #parser.add_argument('--param_path', default="parameters/hyperparameter_opt.yaml", type=str,
-    #                    help='yaml file for parameters', metavar='')
-    parser.add_argument('--param_path', default="parameters/batch_simulation.yaml", type=str,
-    					help='yaml file for parameters', metavar='')
+    parser.add_argument('--param_path', default="parameters/hyperparameter_opt.yaml", type=str,
+                        help='yaml file for parameters', metavar='')
 
     # the following are only needed for the hpc
     parser.add_argument('-i', "--iter_id", default=None, type=int, help='id of slurm job', metavar='')
-    parser.add_argument('-n', "--name_job", default=None, type=str, help='name of params for slurm job', metavar='')
+    parser.add_argument('-n', "--name_sweep", default=None, type=str, help='name of params for slurm job', metavar='')
 
     # a lot of other parameters that need to be kept constant.
     parser.add_argument('--drone', default="cf2x", type=DroneModel, help='Drone model (default: CF2X)', metavar='',
@@ -192,7 +183,7 @@ if __name__ == "__main__":
 
     # if this is set, we are on the cluster. So make some changes.
     if ARGS.iter_id is not None:
-        ARGS.param_path = f"/work/mf724021/hpc_parameters/{ARGS.name_job}/params{ARGS.iter_id}.yaml"
+        ARGS.param_path = f"/work/mf724021/hpc_parameters/{ARGS.name}/params{ARGS.iter_id}.yaml"
 
     with open(ARGS.param_path, 'r') as file:
         params = yaml.safe_load(file)
@@ -201,9 +192,18 @@ if __name__ == "__main__":
 
     ARGS.path = os.path.dirname(os.path.abspath(__file__)) + "/../../simulation_results/dmpc/demo/"
 
-    ARGS.saving_path =  os.path.dirname(os.path.abspath(__file__)) + f"/../../simulation_results"
+    # Trigger
+    ARGS.alpha_1 = 0.0
+    ARGS.alpha_2 = 0.0
+    ARGS.alpha_3 = 0.0
+    ARGS.alpha_4 = 0
 
-    ARGS.name_job = "dmpc/demo"
+    if ARGS.trigger == "HT":
+        ARGS.alpha_1 = 1.0
+    elif ARGS.trigger == "RR":
+        ARGS.alpha_2 = 1.0
+    elif ARGS.trigger == "DT":
+        ARGS.alpha_3 = 1.0
 
     # we only simulate the vicon testbed
     ARGS.drones = {i: "Vicon" for i in range(1, ARGS.num_drones + 1)}
@@ -284,16 +284,5 @@ if __name__ == "__main__":
 
     if ARGS.run_on_cluster:
         call_batch_simulation_hpc(ARGS_array)
-        """for num_cus in [5, 7, 9, 11, 13, 15]:
-            for message_loss_prob in [0.1]:
-                for simulate_quantization in [False]:
-                    for ignore_message_loss in [False]:
-                        call_batch_simulation_param_varying(ARGS_array,
-                                                            folder_name=ARGS.folder_name,
-                                                            name_files=f"dmpc_simulation_results_iml{ignore_message_loss}_{int(100 * message_loss_prob + 1e-7)}_{num_cus}cus_{'quant' if simulate_quantization else ''}",
-                                                            message_loss_probability=message_loss_prob,
-                                                            ignore_message_loss=ignore_message_loss,
-                                                            num_cus=num_cus,
-                                                            simulate_quantization=simulate_quantization)"""
     else:
-        call_single_simulation(ARGS_array[0], ARGS.name)
+        call_single_simulation(ARGS_array[0])
