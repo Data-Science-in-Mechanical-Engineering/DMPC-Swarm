@@ -14,5 +14,5 @@ module load GCCcore/.9.3.0
 module load Python/3.8.2
 
 source venv/bin/activate
-python dmpc_simulation_caller.py -i $SLURM_ARRAY_TASK_ID -n COMPARISON_DMPC_MLR_DMPC
+python dmpc_simulation_caller.py -i $SLURM_ARRAY_TASK_ID -n
 deactivate

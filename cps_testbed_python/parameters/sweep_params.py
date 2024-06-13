@@ -40,9 +40,9 @@ if __name__ == "__main__":
     with open(param_sweep_path, "r") as file:
         params_sweep = yaml.safe_load(file)
 
-    name_sweep = params_sweep["name_sweep"][0]
-    print("Generating params for: " + name_sweep)
-    param_target_path = f"/work/mf724021/hpc_parameters/{name_sweep}/"
+    name = params_sweep["name"][0]
+    print("Generating params for: " + name)
+    param_target_path = f"/work/mf724021/hpc_parameters/{name}/"
     if not os.path.exists(param_target_path):
         os.makedirs(param_target_path)
 
