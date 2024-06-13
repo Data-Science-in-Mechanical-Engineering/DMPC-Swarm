@@ -137,7 +137,7 @@ if __name__ == "__main__":
 
     # the following are only needed for the hpc
     parser.add_argument('-i', "--iter_id", default=None, type=int, help='id of slurm job', metavar='')
-    parser.add_argument('-n', "--name_sweep", default=None, type=str, help='name of params for slurm job', metavar='')
+    parser.add_argument('-n', "--name", default=None, type=str, help='name of params for slurm job', metavar='')
 
     # a lot of other parameters that need to be kept constant.
     parser.add_argument('--drone', default="cf2x", type=DroneModel, help='Drone model (default: CF2X)', metavar='',
