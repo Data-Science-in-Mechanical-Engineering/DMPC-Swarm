@@ -61,31 +61,6 @@ def parallel_simulation_wrapper(ARGS_for_simulation):
     return None
 
 
-def call_batch_simulation_param_varying(ARGS_array, folder_name, name_files="test",
-                                        message_loss_probability=0.0, ignore_message_loss=False, num_cus=None,
-                                        simulate_quantization=False):
-    for ARGS in ARGS_array:
-        ARGS.path = os.path.dirname(os.path.abspath(__file__)) + f"/../../{folder_name}/" \
-                    + name_files
-        create_dir(ARGS.path)
-        ARGS.message_loss_probability = message_loss_probability
-        ARGS.ignore_message_loss = ignore_message_loss
-        if num_cus is not None:
-            ARGS.num_computing_agents = num_cus
-            ARGS.computing_agent_ids = [i for i in range(40, 40 + num_cus)]
-        ARGS.simulate_quantization = simulate_quantization
-
-    with open(ARGS_array[0].path + f"/ARGS_{ARGS_array[0].num_drones}_drones.pkl", 'wb') as out_file:
-        pickle.dump(ARGS_array, out_file)
-
-    max_threads = multiprocessing.cpu_count() - 2
-    p = mp.Pool(processes=np.min((max_threads, ARGS_array[0].num_simulations)), maxtasksperchild=1)  #
-    simulation_logger = [x for x in p.imap(parallel_simulation_wrapper, ARGS_array)]
-    p.close()
-    p.terminate()
-    p.join()
-
-
 def call_batch_simulation_hpc(ARGS_array):
     for ARGS in ARGS_array:
         ARGS.path = f"{ARGS.hpc_saving_path}/{ARGS.name}/" \
@@ -181,7 +156,7 @@ if __name__ == "__main__":
 
     ARGS = parser.parse_args()
 
-    # if this is set, we are on the cluster. So make some changes.
+    # if this is set, we are on the cluster. So load the parameter sweeps
     if ARGS.iter_id is not None:
         ARGS.param_path = f"/work/mf724021/hpc_parameters/{ARGS.name}/params{ARGS.iter_id}.yaml"
 

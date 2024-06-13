@@ -1,0 +1,78 @@
+name: "local_test"
+
+run_on_cluster: True
+
+# testbed setup
+computing_agent_ids: [40, 41, 42, 43]           # ids of compute units. Length of array defines number of CUs
+num_computing_agents: 3
+testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
+  Vicon: [[-2.0, -2.0, 0.3], [2.0, 2.0, 3.0], [0, 0, 0]]  #
+
+num_drones: 16
+
+# simulation setup
+run_dampc: False
+dampc_path: "/home/alex/hpc_data/DAMPC_Test/trainer"
+dampc_num_layers: 5
+dampc_num_neurons: 500
+simulated: True     # set false for real testbed (when it runs on a testbed, it saves a bit more data for debugging)
+duration_sec: 200   # duration of simulation
+abort_simulation: True  # exit simulation earlier, if drones crash or all targets reached.
+num_simulations: 1000  # number of simulations to conduct
+save_video: False
+resolution_video: 512   # width of the video in pixels. Height is calculated as resolution_video*9/16
+simulate_quantization: False  # simulate quantization during communication
+sim_steps_per_control: 4
+show_print: False
+
+log_optimizer: False
+log_optimizer_path: ""
+
+message_loss_probability: 0.03
+
+sweep_parameters: True   # to sweep number of CUs, message loss probabilities and so on
+
+hpc_saving_path: "/home/alex/Documents/003_Testbed/007_Code/hpc_runs/"
+
+#options for target points
+use_own_targets: False         # if the cus should use their own targets. This is needed, if we want to use the setpoint_creator for e.g. demos.
+
+# Logging options
+log: True
+log_state: False
+
+# Controller options
+control_steps_per_round: 12
+use_communication_freq_hz: False  #weather to calculate communication_freq_hz based on formulas for mixer rounds or to use param communication_freq_hz#
+communication_freq_hz: 5
+prediction_horizon: 15           # prediction horizon in time is prediction_horizon / communication_freq_hz
+r_min: 0.25                       # distance to used during optimization
+downwash_scaling_factor: 6
+r_min_crit: 0.12                  # simulation considers drones crashed whe drones closer than this
+downwash_scaling_factor_crit: 6
+use_soft_constraints: False      # always keep this false, true not tested
+soft_constraint_max: 0.2
+weight_soft_constraint: 0.01
+skewed_plane_BVC: False          # always keep this false, true not tested
+use_qpsolvers: True
+remove_redundant_constraints: False  # always keep false, true deprecated
+min_distance_cooperative: 0.1   # for cooperative objective function (deprecated)
+cooperative_normal_vector_noise: 0.0  # for cooperative objective function (deprecated)
+weight_cooperative: 0.0
+weight_state: 1.0
+weight_speed: 0.0001
+weight_acc: 0.005
+weight_jerk: 0.001
+weight_band: 0.5                # weight for band that introduces a rotation to the anti collisions constraints
+width_band: 0.3                 # width of the band
+ignore_message_loss: True      # ignore the occurences of message loss
+use_optimized_constraints: True  # remove!!
+guarantee_anti_collision: True   # if false uses a deprecated approach
+
+# event trigger options
+trigger: "HT"
+use_kkt_trigger: False
+
+# high level planner options to resolve deadlocks
+use_high_level_planner: True
+agent_dodge_distance: 0.5      # the distance an agent move to dodge another agent
