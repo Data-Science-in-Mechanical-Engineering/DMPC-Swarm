@@ -250,18 +250,13 @@ class Simulation:
                                                  trajectory_generator_options=trajectory_generator_options,
                                                  prediction_horizon=self.__ARGS.prediction_horizon,
                                                  num_computing_agents=self.__ARGS.num_computing_agents,
-                                                 offset=(cu_id - self.__ARGS.num_drones) * int(
-                                                          self.__ARGS.num_drones / max(
-                                                              (self.__ARGS.num_computing_agents), 1)),
                                                  alpha_1=self.__ARGS.alpha_1,
                                                  alpha_2=self.__ARGS.alpha_2, alpha_3=self.__ARGS.alpha_3, alpha_4=self.__ARGS.alpha_4,
                                                  use_kkt_trigger=self.__ARGS.use_kkt_trigger,
                                                  remove_redundant_constraints=self.__ARGS.remove_redundant_constraints,
                                                  ignore_message_loss=self.__ARGS.ignore_message_loss,
-                                                 use_high_level_planner=self.__ARGS.use_high_level_planner,
                                                  agent_dodge_distance=self.__ARGS.agent_dodge_distance,
                                                  use_own_targets=self.__ARGS.use_own_targets,
-                                                 slot_group_setpoints_id=slot_group_setpoints.id,
                                                  send_setpoints=i==self.__ARGS.num_drones,
                                                  simulated=self.__ARGS.simulated,
                                                  use_optimized_constraints=self.__ARGS.use_optimized_constraints,

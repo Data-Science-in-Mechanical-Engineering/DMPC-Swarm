@@ -128,11 +128,12 @@ if __name__ == "__main__":
 
 	ignore_message_loss = False
 	message_loss_prob = 0.01
-	num_cus = 5
+	num_cus = 3
 	simulate_quantization = False
 	num_drones = 16
 	trigger = "HT"
-	folder_name = "hpc_runs/COMPARISON_TRIGGERS"  # "simulation_results/dmpc/demo"   # hpc_runs/DMPC_MESSAGE_LOSS"
+	name = "local_test"
+	folder_name = f"hpc_runs/{name}"  # "simulation_results/dmpc/demo"   # hpc_runs/DMPC_MESSAGE_LOSS"
 	path = os.path.dirname(os.path.abspath(__file__)) + f"/../../../{folder_name}/" \
 		   + (f"dmpc_simulation_results_iml{ignore_message_loss}"
 			  f"_{int(100 * message_loss_prob + 1e-7)}_{num_cus}cus_{'quant' if simulate_quantization else ''}_{trigger}")
