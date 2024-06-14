@@ -392,6 +392,10 @@ static uint16_t process_SYS_RUN_STATE(cf_state_machine_handle *hstate_machine, a
 					if (update_data) {
 						message_to_trajectory(hstate_machine, &rx_data[i]->trajectory_message, &new_traj);
 						hstate_machine->current_traj = (rx_data[i]->trajectory_message);  // we save also this, because we then do not have to quantize the trajectory again-
+						
+						for (uint8_t j = 0; j < MAX_NUM_DRONES; j++) {
+							hstate_machine->current_traj.ids[j] = 255;
+						}
 						hstate_machine->set_current_trajectory(&new_traj);
 					}
 				}

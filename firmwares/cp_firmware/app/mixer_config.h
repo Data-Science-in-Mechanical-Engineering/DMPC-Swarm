@@ -60,7 +60,6 @@ static message_assignment_t message_assignment[] = {
                                                     {.id=21, .size=sizeof(trajectory_message_t)},
                                                     {.id=22, .size=sizeof(trajectory_message_t)},
                                                     {.id=100, .size=sizeof(state_message_t)},
-                                                    {.id=200, .size=sizeof(target_positions_message_t)}
                                                    };
 
 // with this, one can define messages, which are reserved for the whole system beforehand in the message_area.
@@ -89,13 +88,13 @@ static message_assignment_t constant_message_assignment[] = {
 
 	#define MX_ROUND_LENGTH				150 // in #slots
 	#define ROUND_PERIOD				GPI_TICK_MS_TO_HYBRID2(ROUND_LENGTH_MS)
-	#define MX_SLOT_LENGTH				8710 //GPI_TICK_US_TO_HYBRID2(1460) //GPI_TICK_US_TO_HYBRID2(1100)
+	#define MX_SLOT_LENGTH				GPI_TICK_US_TO_HYBRID2(530) //GPI_TICK_US_TO_HYBRID2(1460) //GPI_TICK_US_TO_HYBRID2(1100)
 #endif
 
 
 
 #define NUM_PLANTS				NUM_ELEMENTS(plants)
-#define MX_GENERATION_SIZE 28  // + initiator
+#define MX_GENERATION_SIZE 29  // + initiator
 
 
 // Possible values (Gpi_Radio_Mode):

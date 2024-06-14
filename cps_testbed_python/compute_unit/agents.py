@@ -47,7 +47,7 @@ class TrajectoryMessageContent:
 
 
 @dataclass
-class RecoverInformationNotifyContent:
+class TrajectoryReqMessageContent:
     cu_id: int
     drone_id: int
     prios: any
@@ -958,7 +958,7 @@ class ComputeUnit(net.Agent):
             for drone_id in self.__trajectory_tracker.keys:
                 if self.__trajectory_tracker.get_information(drone_id).is_deprecated:
                     self.__last_received_messages = {
-                        self.ID: RecoverInformationNotifyContent(cu_id=self.ID, drone_id=drone_id, prios=prios, high_level_setpoints=self.__high_level_setpoints)}
+                        self.ID: TrajectoryReqMessageContent(cu_id=self.ID, drone_id=drone_id, prios=prios, high_level_setpoints=self.__high_level_setpoints)}
                     break
             if len(self.__last_received_messages) == 0:
                 self.__system_state = NORMAL
@@ -1821,7 +1821,7 @@ class RemoteDroneAgent(net.Agent):
 
                         self.__init_state = copy.deepcopy(message.content.init_state)
                         self.__current_trajectory_calculated_by = message.content.trajectory_calculated_by
-            if isinstance(message.content, RecoverInformationNotifyContent):
+            if isinstance(message.content, TrajectoryReqMessageContent):
                 if message.content.drone_id == self.ID:
                     self.__send_trajectory_message_to.append(message.content.cu_id)
 

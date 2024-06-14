@@ -91,6 +91,8 @@ typedef struct __attribute__((packed)) trajectory_message_t_tag
 	uint8_t drone_id; // to which drone the trajectory belongs
 	uint8_t calculated_by;
         uint8_t prios[MAX_NUM_DRONES];
+        uint8_t ids[MAX_NUM_DRONES];
+        uint16_t target_positions[3 * MAX_NUM_DRONES];
 } trajectory_message_t;
 
 typedef struct __attribute__((packed)) state_message_t_tag
@@ -110,6 +112,9 @@ typedef struct __attribute__((packed)) trajectory_req_message_t_tag
         message_t header;
 	uint8_t drone_id;
 	uint8_t cu_id;
+        uint8_t prios[MAX_NUM_DRONES];
+        uint8_t ids[MAX_NUM_DRONES];
+        uint16_t target_positions[3 * MAX_NUM_DRONES];
 } trajectory_req_message_t;
 
 typedef struct __attribute__((packed)) empty_message_t_tag
@@ -117,6 +122,8 @@ typedef struct __attribute__((packed)) empty_message_t_tag
         message_t header;
 	uint8_t cu_id;
         uint8_t prios[MAX_NUM_DRONES];
+        uint8_t ids[MAX_NUM_DRONES];
+        uint16_t target_positions[3 * MAX_NUM_DRONES];
 } empty_message_t;
 
 typedef struct __attribute__((packed)) sync_movement_message_t_tag

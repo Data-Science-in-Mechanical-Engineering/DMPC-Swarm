@@ -3,24 +3,43 @@ import math
 import numpy as np
 
 def calculate_num_rounds(num_messages):
-	base_num_rounds = 100
+	base_num_rounds = 150
 	return max(3 * num_messages, base_num_rounds)
 
 
 def calculate_round_time(message_size, num_messages):
-	base_num_rounds = 100
 	num_rounds = calculate_num_rounds(num_messages)
-	T_slot = calculate_slot_time(message_size, num_messages)
+	T_slot = calculate_slot_time(message_size + 4, num_messages)  # 4 for aggregate
 	return T_slot*num_rounds / 1000
 
+def calculate_slot_time(message_size_total, num_messages):
+	MX_SLOT_LENGTH = 80000  # initial value for iterative approach, in ticks
+	RX_TO_GRID_OFFSET = 40 * 16  # ticks
+	ISR_LATENCY_BUFFER = 20 * 16  # ticks
+	MX_GENERATION_SIZE = num_messages
+	MX_PAYLOAD_SIZE = message_size_total  # B
+	PHY_PAYLOAD_SIZE = 2 + 1 + 1 + 2 * math.ceil(MX_GENERATION_SIZE / 8) + MX_PAYLOAD_SIZE  # B
+	PACKET_AIR_TIME = ((2 + 4 + 2 + PHY_PAYLOAD_SIZE + 3) * 4) * 16  # ticks
+	JITTER_TOLERANCE = 4 * 16  # ticks
 
-def calculate_slot_time(message_size, num_messages):
-	S_v = math.ceil(num_messages/8)
-	S = 12 + 2*S_v + message_size
-	T_a = (440+4*S)*1.037  # 4 us for BLW, 32 for IEEE 802.15.4
-	T_p = 600 + (26+0.155*(S_v+message_size))*num_messages+1.8*S
-	T_slot = max(T_a, T_p)
-	return T_slot
+	while True:
+		DRIFT_TOLERANCE = min(2500, max(math.ceil(MX_SLOT_LENGTH / 1000), 1))  # ticks
+		RX_WINDOW_MIN = 2 * ((3 * DRIFT_TOLERANCE) + (2 * JITTER_TOLERANCE) + 5 * 16)  # ticks
+		RX_WINDOW_INCREMENT = (3 * DRIFT_TOLERANCE) / 2  # ticks
+		RX_WINDOW_MAX = min(RX_WINDOW_MIN + (20 * RX_WINDOW_INCREMENT),
+							(MX_SLOT_LENGTH - PACKET_AIR_TIME - RX_TO_GRID_OFFSET - ISR_LATENCY_BUFFER) / 2)
+
+		min_len_slot = (PACKET_AIR_TIME + RX_TO_GRID_OFFSET + 2 * RX_WINDOW_MAX + ISR_LATENCY_BUFFER + 25 * 16) * 1.0003
+
+		if min_len_slot == MX_SLOT_LENGTH:
+			break
+		else:
+			MX_SLOT_LENGTH = min_len_slot
+
+	# print(
+	#	f'Slot time for {num_messages} msgs of {message_size} B (BLE 2M): {math.ceil(MX_SLOT_LENGTH / 16)} us (MX_SLOT_LENGTH = {math.ceil(MX_SLOT_LENGTH)})')
+
+	return math.ceil(MX_SLOT_LENGTH / 16)
 
 
 def calculate_num_messages(message_size, message_list):
@@ -46,12 +65,13 @@ if __name__ == "__main__":
 	MAX_NUM_AGENTS = 25
 	state_message_size = 2+2*9+1+2*3+2+1+1
 	print(state_message_size)
-	trajectory_message_size = 2+2*45+2*9+2+1+1 + MAX_NUM_DRONES
-	setpoint_message_size = 2 + MAX_NUM_DRONES + 3 * 2 * MAX_NUM_DRONES
+	trajectory_message_size = 2+2*45+2*9+2+1+1 + MAX_NUM_DRONES + MAX_NUM_DRONES + 3 * MAX_NUM_DRONES
+	high_level_setpoint_message_size = 2 + MAX_NUM_DRONES + 3 * MAX_NUM_DRONES
 	network_manager_message_size = 3 * MAX_NUM_AGENTS + 2
 	print(trajectory_message_size)
-	message_list = [state_message_size] + [state_message_size]*16 + [trajectory_message_size]*3 + [setpoint_message_size] + [network_manager_message_size]
-	sizes = [i for i in range(10, 100)]
+	message_list = [state_message_size] + [state_message_size]*16 + [trajectory_message_size]*3 \
+					+ [network_manager_message_size] # + [high_level_setpoint_message_size] * 3
+	sizes = [i for i in range(65, 150)]
 	num_messages = [calculate_num_messages(s, message_list) for s in sizes]
 	round_times = [calculate_round_time(sizes[i], num_messages[i]) for i in range(len(sizes))]
 	num_rounds = [calculate_num_rounds(num_messages[i]) for i in range(len(sizes))]

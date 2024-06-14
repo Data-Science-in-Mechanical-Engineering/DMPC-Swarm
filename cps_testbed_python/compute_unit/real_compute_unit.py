@@ -130,14 +130,47 @@ STATUS_LANDED = 7
 MAX_NUM_DRONES = 16
 MAX_NUM_AGENTS = 25
 
+def get_high_level_setpoints(self):
+    tp = {}
+    for i in range(MAX_NUM_DRONES):
+        agent_id = self.get_content("ids")[i]
+        # then this is a valid target position
+        if agent_id != 255:
+            tp[agent_id] = np.array([0.0, 0.0, 0.0])
+            for j in range(3):
+                tp[agent_id][j] = float(dequantize_pos(int(self.get_content("high_level_setpoints")[i*3 + j])))
+    return tp
+
+
+def set_high_level_setpoints(self, tp):
+    if tp is None:
+            ids = []
+    else:
+        ids = list(tp.keys())
+    while len(ids) < MAX_NUM_DRONES:
+        ids.append(255)
+    self.set_content({"ids": np.array(ids, dtype=self.get_data_type("ids"))})
+
+    target_pos = []
+    if tp is not None:
+        for k in tp:
+            if k != 255:
+                target_pos.append(quantize_pos(tp[k][0]))
+                target_pos.append(quantize_pos(tp[k][1]))
+                target_pos.append(quantize_pos(tp[k][2]))
+    while len(target_pos) < 3*MAX_NUM_DRONES:
+        target_pos.append(0)
+
+    self.set_content({"high_level_setpoints": np.array(target_pos, dtype=self.get_data_type("high_level_setpoints"))})
+
 
 class TrajectoryMessage(message.MessageType):
 
     def __init__(self):
         super().__init__(
-            ["type", "id", "trajectory", "init_state", "trajectory_start_time", "drone_id", "calculated_by", "prios"],
+            ["type", "id", "trajectory", "init_state", "trajectory_start_time", "drone_id", "calculated_by", "prios", "ids", "high_level_setpoints"],
             [("uint8_t", 1), ("uint8_t", 1), ("uint16_t", 45), ("uint16_t", 9), ("uint16_t", 1), ("uint8_t", 1),
-             ("uint8_t", 1), ("uint8_t", MAX_NUM_DRONES)])
+             ("uint8_t", 1), ("uint8_t", MAX_NUM_DRONES), ("uint8_t", MAX_NUM_DRONES), ("uint16_t", 3*MAX_NUM_DRONES)])
         self.set_content({"type": np.array([TYPE_TRAJECTORY], dtype=self.get_data_type("type"))})
 
     def set_content(self, content):
@@ -243,6 +276,14 @@ class TrajectoryMessage(message.MessageType):
         while len(prios) < MAX_NUM_DRONES:
             prios.append(0)
         self.set_content({"prios": np.array(prios, dtype=self.get_data_type("prios"))})
+
+    @property
+    def high_level_setpoints(self):
+        return get_high_level_setpoints(self)
+
+    @high_level_setpoints.setter
+    def high_level_setpoints(self, tp):
+        set_high_level_setpoints(self, tp)
 
 
 class StateMessage(message.MessageType):
@@ -361,8 +402,8 @@ class TrajectoryReqMessage(message.MessageType):
 
     def __init__(self):
         super().__init__(
-            ["type", "id", "drone_id", "cu_id"],
-            [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1)])
+            ["type", "id", "drone_id", "cu_id", "prios", "ids", "high_level_setpoints"],
+            [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint8_t", MAX_NUM_DRONES), ("uint8_t", MAX_NUM_DRONES), ("uint16_t", 3*MAX_NUM_DRONES)])
         self.set_content({"type": np.array([TYPE_REQ_TRAJECTORY], dtype=self.get_data_type("type"))})
 
     def set_content(self, content):
@@ -394,13 +435,61 @@ class TrajectoryReqMessage(message.MessageType):
     def cu_id(self, cu_id):
         self.set_content({"cu_id": np.array([cu_id], dtype=self.get_data_type("cu_id"))})
 
+    @property
+    def prios(self):
+        return self.get_content("prios")
+
+    @prios.setter
+    def prios(self, prios):
+        if isinstance(prios, list):
+            prios = copy.deepcopy(prios)
+        else:
+            prios = copy.deepcopy(prios.tolist())
+        while len(prios) < MAX_NUM_DRONES:
+            prios.append(0)
+        self.set_content({"prios": np.array(prios, dtype=self.get_data_type("prios"))})
+
+    @property
+    def high_level_setpoints(self):
+        tp = {}
+        for i in range(MAX_NUM_DRONES):
+            agent_id = self.get_content("ids")[i]
+            # then this is a valid target position
+            if agent_id != 255:
+                tp[agent_id] = np.array([0.0, 0.0, 0.0])
+                for j in range(3):
+                    tp[agent_id][j] = float(dequantize_pos(int(self.get_content("high_level_setpoints")[i*3 + j])))
+        return tp
+
+    @high_level_setpoints.setter
+    def high_level_setpoints(self, tp):
+        if tp is None:
+            ids = []
+        else:
+            ids = list(tp.keys())
+        while len(ids) < MAX_NUM_DRONES:
+            ids.append(255)
+        self.set_content({"ids": np.array(ids, dtype=self.get_data_type("ids"))})
+
+        target_pos = []
+        if tp is not None:
+            for k in tp:
+                if k != 255:
+                    target_pos.append(quantize_pos(tp[k][0]))
+                    target_pos.append(quantize_pos(tp[k][1]))
+                    target_pos.append(quantize_pos(tp[k][2]))
+        while len(target_pos) < 3*MAX_NUM_DRONES:
+            target_pos.append(0)
+
+        self.set_content({"high_level_setpoints": np.array(target_pos, dtype=self.get_data_type("high_level_setpoints"))})
+
 
 class EmptyMessage(message.MessageType):
 
     def __init__(self):
         super().__init__(
-            ["type", "id", "cu_id", "prios"],
-            [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint8_t", MAX_NUM_DRONES)])
+            ["type", "id", "cu_id", "prios", "ids", "high_level_setpoints"],
+            [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint8_t", MAX_NUM_DRONES), ("uint8_t", MAX_NUM_DRONES), ("uint16_t", 3*MAX_NUM_DRONES)])
         self.set_content({"type": np.array([TYPE_EMTPY_MESSAGE], dtype=self.get_data_type("type"))})
 
     def set_content(self, content):
@@ -438,32 +527,8 @@ class EmptyMessage(message.MessageType):
             prios.append(0)
         self.set_content({"prios": np.array(prios, dtype=self.get_data_type("prios"))})
 
-
-class TargetPositionsMessage(message.MessageType):
-    def __init__(self):
-        super().__init__(["type", "id", "ids", "target_positions"],
-                         [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", MAX_NUM_DRONES), ("uint16_t", 3*MAX_NUM_DRONES)])
-        self.set_content({"type": np.array([TYPE_TARGET_POSITIONS_MESSAGE], dtype=self.get_data_type("type"))})
-
-    def set_content(self, content):
-        if "type" in content:
-            assert content["type"] == TYPE_TARGET_POSITIONS_MESSAGE
-        super().set_content(content)
-
     @property
-    def type(self):
-        return self.get_content("type")[0]
-
-    @property
-    def m_id(self):
-        return self.get_content("id")[0]
-
-    @m_id.setter
-    def m_id(self, mid):
-        self.set_content({"id": np.array([mid], dtype=self.get_data_type("id"))})
-
-    @property
-    def target_positions(self):
+    def high_level_setpoints(self):
         tp = {}
         for i in range(MAX_NUM_DRONES):
             agent_id = self.get_content("ids")[i]
@@ -471,11 +536,11 @@ class TargetPositionsMessage(message.MessageType):
             if agent_id != 255:
                 tp[agent_id] = np.array([0.0, 0.0, 0.0])
                 for j in range(3):
-                    tp[agent_id][j] = float(dequantize_pos(int(self.get_content("target_positions")[i*3 + j])))
+                    tp[agent_id][j] = float(dequantize_pos(int(self.get_content("high_level_setpoints")[i*3 + j])))
         return tp
 
-    @target_positions.setter
-    def target_positions(self, tp):
+    @high_level_setpoints.setter
+    def high_level_setpoints(self, tp):
         if tp is None:
             ids = []
         else:
@@ -494,7 +559,7 @@ class TargetPositionsMessage(message.MessageType):
         while len(target_pos) < 3*MAX_NUM_DRONES:
             target_pos.append(0)
 
-        self.set_content({"target_positions": np.array(target_pos, dtype=self.get_data_type("target_positions"))})
+        self.set_content({"high_level_setpoints": np.array(target_pos, dtype=self.get_data_type("high_level_setpoints"))})
 
 
 class MetadataMessage(message.MessageType):
@@ -1011,7 +1076,7 @@ class ComputingUnit:
 
             m_temp = None
             if isinstance(m, EmptyMessage):
-                content_temp = da.EmtpyContent(prios=m.prios[0:len(self.__drones_in_swarm)])
+                content_temp = da.EmtpyContent(prios=m.prios[0:len(self.__drones_in_swarm)], high_level_setpoints=m.high_level_setpoints)
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
             elif isinstance(m, StateMessage):
@@ -1030,11 +1095,14 @@ class ComputingUnit:
                                                            init_state=m.init_state,
                                                            trajectory_start_time=m.trajectory_start_time / self.__ARGS.communication_freq_hz,
                                                            trajectory_calculated_by=m.calculated_by,
-                                                           prios=m.prios[0:len(self.__drones_in_swarm)])
+                                                           prios=m.prios[0:len(self.__drones_in_swarm)],
+                                                           high_level_setpoints=m.high_level_setpoints)
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
             elif isinstance(m, TrajectoryReqMessage):
-                content_temp = da.RecoverInformationNotifyContent(cu_id=m.cu_id, drone_id=m.drone_id)
+                content_temp = da.TrajectoryReqMessageContent(cu_id=m.cu_id, drone_id=m.drone_id, 
+                                                              prios=m.prios[0:len(self.__drones_in_swarm)], 
+                                                              high_level_setpoints=m.high_level_setpoints)
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
             elif isinstance(m, NetworkAreaFreeMessage):
@@ -1092,12 +1160,15 @@ class ComputingUnit:
             m_temp.m_id = traj_message.ID
             m_temp.cu_id = self.__cu_id
             m_temp.prios = traj_message.content.prios
+            m_temp.high_level_setpoints = traj_message.content.high_level_setpoints
             messages_tx.append(m_temp)
         elif isinstance(traj_message.content, da.RecoverInformationNotifyContent):
             m_temp = TrajectoryReqMessage()
             m_temp.m_id = traj_message.ID
             m_temp.drone_id = traj_message.content.drone_id
             m_temp.cu_id = traj_message.content.cu_id
+            m_temp.prios = traj_message.content.prios
+            m_temp.high_level_setpoints = traj_message.content.high_level_setpoints
             self.print(f"Requesting new trajectory! {m_temp.drone_id}, {traj_message.content.drone_id}, {m_temp.cu_id}")
             messages_tx.append(m_temp)
 
