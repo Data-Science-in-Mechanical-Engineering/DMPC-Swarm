@@ -7,11 +7,11 @@ import pickle as p
 
 def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
     colors = ["b", "r", "g", "k"]
-    for i, name_trigger in enumerate(["RR, DT, HT"]):   # "DMPC_RR", "DMPC_HT", "DMPC_DT", "COMPARISON_DMPC_MLR_DMPC"
+    for i, name_trigger in enumerate(["RR", "DT", "HT"]):   # "DMPC_RR", "DMPC_HT", "DMPC_DT", "COMPARISON_DMPC_MLR_DMPC"
         target_reached_times = []
         cu_numbers = [1, 2, 3, 4] + [i for i in range(5, 11, 2)]
         for num_cus in cu_numbers:
-            path = f"../../../hpc_runs/COMPARE_TRIGGERS/" \
+            path = f"../../hpc_runs/COMPARISON_TRIGGERS/" \
                    f"dmpc_simulation_results_iml{ignore_message_loss}_{int(round(100 * message_loss))}_{num_cus}cus_{'quant' if quant else ''}_{name_trigger}"
             print(path)
             # f"dmpc/dmpc_simulation_results_iml{ignore_message_loss}_{int(round(100 * message_loss))}_{num_cus}cus_{'' if not quant else 'quant'}"
@@ -24,6 +24,7 @@ def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
             for f in files:
                 result = p.load(open(f, "rb"))
                 if result["crashed"][0]:
+                    assert False
                     continue
                 target_reached_time.append(result["target_reached_time"][0])
             print(len(target_reached_time))
@@ -42,7 +43,7 @@ def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
 
         df = pd.DataFrame(data=boxplot_data)
         df.to_csv(
-            f"../../../experiment_measurements/ArrivalTime_UAVs{num_drones}_{name_trigger}.csv",
+            f"../../experiment_measurements/ArrivalTime_UAVs{num_drones}_{name_trigger}.csv",
             sep=" ", header=False, index=False)
 
 
@@ -53,4 +54,4 @@ def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
     plt.show()
 
 if __name__ == "__main__":
-    plot_comparison(num_drones=16, message_loss=0.01, ignore_message_loss=False, quant=False)
+    plot_comparison(num_drones=10, message_loss=0.01, ignore_message_loss=False, quant=False)

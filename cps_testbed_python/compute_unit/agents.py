@@ -769,7 +769,7 @@ class ComputeUnit(net.Agent):
             self.__current_time = round_nmbr * self.__communication_delta_t
 
         if len(self.__drones_ids) == 0:
-            self.__last_received_messages = {self.ID: EmtpyContent([])}
+            self.__last_received_messages = {self.ID: EmtpyContent([], {})}
             return
 
         n = int(round(self.__current_time / self.__communication_delta_t))
@@ -869,20 +869,20 @@ class ComputeUnit(net.Agent):
             if not all_init_states_known:
                 # self.__update_information_tracker()
                 self.__number_rounds = self.__number_rounds + 1
-                self.__last_received_messages = {self.ID: EmtpyContent([])}
+                self.__last_received_messages = {self.ID: EmtpyContent([], {})}
                 self.__current_time = self.__current_time + self.__communication_delta_t
                 return
 
             if len(self.__drones_ids) <= self.__comp_agent_prio:
                 prios = self.calc_prio()
-                self.__last_received_messages = {self.ID: EmtpyContent(prios)}
+                self.__last_received_messages = {self.ID: EmtpyContent(prios, self.__high_level_setpoints)}
             else:
                 # if an agent leaves, the prios might still be using the old swarm setup,
                 # then, do calculate nothing.
                 if len(self.__prio_consensus) > len(self.__drones_ids) or len(
                         self.__drones_ids) < self.__min_num_drones:
                     prios = self.calc_prio()
-                    self.__last_received_messages = {self.ID: EmtpyContent(prios)}
+                    self.__last_received_messages = {self.ID: EmtpyContent(prios, self.__high_level_setpoints)}
                 else:
                     # select next agent
                     # ordered_indexes = self.order_agents_by_priority()
@@ -935,7 +935,7 @@ class ComputeUnit(net.Agent):
                                                                   trajectory_calculated_by=self.ID,
                                                                   id=current_id, prios=prios, high_level_setpoints=self.__high_level_setpoints)}
                         else:
-                            self.__last_received_messages = {self.ID: EmtpyContent(prios)}
+                            self.__last_received_messages = {self.ID: EmtpyContent(prios, self.__high_level_setpoints)}
                         self.print('Distance to target for Agent ' + str(current_id) + ': ' + str(np.linalg.norm(
                             self.__trajectory_tracker.get_information(current_id).content[0].current_state[0:3] -
                             self.get_targets()[current_id])) + " m.")
@@ -963,7 +963,7 @@ class ComputeUnit(net.Agent):
             if len(self.__last_received_messages) == 0:
                 self.__system_state = NORMAL
                 prios = self.calc_prio()
-                self.__last_received_messages = {self.ID: EmtpyContent(prios)}
+                self.__last_received_messages = {self.ID: EmtpyContent(prios, self. __high_level_setpoints)}
             else:
                 self.__system_state = WAIT_FOR_UPDATE
         elif self.__system_state == WAIT_FOR_UPDATE:
