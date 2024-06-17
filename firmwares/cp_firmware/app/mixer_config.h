@@ -65,8 +65,7 @@ static message_assignment_t message_assignment[] = {
 // with this, one can define messages, which are reserved for the whole system beforehand in the message_area.
 // for the swarm, we reserve one for the shutdown-message and one for the target positions.
 static message_assignment_t constant_message_assignment[] = {
-                                                    {.id=100, .size=sizeof(state_message_t)}, 
-                                                    {.id=200, .size=sizeof(target_positions_message_t)}};
+                                                    {.id=100, .size=sizeof(state_message_t)}};
 
 /*{{.id=1, .size=sizeof(state_message_t)}, 
                                                     {.id=2, .size=sizeof(state_message_t)},
@@ -94,7 +93,7 @@ static message_assignment_t constant_message_assignment[] = {
 
 
 #define NUM_PLANTS				NUM_ELEMENTS(plants)
-#define MX_GENERATION_SIZE 29  // + initiator
+#define MX_GENERATION_SIZE 32  // + initiator
 
 
 // Possible values (Gpi_Radio_Mode):

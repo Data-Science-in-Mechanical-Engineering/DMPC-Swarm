@@ -65,8 +65,8 @@ if __name__ == "__main__":
 	MAX_NUM_AGENTS = 25
 	state_message_size = 2+2*9+1+2*3+2+1+1
 	print(state_message_size)
-	trajectory_message_size = 2+2*45+2*9+2+1+1 + MAX_NUM_DRONES + MAX_NUM_DRONES + 3 * MAX_NUM_DRONES
-	high_level_setpoint_message_size = 2 + MAX_NUM_DRONES + 3 * MAX_NUM_DRONES
+	trajectory_message_size = 2+2*45+2*9+2+1+1 + MAX_NUM_DRONES + MAX_NUM_DRONES + 2 * 3 * MAX_NUM_DRONES
+	high_level_setpoint_message_size = 2 + MAX_NUM_DRONES + 2 * 3 * MAX_NUM_DRONES
 	network_manager_message_size = 3 * MAX_NUM_AGENTS + 2
 	print(trajectory_message_size)
 	message_list = [state_message_size] + [state_message_size]*16 + [trajectory_message_size]*3 \
@@ -86,8 +86,6 @@ if __name__ == "__main__":
 	print(f"#define MX_ROUND_LENGTH {num_rounds[best_ind]}")
 	print(f"#define MX_SLOT_LENGTH GPI_TICK_US_TO_HYBRID2({round(slot_times[best_ind])})")
 	print(f"#define MX_GENERATION_SIZE {num_messages[best_ind]}")
-	print(np.sum(np.array(message_list)))
-	print(state_message_size)
 	fig = plt.figure()
 	plt.plot(sizes, num_messages)
 	plt.xlabel("Mixer messages size")
