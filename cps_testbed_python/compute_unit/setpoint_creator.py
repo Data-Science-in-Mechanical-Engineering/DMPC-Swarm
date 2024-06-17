@@ -119,6 +119,10 @@ class SetpointCreator:
 		self.__new_round = True
 
 	@property
+	def demo_setpoints(self):
+		return self.__demo_setpoints
+
+	@property
 	def drones(self):
 		return self.__drones
 
@@ -195,15 +199,15 @@ class SetpointCreator:
 		return self.__current_setpoints[drone_id]
 
 	def generate_new_circle_setpoint(self, drone_id):
-		if drone_id == 10:
-			drone_id = 2
+		# if drone_id == 10:
+		# 	drone_id = 2
 		name_testbed = self.__drones[drone_id]
 		angle_offset = 0
-		if self.__round%200 >= 100:
+		if self.__round%300 >= 150:
 			angle_offset = math.pi
 
 		offset = np.array(self.__testbeds[name_testbed][2])
-		angle = 2 * math.pi * drone_id / 6 + angle_offset
+		angle = 2 * math.pi * drone_id / len(self.__angles) + angle_offset
 		dpos = [1.5, 1.5, 1.5]
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0.8]) + offset
 

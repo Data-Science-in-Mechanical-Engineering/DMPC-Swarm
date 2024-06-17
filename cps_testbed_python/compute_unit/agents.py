@@ -403,7 +403,6 @@ class ComputeUnit(net.Agent):
     def load_trigger(self, trigger):
         self.__trigger = trigger
 
-    
     def reassign_high_level_planner_drones(self):
             """
             Reassigns high-level planner drones based on the number of computing agents.
@@ -413,23 +412,31 @@ class ComputeUnit(net.Agent):
             Returns:
                 None
             """
+            if len(self.__drones_ids) == 0:
+                return
+
             self.__high_level_planner_drones = []
 
-            chunk_size = int(np.ceil(len(self.__drones_ids) / self.__num_computing_agents))
+            chunk_size = int(len(self.__drones_ids) // self.__num_computing_agents)
 
             num_cu_one_more = len(self.__drones_ids) % self.__num_computing_agents
-            
-            # the first CUs tage one more drone. E.g., if we have 8 Drones and 3 CUs, then Cu1 takes 3, CU2 takes 3 and CU3 takes 2 drones
-            start_idx = min(num_cu_one_more, self.__comp_agent_prio) * chunk_size
 
-            if self.__comp_agent_prio >= num_cu_one_more:
-                chunk_size -= 1
-                start_idx += (self.__comp_agent_prio - num_cu_one_more) * chunk_size
+            chunk_sizes = [chunk_size for _ in range(self.__num_computing_agents)]
+            i = 0
+            while i < num_cu_one_more:
+                chunk_sizes[i] += 1
+                i += 1
 
-            for drone_id in self.__drones_ids[start_idx:start_idx + chunk_size]:
+            start_idx = sum(chunk_sizes[0:self.__comp_agent_idx])
+
+            print(chunk_sizes)
+            print(self.__drones_ids)
+
+            for drone_id in self.__drones_ids[start_idx:start_idx+chunk_sizes[self.__comp_agent_idx]]:
                 self.__high_level_planner_drones.append(drone_id)
 
-    
+            self.__recalculate_setpoints = True
+
     def add_new_drone(self, m_id):
         last_trajectory = None
 
