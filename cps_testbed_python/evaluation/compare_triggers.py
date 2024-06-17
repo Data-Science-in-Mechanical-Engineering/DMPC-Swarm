@@ -54,4 +54,4 @@ def plot_comparison(num_drones, message_loss, ignore_message_loss, quant):
     plt.show()
 
 if __name__ == "__main__":
-    plot_comparison(num_drones=10, message_loss=0.01, ignore_message_loss=False, quant=False)
+    plot_comparison(num_drones=16, message_loss=0.01, ignore_message_loss=False, quant=False)

@@ -526,6 +526,10 @@ class ComputeUnit(net.Agent):
             if len(self.__last_received_messages) == 0:
                 return None
             copy_message = copy.deepcopy(self.__last_received_messages[self.ID])
+
+            assert list(copy_message.high_level_setpoints.keys()) == self.__high_level_planner_drones or len(copy_message.high_level_setpoints) == 0, \
+                f"{self.__high_level_planner_drones} != {list(copy_message.high_level_setpoints.keys())}"
+
             if isinstance(copy_message, TrajectoryMessageContent):
                 copy_message.init_state[0:3] -= self.__pos_offset[copy_message.id]
                 copy_message = copy_message if not self.__simulate_quantization else simulate_quantization_trajectory_message(
@@ -1520,7 +1524,7 @@ class ComputeUnit(net.Agent):
         print(f"detect: {start_time - time.time()}")
         start_time = time.time()
         # calculate intermediate targets based on a similar algorithm given in Park et al. 2020
-        self.__high_level_setpoints = {drone_id: self.get_targets()[drone_id] for drone_id in self.__drones_ids}
+        self.__high_level_setpoints = {drone_id: self.get_targets()[drone_id] for drone_id in self.__high_level_planner_drones}
         self.__deadlock_breaker_agents = []
 
         # now for every assigned drone, check if we need to dodge another drone.
