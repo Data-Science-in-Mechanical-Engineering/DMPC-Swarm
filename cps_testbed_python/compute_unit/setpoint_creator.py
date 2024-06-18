@@ -598,13 +598,13 @@ class SetpointCreator:
 		if drone_id > 16:
 			return np.array([0.0, 0.0, 0.0])
 		self.__state_demo_ai_week = "RETURN"
-		if self.__round > 160:
+		if self.__round > 170:
 			self.__state_demo_ai_week = "PYRAMID"
-		if self.__round > 260:
+		if self.__round > 280:
 			self.__state_demo_ai_week = "SQUARE"
-		if self.__round > 360:
+		if self.__round > 390:
 			self.__state_demo_ai_week = "SPHERE"
-		if self.__round > 460:
+		if self.__round > 500:
 			self.__state_demo_ai_week = "RETURN"
 
 		if self.__state_demo_ai_week == "IDLE":

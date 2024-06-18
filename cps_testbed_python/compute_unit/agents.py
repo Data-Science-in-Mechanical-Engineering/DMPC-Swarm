@@ -291,7 +291,7 @@ class ComputeUnit(net.Agent):
         self.__current_agent = 0
 
         self.__drones_ids = []
-        self.__num_computing_agents = num_computing_agents
+        self.__num_computing_agents = len(self.__computing_agents_ids)
 
         # precalculate such that optimization is faster (speedup of ~ 60%)
         self.__input_trajectory_vector_matrix = []
