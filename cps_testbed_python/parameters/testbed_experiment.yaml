@@ -2,7 +2,7 @@ name: "testbed_experiment_demo_one_CU"
 
 # testbed setup
 computing_agent_ids: [20, 21]           # ids of compute units. Length of array defines number of CUs
-num_computing_agents: 2
+num_computing_agents: 1
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
   Vicon: [[-1.7, -1.7, 0.4], [1.7, 1.7, 3.0], [0, 0, 0]]  #
   Mobile: [[-1.1, -1.1, 0.5], [1.1, 1.1, 1.1], [0, 0, 0]]
