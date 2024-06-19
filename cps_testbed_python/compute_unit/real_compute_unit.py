@@ -1236,7 +1236,6 @@ class ComputingUnit:
                                                 trajectory_generator_options=trajectory_generator_options,
                                                 pos_offset=self.__ARGS.pos_offset,
                                                 prediction_horizon=self.__ARGS.prediction_horizon,
-                                                num_computing_agents=self.__ARGS.num_computing_agents,
                                                 alpha_1=self.__ARGS.alpha_1, alpha_2=self.__ARGS.alpha_2,
                                                 alpha_3=self.__ARGS.alpha_3, alpha_4=self.__ARGS.alpha_4,
                                                 remove_redundant_constraints=self.__ARGS.remove_redundant_constraints,

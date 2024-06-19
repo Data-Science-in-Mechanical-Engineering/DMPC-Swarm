@@ -195,7 +195,7 @@ class ComputeUnit(net.Agent):
     def __init__(self, ID, slot_group_planned_trajectory_id,
                  slot_group_drone_state,
                  communication_delta_t,
-                 trajectory_generator_options, pos_offset, prediction_horizon, num_computing_agents,
+                 trajectory_generator_options, pos_offset, prediction_horizon,
                  computing_agents_ids, setpoint_creator,
                  alpha_1=10, alpha_2=1000, alpha_3=1 * 0, alpha_4=0, use_kkt_trigger=False, remove_redundant_constraints=False,
                  slot_group_state_id=None, ignore_message_loss=False, use_own_targets=False,
@@ -291,7 +291,6 @@ class ComputeUnit(net.Agent):
         self.__current_agent = 0
 
         self.__drones_ids = []
-        self.__num_computing_agents = num_computing_agents
 
         # precalculate such that optimization is faster (speedup of ~ 60%)
         self.__input_trajectory_vector_matrix = []
@@ -412,16 +411,16 @@ class ComputeUnit(net.Agent):
             Returns:
                 None
             """
-            if len(self.__drones_ids) == 0:
+            if self.num_drones == 0:
                 return
 
             self.__high_level_planner_drones = []
 
-            chunk_size = int(len(self.__drones_ids) // self.__num_computing_agents)
+            chunk_size = int(self.num_drones // self.num_computing_agents)
 
-            num_cu_one_more = len(self.__drones_ids) % self.__num_computing_agents
+            num_cu_one_more = self.num_drones % self.num_computing_agents
 
-            chunk_sizes = [chunk_size for _ in range(self.__num_computing_agents)]
+            chunk_sizes = [chunk_size for _ in range(self.num_computing_agents)]
             i = 0
             while i < num_cu_one_more:
                 chunk_sizes[i] += 1
@@ -429,8 +428,8 @@ class ComputeUnit(net.Agent):
 
             start_idx = sum(chunk_sizes[0:self.__comp_agent_idx])
 
-            print(chunk_sizes)
-            print(self.__drones_ids)
+            self.print(chunk_sizes)
+            self.print(self.__drones_ids)
 
             for drone_id in self.__drones_ids[start_idx:start_idx+chunk_sizes[self.__comp_agent_idx]]:
                 self.__high_level_planner_drones.append(drone_id)
@@ -483,7 +482,6 @@ class ComputeUnit(net.Agent):
     def add_new_computation_agent(self, m_id):
         self.__computing_agents_ids.append(m_id)
         self.__computing_agents_ids.sort()
-        self.__num_computing_agents = len(self.__computing_agents_ids)
         self.__comp_agent_prio = self.__computing_agents_ids.index(self.ID)
         self.__comp_agent_idx = self.__computing_agents_ids.index(self.ID)
 
@@ -495,7 +493,6 @@ class ComputeUnit(net.Agent):
 
         self.__computing_agents_ids.remove(m_id)
         self.__computing_agents_ids.sort()
-        self.__num_computing_agents = len(self.__computing_agents_ids)
         self.__comp_agent_prio = self.__computing_agents_ids.index(self.ID)
         self.__comp_agent_idx = self.__computing_agents_ids.index(self.ID)
 
@@ -703,7 +700,7 @@ class ComputeUnit(net.Agent):
         delay_timesteps = self.__communication_delta_t / (self.__options.collision_constraint_sample_points[1] -
                                                           self.__options.collision_constraint_sample_points[0])
         delay_timesteps = int(np.round(delay_timesteps, 0))  # needs to be rounded because if of float inaccuracies
-        for i in range(0, len(self.__drones_ids)):
+        for i in range(0, self.num_drones):
             id = self.__drones_ids[i]
             for trajectory in self.__trajectory_tracker.get_information(id).content:
                 if trajectory.init_state is None:
@@ -727,7 +724,7 @@ class ComputeUnit(net.Agent):
                         [trajectory.last_trajectory[min((j + delay_timesteps, len(trajectory.last_trajectory) - 1))]
                          for j in range(len(trajectory.last_trajectory))])
         # update states
-        for i in range(0, len(self.__drones_ids)):
+        for i in range(0, self.num_drones):
             id = self.__drones_ids[i]
             for trajectory in self.__trajectory_tracker.get_information(id).content:
                 if trajectory.init_state is None:
@@ -750,7 +747,7 @@ class ComputeUnit(net.Agent):
             trajectories = {}
             current_target_positions = {}
             intermediate_targets = {}
-            for i in range(0, len(self.__drones_ids)):
+            for i in range(0, self.num_drones):
                 trajectories[self.__drones_ids[i]] = \
                 self.__trajectory_tracker.get_information(self.__drones_ids[i]).content[0].last_trajectory
 
@@ -779,12 +776,12 @@ class ComputeUnit(net.Agent):
         if round_nmbr is not None:
             self.__current_time = round_nmbr * self.__communication_delta_t
 
-        if len(self.__drones_ids) == 0:
+        if self.num_drones == 0:
             self.__last_received_messages = {self.ID: EmtpyContent([], {})}
             return
 
         n = int(round(self.__current_time / self.__communication_delta_t))
-        self.__comp_agent_prio = (self.__comp_agent_idx + n) % self.__num_computing_agents
+        self.__comp_agent_prio = (self.__comp_agent_idx + n) % self.num_computing_agents
 
         # if information is not unique at this point, we know that one drone was not able to verify that it got the
         # trajectory (because the acknowledge-message was lost). This means that at this point the trajectories saved
@@ -844,7 +841,7 @@ class ComputeUnit(net.Agent):
                         self.__prio_consensus[i] = trajectory.prios[i]
 
         if len(self.__prio_consensus) == 0:
-            self.__prio_consensus = [1 for _ in range(len(self.__drones_ids))]
+            self.__prio_consensus = [1 for _ in range(self.num_drones)]
 
         # check if a message from another CU was not received. If one was not received, we do not know which information is
         # deprecated, we thus have to check this in the next round
@@ -884,13 +881,13 @@ class ComputeUnit(net.Agent):
                 self.__current_time = self.__current_time + self.__communication_delta_t
                 return
 
-            if len(self.__drones_ids) <= self.__comp_agent_prio:
+            if self.num_drones <= self.__comp_agent_prio:
                 prios = self.calc_prio()
                 self.__last_received_messages = {self.ID: EmtpyContent(prios, self.__high_level_setpoints)}
             else:
                 # if an agent leaves, the prios might still be using the old swarm setup,
                 # then, do calculate nothing.
-                if len(self.__prio_consensus) > len(self.__drones_ids) or len(
+                if len(self.__prio_consensus) > self.num_drones or len(
                         self.__drones_ids) < self.__min_num_drones:
                     prios = self.calc_prio()
                     self.__last_received_messages = {self.ID: EmtpyContent(prios, self.__high_level_setpoints)}
@@ -912,7 +909,7 @@ class ComputeUnit(net.Agent):
                         for lkj in range(len(self.__trigger["round"])):
                             if self.__trigger["round"][lkj] == int(
                                     round(self.__current_time / self.__communication_delta_t)):
-                                for key in range(len(self.__drones_ids)):
+                                for key in range(self.num_drones):
                                     if self.__drones_ids[key] == self.__trigger["selected"][lkj]:
                                         current_agent_real = key
                                 current_id_real = self.__drones_ids[current_agent_real]
@@ -1030,7 +1027,7 @@ class ComputeUnit(net.Agent):
         if self.__log_optimizer or self.__use_dampc:
             if self.__log_optimizer_input_buffer is None:
                 self.__log_optimizer_input_buffer = (
-                    np.zeros((1000, len(self.__drones_ids) * (self.__prediction_horizon * 3 + 9 + 1) + 3)))
+                    np.zeros((1000, self.num_drones * (self.__prediction_horizon * 3 + 9 + 1) + 3)))
                 self.__log_optimizer_output_buffer = np.zeros((1000, self.__prediction_horizon * 3))
 
         # calulate number of timesteps, the alternative data need to be delayed
@@ -1047,9 +1044,9 @@ class ComputeUnit(net.Agent):
 
         num_dynamic_trajectories = 0
         num_static_trajectories = 0
-        for j in range(len(self.__drones_ids)):
+        for j in range(self.num_drones):
             id = self.__drones_ids[ordered_indexes[j]]
-            if j < self.__num_computing_agents:
+            if j < self.num_computing_agents:
                 num_dynamic_trajectories += len(self.__trajectory_tracker.get_information(id).content)
             else:
                 num_static_trajectories += len(self.__trajectory_tracker.get_information(id).content)
@@ -1070,9 +1067,9 @@ class ComputeUnit(net.Agent):
             static_trajectory_age = [0 for i in range(num_static_trajectories)]
             index = 0
             i = 0
-            for j in range(len(self.__drones_ids)):
+            for j in range(self.num_drones):
                 id = self.__drones_ids[ordered_indexes[j]]
-                if j < self.__num_computing_agents:
+                if j < self.num_computing_agents:
                     for trajectory in self.__trajectory_tracker.get_information(id).content:
                         dynamic_trajectories[i] = trajectory.last_trajectory
                         dynamic_target_points[i] = self.get_targets()[id]
@@ -1154,7 +1151,7 @@ class ComputeUnit(net.Agent):
         if self.__log_optimizer or self.__use_dampc:
             num_elements_per_drone_trajectory = self.__prediction_horizon * 3 + 9
             offset = num_elements_per_drone_trajectory + 3 + 1
-            for j in range(len(self.__drones_ids)):
+            for j in range(self.num_drones):
                 drone_id = self.__drones_ids[ordered_indexes[j]]
                 if j == self.__comp_agent_prio:
                     self.__log_optimizer_input_buffer[self.__log_optimizer_num_elements,
@@ -1289,15 +1286,15 @@ class ComputeUnit(net.Agent):
             return []
         state_feeback_triggered_prio = 10000
         quantization_bit_number = 8
-        max_time = self.__prediction_horizon * self.__communication_delta_t * self.__num_computing_agents
-        max_time = self.__prediction_horizon * self.__communication_delta_t * len(self.__drones_ids) / self.__num_computing_agents
-        max_time = self.__communication_delta_t * (len(self.__drones_ids) / self.__num_computing_agents)
+        max_time = self.__prediction_horizon * self.__communication_delta_t * self.num_computing_agents
+        max_time = self.__prediction_horizon * self.__communication_delta_t * self.num_drones / self.num_computing_agents
+        max_time = self.__communication_delta_t * (self.num_drones / self.num_computing_agents)
 
         cone_angle = 60.0 * math.pi / 180
 
-        is_in_deadlock = [False for i in range(len(self.__drones_ids))]
-        prios = np.zeros((len(self.__drones_ids),))
-        for i in range(0, len(self.__drones_ids)):
+        is_in_deadlock = [False for i in range(self.num_drones)]
+        prios = np.zeros((self.num_drones,))
+        for i in range(0, self.num_drones):
             own_id = self.__drones_ids[i]
             max_dist = np.linalg.norm(self.__options.max_position[own_id] - self.__options.min_position[own_id])
 
@@ -1317,7 +1314,7 @@ class ComputeUnit(net.Agent):
 
             dist_to_target = np.linalg.norm(d_target)
 
-            prios[i] /= (1.0 * len(self.__drones_ids) * max_dist)  # normalize prio
+            prios[i] /= (1.0 * self.num_drones * max_dist)  # normalize prio
 
             max_starting_time = 0
             for j in range(len(self.__trajectory_tracker.get_information(own_id).content)):
@@ -1498,7 +1495,7 @@ class ComputeUnit(net.Agent):
                 if self.deadlock_breaker_condition(dba[0], dba[1],
                                                    own_pos=current_pos[dba[0]],
                                                    other_pos=current_pos[dba[1]],
-                                                   inter_dist=drone_dists_norm[len(self.__drones_ids)*drone_idxs[dba[0]] + drone_idxs[dba[1]]],
+                                                   inter_dist=drone_dists_norm[self.num_drones*drone_idxs[dba[0]] + drone_idxs[dba[1]]],
                                                    own_dist_to_target=drones_dist_to_target[drone_idxs[dba[0]]],
                                                    other_agent_dist_to_target=drones_dist_to_target[drone_idxs[dba[1]]]
                                                    ):
@@ -1548,13 +1545,13 @@ class ComputeUnit(net.Agent):
                 if self.deadlock_breaker_condition(drone_id, other_drone_id,
                                                    own_pos=current_pos[drone_id],
                                                    other_pos=current_pos[other_drone_id],
-                                                   inter_dist=drone_dists_norm[len(self.__drones_ids)*drone_idxs[drone_id] + drone_idxs[other_drone_id]],
+                                                   inter_dist=drone_dists_norm[self.num_drones*drone_idxs[drone_id] + drone_idxs[other_drone_id]],
                                                    own_dist_to_target=drones_dist_to_target[drone_idxs[drone_id]],
                                                    other_agent_dist_to_target=drones_dist_to_target[drone_idxs[other_drone_id]]
                                                    ):
                     self.__deadlock_breaker_agents.append((drone_id, other_drone_id))
                     agents_to_dodge.append(drone_idxs[other_drone_id])
-                    drones_dists.append(drone_dists_norm[len(self.__drones_ids)*drone_idxs[drone_id] + drone_idxs[other_drone_id]],
+                    drones_dists.append(drone_dists_norm[self.num_drones*drone_idxs[drone_id] + drone_idxs[other_drone_id]],
                                                    )
 
             if len(agents_to_dodge) != 0:
@@ -1597,11 +1594,15 @@ class ComputeUnit(net.Agent):
 
     @property
     def num_computing_agents(self):
-        return self.__num_computing_agents
+        return len(self.__computing_agents_ids)
 
     @property
     def drone_ids(self):
         return self.__drones_ids
+    
+    @property
+    def num_drones(self):
+        return len(self.__drones_ids)
 
     @property
     def current_target_positions(self):

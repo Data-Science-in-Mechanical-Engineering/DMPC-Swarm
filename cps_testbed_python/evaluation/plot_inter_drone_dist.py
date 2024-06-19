@@ -36,7 +36,11 @@ if __name__ == "__main__":
             min_dists_temp = []
             success_rates_temp = 0
             for f in files:
-                result = p.load(open(f, "rb"))
+                try:
+                    result = p.load(open(f, "rb"))
+                except EOFError:
+                    print(f"File {f} is empty")
+                    continue
 
                 min_dists_temp.append(result["min_inter_drone_dist"][0])
                 success_rates_temp += result["num_targets_reached"][0]
