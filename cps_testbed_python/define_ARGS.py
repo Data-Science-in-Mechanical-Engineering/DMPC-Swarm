@@ -36,7 +36,7 @@ def define_ARGS():
     parser.add_argument("--show_animation", default=False, type=bool,
                         help="This is only needed when we want to live plot what is happening (during operation of the testbed)")
 
-    parser.add_argument("--num_static_drones", default=3, type=int, help="")
+    parser.add_argument("--num_static_drones", default=16, type=int, help="")
     parser.add_argument('--dynamic_swarm', default=True, type=bool)  # if drones should be added dynamically or not.
 
     ARGS = parser.parse_args()

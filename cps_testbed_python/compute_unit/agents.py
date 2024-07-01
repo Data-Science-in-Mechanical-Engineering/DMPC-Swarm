@@ -434,6 +434,11 @@ class ComputeUnit(net.Agent):
             for drone_id in self.__drones_ids[start_idx:start_idx+chunk_sizes[self.__comp_agent_idx]]:
                 self.__high_level_planner_drones.append(drone_id)
 
+            for drone_id in self.__high_level_planner_drones:
+                self.__high_level_planner_drones.append(drone_id)
+                if drone_id not in self.__high_level_setpoints:
+                    self.__high_level_setpoints[drone_id] = self.get_targets()[drone_id]
+
             self.__recalculate_setpoints = True
 
     def add_new_drone(self, m_id):
@@ -661,6 +666,8 @@ class ComputeUnit(net.Agent):
                                                                  message.content.state), self.__last_trajectory_shape)
 
                         print(f"3333333333333333333 {message.ID}")
+                        print(message.content.state[0:3])
+                        print(trajectory.current_state_last_round[0:3])
 
                         # also recalculate setpoints
                         self.__recalculate_setpoints = True
