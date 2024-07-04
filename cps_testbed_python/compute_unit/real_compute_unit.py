@@ -1056,7 +1056,7 @@ class ComputingUnit:
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
             elif isinstance(m, NetworkAreaFreeMessage):
-                content_temp = da.EmtpyContent([])
+                content_temp = da.EmtpyContent([], {})
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
             elif isinstance(m, MetadataMessage):
@@ -1253,7 +1253,8 @@ class ComputingUnit:
                                                 name_run=self.__ARGS.name,
                                                 prob_temp_message_loss=self.__ARGS.message_loss_probability,
                                                 temp_message_loss_starting_round=self.__ARGS.message_loss_period_start,
-                                                temp_message_loss_ending_round_temp=self.__ARGS.message_loss_period_end
+                                                temp_message_loss_ending_round_temp=self.__ARGS.message_loss_period_end,
+                                                use_kkt_trigger=self.__ARGS.use_kkt_trigger
                                                 )
 
     def send_socket(self, message: message.MixerMessage):

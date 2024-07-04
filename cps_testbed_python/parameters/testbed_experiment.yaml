@@ -12,9 +12,9 @@ num_drones: 15
 folder_name: "testbed_experiments"
 show_print: False
 
-message_loss_probability: 0.0 #1.0
-message_loss_period_start: 151 # 600
-message_loss_period_end: 161 #
+message_loss_probability: 1.0
+message_loss_period_start: 251 # 600
+message_loss_period_end: 261 #
 
 #options for target points
 use_own_targets: True         # if the cus should use their own targets. This is needed, if we want to use the setpoint_creator for e.g. demos.
@@ -51,12 +51,13 @@ weight_acc: 0.005
 weight_jerk: 0.001
 weight_band: 0.5                # weight for band that introduces a rotation to the anti collisions constraints
 width_band: 0.3                 # width of the band
-ignore_message_loss: False      # ignore the occurences of message loss
+ignore_message_loss: False # ignore the occurences of message loss
 use_optimized_constraints: True  # remove!!
 guarantee_anti_collision: True   # if false uses a deprecated approach
 
 # event trigger options
-trigger: "HT"
+trigger: "HT"  # "HT"
+use_kkt_trigger: True
 
 # high level planner options to resolve deadlocks
 use_high_level_planner: True

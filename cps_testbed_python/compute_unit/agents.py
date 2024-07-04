@@ -434,10 +434,9 @@ class ComputeUnit(net.Agent):
             for drone_id in self.__drones_ids[start_idx:start_idx+chunk_sizes[self.__comp_agent_idx]]:
                 self.__high_level_planner_drones.append(drone_id)
 
+            self.__high_level_setpoints = {}
             for drone_id in self.__high_level_planner_drones:
-                self.__high_level_planner_drones.append(drone_id)
-                if drone_id not in self.__high_level_setpoints:
-                    self.__high_level_setpoints[drone_id] = self.get_targets()[drone_id]
+                self.__high_level_setpoints[drone_id] = self.get_targets()[drone_id]
 
             self.__recalculate_setpoints = True
 
@@ -907,6 +906,7 @@ class ComputeUnit(net.Agent):
 
                     self.__current_agent = ordered_indexes[self.__comp_agent_prio]
                     current_id = self.__drones_ids[self.__current_agent]
+                    print(f"current_id: {current_id}")
                     self.__num_trigger_times[current_id] += 1
                     self.__selected_UAVs["selected"][-1] = current_id
 
