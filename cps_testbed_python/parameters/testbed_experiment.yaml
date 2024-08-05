@@ -12,7 +12,7 @@ num_drones: 15
 folder_name: "testbed_experiments"
 show_print: False
 
-message_loss_probability: 1.0
+message_loss_probability: 0.0
 message_loss_period_start: 251 # 600
 message_loss_period_end: 261 #
 
