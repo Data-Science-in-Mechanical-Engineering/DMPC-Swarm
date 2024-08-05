@@ -69,7 +69,7 @@ weight_jerk: 0.001
 weight_band: 0.5                # weight for band that introduces a rotation to the anti collisions constraints
 width_band: 0.3                 # width of the band
 
-ignore_message_loss: False      # ignore the occurences of message loss
+ignore_message_loss: True      # ignore the occurences of message loss
 use_optimized_constraints: True  # remove!!
 guarantee_anti_collision: True   # if false uses a deprecated approach
 
