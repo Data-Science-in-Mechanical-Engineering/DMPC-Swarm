@@ -629,7 +629,7 @@ class ComputeUnit(net.Agent):
                 if trajectory.current_state_last_round is not None:
                     if (np.linalg.norm(message.content.state[0:3] - trajectory.current_state_last_round[0:3]) > 0.5
                             or np.linalg.norm(message.content.state[3:6] -
-                                              trajectory.current_state_last_round[3:6]) > 1):
+                                              trajectory.current_state_last_round[3:6]) > 10):
 
                         self.print(f"{message.ID}: {trajectory.current_state} {message.content.state[0:3]}")
                         self.__state_feedback_triggered.append(message.ID)

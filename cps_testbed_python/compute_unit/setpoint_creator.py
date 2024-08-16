@@ -23,6 +23,8 @@ CIRCLE_PERIODIC_SMALL = 15
 DEMO_VISITORS = 16
 DEMO_SCIENCE_NIGHT = 17
 SPHERE = 18
+NICE_FORMATIONS = 19
+NICE_FORMATIONS2 = 20
 
 DEMO_AI_WEEK_IDLE = 0
 DEMO_AI_WEEK_CIRCLE = 1
@@ -185,6 +187,10 @@ class SetpointCreator:
 				self.__current_setpoints[drone_id] = self.generate_demo_visitors_setpoint(drone_id)
 			elif self.__demo_setpoints == SPHERE:
 				self.__current_setpoints[drone_id] = self.generate_sphere_setpoint(drone_id)
+			elif self.__demo_setpoints == NICE_FORMATIONS:
+				self.__current_setpoints[drone_id] = self.generate_nice_formations_setpoints(drone_id)
+			elif self.__demo_setpoints == NICE_FORMATIONS2:
+				self.__current_setpoints[drone_id] = self.generate_nice_formations2_setpoints(drone_id)
 
 		self.__new_round = False
 
@@ -203,11 +209,7 @@ class SetpointCreator:
 		# 	drone_id = 2
 		name_testbed = self.__drones[drone_id]
 		angle_offset = 0
-<<<<<<< HEAD
-		if self.__round%500 >= 250:
-=======
 		if (self.__round)%500 >= 250:
->>>>>>> 17612a1a10d163364449cb7788d276b157f8eec6
 			angle_offset = math.pi
 
 		offset = np.array(self.__testbeds[name_testbed][2])
@@ -454,6 +456,63 @@ class SetpointCreator:
 			back_pos = np.array([[-1.0, 1.0, 0.7], [0.0, 1.0, 0.7], [1.0, 1.0, 0.7],
 								[-1.5, 0.0, 0.7], [-0.5, 0.0, 0.7], [0.5, 0.0, 0.7], [1.5, 0.0, 0.7]])
 			return back_pos[drone_id - 1]
+		
+
+	def generate_nice_formations_setpoints(self, drone_id):
+		if drone_id > 16:
+			return np.array([0.0, 0.0, 0.0])
+		self.__state_demo_ai_week = "RETURN"
+		if self.__round > 170:
+			self.__state_demo_ai_week = "CIRCLE1"
+		if self.__round > 320:
+			self.__state_demo_ai_week = "CIRCLE2"
+		if self.__round > 470:
+			self.__state_demo_ai_week = "SPHERE_ROTATING"
+		if self.__round > 620:
+			self.__state_demo_ai_week = "RETURN"
+
+		if self.__state_demo_ai_week == "CIRCLE1":
+			return get_circle_point(1.5, drone_id, 16, 1.0)
+		if self.__state_demo_ai_week == "CIRCLE2":
+			return get_circle_point(1.5, drone_id, 16, 1.0, math.pi)
+		if self.__state_demo_ai_week == "SPHERE_ROTATING":
+			angle_offset = 2 * math.pi * self.__round / 70.0
+			radius = 1.15
+			z_middle = 1.7
+			if drone_id == 1:
+				return np.array([0.0, 0.0, z_middle + radius])
+			if drone_id == 2:
+				return np.array([0.0, 0.0, z_middle - radius])
+			if drone_id <= 6:
+				return get_circle_point(radius*math.cos(math.pi/4), drone_id, 4, z_middle + radius*math.sin(math.pi/4), angle_offset)
+			if drone_id <= 10:
+				return get_circle_point(radius*math.cos(math.pi/4), drone_id, 4, z_middle - radius*math.sin(math.pi/4), -angle_offset)
+			else:
+				return get_circle_point(radius, drone_id, 6, z_middle, 0*angle_offset)
+
+		if self.__state_demo_ai_week == "RETURN":
+			temp = np.array([[-1.5, 1.5, 0.5], [-0.5, 1.5, 0.5], [0.5, 1.5, 0.5], [1.5, 1.5, 0.5],
+							 [-1.5, 0.5, 0.5], [-0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [1.5, 0.5, 0.5],
+							 [-1.5, -0.5, 0.5], [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [1.5, -0.5, 0.5],
+							 [-1.5, -1.5, 0.5], [-0.5, -1.5, 0.5], [0.5, -1.5, 0.5], [1.5, -1.5, 0.5],])
+			return temp[drone_id-1]
+		
+	def generate_nice_formations2_setpoints(self, drone_id):
+		if drone_id > 16:
+			return np.array([0.0, 0.0, 0.0])
+
+		h = 1.0
+		a = 1.0
+		period = 200
+		if self.__round % (period * 2) > period and self.__round > period:
+			a = -1.0
+		dist = 0.3
+		temp = np.array([[0, -dist * 2.5, h], [0, -dist * 1.5, h], [0, -dist * 0.5, h], [0, dist * 0.5, h], [0, dist * 1.5, h], [0, dist * 2.5, h],
+							[a, -dist * 2, h], [a, -dist * 1, h], [a, 0, h], [a, dist * 1, h], [a, dist * 2, h],
+							[-a, -dist * 2, h], [-a, -dist * 1, h], [-a, 0, h], [-a, dist * 1, h], [-a, dist * 2, h],])
+
+		return temp[drone_id-1]
+
 
 	def generate_new_demo_science_night_setpoint(self, drone_id):
 		if drone_id not in self.__active_drones:
@@ -461,7 +520,7 @@ class SetpointCreator:
 
 		for other_drone_id in self.__active_drones:
 			# this drone lands
-			if self.__round - self.__starting_rounds[other_drone_id] > 940:
+			if self.__round - self.__starting_rounds[other_drone_id] > 9400000:
 				if other_drone_id == drone_id:
 					return np.array([1.0, -1.0, 0.6])
 				else:
