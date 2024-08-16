@@ -203,7 +203,7 @@ class SetpointCreator:
 		# 	drone_id = 2
 		name_testbed = self.__drones[drone_id]
 		angle_offset = 0
-		if self.__round%300 >= 150:
+		if self.__round%500 >= 250:
 			angle_offset = math.pi
 
 		offset = np.array(self.__testbeds[name_testbed][2])

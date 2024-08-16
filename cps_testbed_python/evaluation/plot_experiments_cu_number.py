@@ -8,11 +8,12 @@ import pandas as pd
 if __name__ == "__main__":
     ignore_message_loss = False
     simulate_quantization = False
-    num_drones = 16
+    num_drones = 10
     num_cu_data = {}
+    trigger = "HT"
 
     probs = [int(1*i) for i in range(11)]
-    csv_path = "/home/alex/Documents/009_Paper/robot_swarm_science_robotics/Images"
+    csv_path = "/home/alex/Documents/009_Paper/robot_swarm_science_robotics/plot_data"
 
     folder_name = "hpc_runs/COMPARISON_DMPC_MLR_DMPC"
 
@@ -23,7 +24,7 @@ if __name__ == "__main__":
         target_reached_times_per_prob = []
         for message_loss_prob in probs:
             path = os.path.dirname(os.path.abspath(__file__)) + f"/../../../{folder_name}/" \
-                   + f"dmpc_simulation_results_iml{ignore_message_loss}_{message_loss_prob}_{num_cus}cus_{'quant' if simulate_quantization else ''}"
+                   + f"dmpc_simulation_results_iml{ignore_message_loss}_{message_loss_prob}_{num_cus}cus_{'quant' if simulate_quantization else ''}_{trigger}"
 
             plot_states = False
             files = [os.path.join(path, f) for f in os.listdir(path) if f.startswith(f"simulation_result-{num_drones}_drones_simnr_")]

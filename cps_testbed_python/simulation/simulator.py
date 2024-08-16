@@ -271,7 +271,10 @@ class Simulation:
                                                  use_dampc=ARGS.run_dampc,
                                                  dampc_model_path=ARGS.dampc_path,
                                                  dampc_num_layers=ARGS.dampc_num_layers,
-                                                 dampc_num_neurons=ARGS.dampc_num_neurons
+                                                 dampc_num_neurons=ARGS.dampc_num_neurons,
+                                                 prob_temp_message_loss=ARGS.prob_temp_message_loss,
+                                                 temp_message_loss_starting_round=ARGS.temp_message_loss_starting_round,
+                                                 temp_message_loss_ending_round=ARGS.temp_message_loss_ending_round,
                                                  )
 
                 for drone_id in self.__ARGS.drone_ids:

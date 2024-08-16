@@ -216,7 +216,7 @@ class ComputeUnit(net.Agent):
                  dampc_num_layers="",
                  prob_temp_message_loss=0.0,
                  temp_message_loss_starting_round=-1,
-                 temp_message_loss_ending_round_temp=-1
+                 temp_message_loss_ending_round=-1
                  ):
         """
 
@@ -291,10 +291,6 @@ class ComputeUnit(net.Agent):
         self.__current_agent = 0
 
         self.__drones_ids = []
-<<<<<<< HEAD
-=======
-        self.__num_computing_agents = len(self.__computing_agents_ids)
->>>>>>> 027e75e4f7d88f8cb640d4df83a76e1f5f508dc7
 
         # precalculate such that optimization is faster (speedup of ~ 60%)
         self.__input_trajectory_vector_matrix = []
@@ -379,7 +375,7 @@ class ComputeUnit(net.Agent):
 
         self.__prob_temp_message_loss = prob_temp_message_loss
         self.__temp_message_loss_starting_round = temp_message_loss_starting_round
-        self.__temp_message_loss_ending_round_temp = temp_message_loss_ending_round_temp
+        self.__temp_message_loss_ending_round = temp_message_loss_ending_round
 
         self.__drone_states_received = {}
 
@@ -565,7 +561,7 @@ class ComputeUnit(net.Agent):
             return
         # if the message is from leader agent set new reference point
         if message.slot_group_id == self.__slot_group_planned_trajectory_id:
-            if self.__temp_message_loss_ending_round_temp > round_nr > self.__temp_message_loss_starting_round and random.random() < self.__prob_temp_message_loss:
+            if self.__temp_message_loss_ending_round > round_nr > self.__temp_message_loss_starting_round and random.random() < self.__prob_temp_message_loss:
                 return
             self.__num_trajectory_messages_received += 1
             if isinstance(message.content, TrajectoryMessageContent):
@@ -593,7 +589,7 @@ class ComputeUnit(net.Agent):
 
 
         if message.slot_group_id == self.__slot_group_drone_state:
-            if self.__temp_message_loss_ending_round_temp > round_nr > self.__temp_message_loss_starting_round and random.random() < self.__prob_temp_message_loss:
+            if self.__temp_message_loss_ending_round > round_nr > self.__temp_message_loss_starting_round and random.random() < self.__prob_temp_message_loss:
                 return
             if message.ID not in self.__trajectory_tracker.keys:
                 return

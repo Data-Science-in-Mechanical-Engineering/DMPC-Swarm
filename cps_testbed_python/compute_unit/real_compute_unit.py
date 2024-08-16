@@ -1253,7 +1253,7 @@ class ComputingUnit:
                                                 name_run=self.__ARGS.name,
                                                 prob_temp_message_loss=self.__ARGS.message_loss_probability,
                                                 temp_message_loss_starting_round=self.__ARGS.message_loss_period_start,
-                                                temp_message_loss_ending_round_temp=self.__ARGS.message_loss_period_end
+                                                temp_message_loss_ending_round=self.__ARGS.message_loss_period_end
                                                 )
 
     def send_socket(self, message: message.MixerMessage):
