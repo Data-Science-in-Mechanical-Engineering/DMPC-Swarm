@@ -42,7 +42,7 @@ if __name__ == "__main__":
 
     name = params_sweep["name"][0]
     print("Generating params for: " + name)
-    param_target_path = f"{Path.home()}/hpc_parameters/{name}/"
+    param_target_path = f"/work/mf724021/hpc_parameters/{name}/"  # f"{Path.home()}/hpc_parameters/{name}/"
     if not os.path.exists(param_target_path):
         os.makedirs(param_target_path)
 

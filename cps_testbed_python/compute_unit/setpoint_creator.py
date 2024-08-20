@@ -25,6 +25,7 @@ DEMO_SCIENCE_NIGHT = 17
 SPHERE = 18
 NICE_FORMATIONS = 19
 NICE_FORMATIONS2 = 20
+NICE_FORMATIONS3 = 21
 
 DEMO_AI_WEEK_IDLE = 0
 DEMO_AI_WEEK_CIRCLE = 1
@@ -191,6 +192,8 @@ class SetpointCreator:
 				self.__current_setpoints[drone_id] = self.generate_nice_formations_setpoints(drone_id)
 			elif self.__demo_setpoints == NICE_FORMATIONS2:
 				self.__current_setpoints[drone_id] = self.generate_nice_formations2_setpoints(drone_id)
+			elif self.__demo_setpoints == NICE_FORMATIONS3:
+				self.__current_setpoints[drone_id] = self.generate_nice_formations3_setpoints(drone_id)
 
 		self.__new_round = False
 
@@ -512,6 +515,57 @@ class SetpointCreator:
 							[-a, -dist * 2, h], [-a, -dist * 1, h], [-a, 0, h], [-a, dist * 1, h], [-a, dist * 2, h],])
 
 		return temp[drone_id-1]
+	
+	def generate_nice_formations3_setpoints(self, drone_id):
+		if drone_id > 16:
+			return np.array([0.0, 0.0, 0.0])
+		
+		formation = "SPHERE"
+		if self.__round > 400:
+			formation = "CIRCLE"
+		
+		if self.__round > 550:
+			formation = "TORNADO"
+
+		if self.__round > 900:
+			formation = "RETURN"
+
+		if formation == "SPHERE":
+			angle_offset = 2 * math.pi * self.__round / 80.0
+			radius = 1.15
+			z_middle = 1.7
+			if drone_id == 1:
+				return np.array([0.0, 0.0, z_middle + radius])
+			if drone_id == 2:
+				return np.array([0.0, 0.0, z_middle - radius])
+			if drone_id <= 6:
+				return get_circle_point(radius*math.cos(math.pi/4), drone_id, 4, z_middle + radius*math.sin(math.pi/4), angle_offset + math.pi/4)
+			if drone_id <= 10:
+				return get_circle_point(radius*math.cos(math.pi/4), drone_id, 4, z_middle - radius*math.sin(math.pi/4), +angle_offset)
+			else:
+				return get_circle_point(radius, drone_id, 6, z_middle, -angle_offset)
+			
+		if formation == "CIRCLE":
+			angle_offset = 2 * math.pi * self.__round / 100.0
+			radius = 1.5
+			z_middle = 1.0
+			
+			return get_circle_point(radius, drone_id, 16, z_middle, angle_offset)
+	
+		if formation == "TORNADO":
+			angle_offset = 2 * math.pi * self.__round / 80.0
+			pos = self.generate_circle_pyramid_setpoint(drone_id=drone_id, randomize=False, angle_offset=angle_offset)
+			pos[2] = 2.1 - pos[2]
+			return pos
+
+		if formation == "RETURN":
+			h = 1.0
+			temp = np.array([[-1.5, 1.5, h], [-0.5, 1.5, h], [0.5, 1.5, h], [1.5, 1.5, h],
+							 [-1.5, 0.5, h], [-0.5, 0.5, h], [0.5, 0.5, h], [1.5, 0.5, h],
+							 [-1.5, -0.5, h], [-0.5, -0.5, h], [0.5, -0.5, h], [1.5, -0.5, h],
+							 [-1.5, -1.5, h], [-0.5, -1.5, h], [0.5, -1.5, h], [1.5, -1.5, h],])
+			return temp[drone_id-1]
+
 
 
 	def generate_new_demo_science_night_setpoint(self, drone_id):
@@ -564,7 +618,7 @@ class SetpointCreator:
 			angle += math.pi #* 0.9
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean + offset
 
-	def generate_circle_pyramid_setpoint(self, drone_id, randomize=True):
+	def generate_circle_pyramid_setpoint(self, drone_id, randomize=True, angle_offset=0):
 		if self.__circle_pyramid_idx is None or self.__round % 500 == 499:
 			idx = np.arange(len(self.__drones))
 			if randomize:
@@ -576,16 +630,16 @@ class SetpointCreator:
 		num_middle2_drones = 3
 		if self.__circle_pyramid_idx[drone_id] < num_lower_drones:
 			return get_circle_point(radius=1.6, num_drones=num_lower_drones, idx=self.__circle_pyramid_idx[drone_id],
-									z=0.5)
+									z=0.5, angle_offset=angle_offset)
 		if self.__circle_pyramid_idx[drone_id] < num_lower_drones + num_middle1_drones:
 			return get_circle_point(radius=1.0, num_drones=num_middle1_drones, idx=self.__circle_pyramid_idx[drone_id] - num_lower_drones,
-									z=1.0, angle_offset=2*math.pi/num_lower_drones/2)
+									z=1.0, angle_offset=2*math.pi/num_lower_drones/2 + angle_offset)
 		if self.__circle_pyramid_idx[drone_id] < num_lower_drones + num_middle1_drones + num_middle2_drones:
 			return get_circle_point(radius=0.4, num_drones=num_middle2_drones,
 									idx=self.__circle_pyramid_idx[drone_id] - num_middle1_drones - num_lower_drones,
-									z=1.5, angle_offset=2*math.pi/num_middle1_drones/2)
+									z=1.5, angle_offset=2*math.pi/num_middle1_drones/2 + angle_offset)
 		return np.array([0, 0, 2.0])
-
+	
 	def generate_photo_setpoint(self, drone_id):
 		if drone_id > 16:
 			return np.array([0.0, 0.0, 0.0])
