@@ -425,7 +425,7 @@ class Simulation:
                 if self.__ARGS.save_video and i % 32 == 0:
                     angle = 2*math.pi / 40000 * i
                     viewMatrix4 = p.computeViewMatrix(
-                        cameraEyePosition=[3*np.sin(angle), 3*np.cos(angle), 1.5],
+                        cameraEyePosition=[4*np.sin(angle), 4*np.cos(angle), 4],
                         cameraTargetPosition=[0, 0, 1.5],
                         cameraUpVector=[0, 0, 1])
                     intrinsic_matrix = np.array([[-focal_length_video, 0, resolution_video[0] / 2, 0],
