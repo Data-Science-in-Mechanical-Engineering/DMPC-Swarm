@@ -729,6 +729,7 @@ class ComputeUnit(net.Agent):
                     trajectory.last_trajectory = np.array(
                         [trajectory.last_trajectory[min((j + delay_timesteps, len(trajectory.last_trajectory) - 1))]
                          for j in range(len(trajectory.last_trajectory))])
+                    # print(trajectory.last_trajectory[:, :])
         # update states
         for i in range(0, self.num_drones):
             id = self.__drones_ids[i]
@@ -906,7 +907,7 @@ class ComputeUnit(net.Agent):
 
                     self.__current_agent = ordered_indexes[self.__comp_agent_prio]
                     current_id = self.__drones_ids[self.__current_agent]
-                    print(f"current_id: {current_id}")
+                    # print(f"current_id: {current_id}")
                     self.__num_trigger_times[current_id] += 1
                     self.__selected_UAVs["selected"][-1] = current_id
 
@@ -1835,10 +1836,13 @@ class RemoteDroneAgent(net.Agent):
                         self.__planned_trajectory_coefficients = copy.deepcopy(message.content.coefficients)
                         self.__planned_trajectory_start_time = copy.deepcopy(message.content.trajectory_start_time)
                         self.__updated = True
+                        temp = copy.deepcopy(self.__traj_state)
                         self.__traj_state = self.__trajectory_interpolation.interpolate(
                             self.__current_time - self.__planned_trajectory_start_time,
                             self.__planned_trajectory_coefficients, integration_start=0,
                             x0=message.content.init_state)
+                        
+                        assert np.linalg.norm(self.__traj_state - temp) < 0.01, f"{self.ID}: {self.__traj_state}, {temp}"
 
                         self.__init_state = copy.deepcopy(message.content.init_state)
                         self.__current_trajectory_calculated_by = message.content.trajectory_calculated_by
