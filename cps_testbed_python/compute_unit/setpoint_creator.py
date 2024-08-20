@@ -521,17 +521,21 @@ class SetpointCreator:
 			return np.array([0.0, 0.0, 0.0])
 		
 		formation = "SPHERE"
-		if self.__round > 400:
+
+		if self.__round > 350:
+			formation = "PYRAMID"
+
+		if self.__round > 500:
 			formation = "CIRCLE"
 		
-		if self.__round > 550:
+		if self.__round > 650:
 			formation = "TORNADO"
 
 		if self.__round > 900:
 			formation = "RETURN"
 
 		if formation == "SPHERE":
-			angle_offset = 2 * math.pi * self.__round / 80.0
+			angle_offset = 2 * math.pi * self.__round / 90.0
 			radius = 1.15
 			z_middle = 1.7
 			if drone_id == 1:
@@ -551,7 +555,12 @@ class SetpointCreator:
 			z_middle = 1.0
 			
 			return get_circle_point(radius, drone_id, 16, z_middle, angle_offset)
-	
+
+		if formation == "PYRAMID":
+			angle_offset = 2 * math.pi * self.__round / 80.0
+			pos = self.generate_circle_pyramid_setpoint(drone_id=drone_id, randomize=False, angle_offset=angle_offset)
+			return pos
+
 		if formation == "TORNADO":
 			angle_offset = 2 * math.pi * self.__round / 80.0
 			pos = self.generate_circle_pyramid_setpoint(drone_id=drone_id, randomize=False, angle_offset=angle_offset)
