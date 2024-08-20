@@ -6,7 +6,7 @@ run_on_cluster: False
 # testbed setup
 computing_agent_ids: [20, 21]           # ids of compute units. Length of array defines number of CUs
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
-  "Vicon": [[-1.7, -1.7, 0.3], [1.7, 1.7, 3.0], [0, 0, 0]]
+  "Vicon": [[-1.7, -1.7, 0.4], [1.7, 1.7, 3.0], [0, 0, 0]]
 
 num_drones: 16
 
@@ -28,6 +28,10 @@ log_optimizer_path: "../../dampc_dataset"
 hpc_saving_path: "../../simulation_results/dmpc"   # only needed when running multiple simulations at once.
 
 message_loss_probability: 0.0
+
+prob_temp_message_loss: 1.0
+temp_message_loss_starting_round: 251 # 600
+temp_message_loss_ending_round: 261 #
 
 sweep_parameters: False
 
@@ -69,7 +73,7 @@ weight_jerk: 0.001
 weight_band: 0.5                # weight for band that introduces a rotation to the anti collisions constraints
 width_band: 0.3                 # width of the band
 
-ignore_message_loss: False      # ignore the occurences of message loss
+ignore_message_loss: True      # ignore the occurences of message loss
 use_optimized_constraints: True  # remove!!
 guarantee_anti_collision: True   # if false uses a deprecated approach
 

@@ -1056,7 +1056,7 @@ class ComputingUnit:
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
             elif isinstance(m, NetworkAreaFreeMessage):
-                content_temp = da.EmtpyContent([])
+                content_temp = da.EmtpyContent([], {})
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
             elif isinstance(m, MetadataMessage):
@@ -1236,7 +1236,6 @@ class ComputingUnit:
                                                 trajectory_generator_options=trajectory_generator_options,
                                                 pos_offset=self.__ARGS.pos_offset,
                                                 prediction_horizon=self.__ARGS.prediction_horizon,
-                                                num_computing_agents=self.__ARGS.num_computing_agents,
                                                 alpha_1=self.__ARGS.alpha_1, alpha_2=self.__ARGS.alpha_2,
                                                 alpha_3=self.__ARGS.alpha_3, alpha_4=self.__ARGS.alpha_4,
                                                 remove_redundant_constraints=self.__ARGS.remove_redundant_constraints,
@@ -1254,7 +1253,8 @@ class ComputingUnit:
                                                 name_run=self.__ARGS.name,
                                                 prob_temp_message_loss=self.__ARGS.message_loss_probability,
                                                 temp_message_loss_starting_round=self.__ARGS.message_loss_period_start,
-                                                temp_message_loss_ending_round_temp=self.__ARGS.message_loss_period_end
+                                                temp_message_loss_ending_round=self.__ARGS.message_loss_period_end,
+                                                use_kkt_trigger=self.__ARGS.use_kkt_trigger
                                                 )
 
     def send_socket(self, message: message.MixerMessage):

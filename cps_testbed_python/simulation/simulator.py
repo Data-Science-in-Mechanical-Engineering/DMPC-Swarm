@@ -249,7 +249,6 @@ class Simulation:
                                                  communication_delta_t=delta_t,
                                                  trajectory_generator_options=trajectory_generator_options,
                                                  prediction_horizon=self.__ARGS.prediction_horizon,
-                                                 num_computing_agents=self.__ARGS.num_computing_agents,
                                                  alpha_1=self.__ARGS.alpha_1,
                                                  alpha_2=self.__ARGS.alpha_2, alpha_3=self.__ARGS.alpha_3, alpha_4=self.__ARGS.alpha_4,
                                                  use_kkt_trigger=self.__ARGS.use_kkt_trigger,
@@ -272,7 +271,10 @@ class Simulation:
                                                  use_dampc=ARGS.run_dampc,
                                                  dampc_model_path=ARGS.dampc_path,
                                                  dampc_num_layers=ARGS.dampc_num_layers,
-                                                 dampc_num_neurons=ARGS.dampc_num_neurons
+                                                 dampc_num_neurons=ARGS.dampc_num_neurons,
+                                                 prob_temp_message_loss=ARGS.prob_temp_message_loss,
+                                                 temp_message_loss_starting_round=ARGS.temp_message_loss_starting_round,
+                                                 temp_message_loss_ending_round=ARGS.temp_message_loss_ending_round,
                                                  )
 
                 for drone_id in self.__ARGS.drone_ids:
