@@ -4,7 +4,7 @@ run_on_cluster: False
 
 # this is used to optimize hyperparameters by hand.
 # testbed setup
-computing_agent_ids: [20, 21]           # ids of compute units. Length of array defines number of CUs
+computing_agent_ids: [20, 21, 22]           # ids of compute units. Length of array defines number of CUs
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
   "Vicon": [[-1.7, -1.7, 0.4], [1.7, 1.7, 3.0], [0, 0, 0]]
 
@@ -29,7 +29,7 @@ hpc_saving_path: "../../simulation_results/dmpc"   # only needed when running mu
 
 message_loss_probability: 0.0
 
-prob_temp_message_loss: 1.0
+prob_temp_message_loss: 0.0
 temp_message_loss_starting_round: 251 # 600
 temp_message_loss_ending_round: 261 #
 
@@ -79,7 +79,7 @@ guarantee_anti_collision: True   # if false uses a deprecated approach
 
 # event trigger options
 trigger: "HT"
-use_kkt_trigger: False
+use_kkt_trigger: True
 
 # high level planner options to resolve deadlocks
 use_high_level_planner: True
