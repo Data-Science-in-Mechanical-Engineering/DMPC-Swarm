@@ -15,7 +15,7 @@ if __name__ == "__main__":
     probs = [int(1*i) for i in range(11)]
     csv_path = "/home/alex/Documents/009_Paper/robot_swarm_science_robotics/plot_data"
 
-    folder_name = "hpc_runs/COMPARISON_DMPC_MLR_DMPC"
+    folder_name = "/data/hpc_runs/dmpc/COMPARISON_DMPC_MLR_DMPC"
 
     target_reached_times_per_cu = {}
 
@@ -23,7 +23,7 @@ if __name__ == "__main__":
         num_cu_data[num_cus] = []
         target_reached_times_per_prob = []
         for message_loss_prob in probs:
-            path = os.path.dirname(os.path.abspath(__file__)) + f"/../../../{folder_name}/" \
+            path = f"{folder_name}/" \
                    + f"dmpc_simulation_results_iml{ignore_message_loss}_{message_loss_prob}_{num_cus}cus_{'quant' if simulate_quantization else ''}_{trigger}"
 
             plot_states = False

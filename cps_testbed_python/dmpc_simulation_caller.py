@@ -107,11 +107,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='CPS Testbed Simulator')
 
-    parser.add_argument('--param_path', default="parameters/hyperparameter_opt.yaml", type=str,
-                        help='yaml file for parameters', metavar='')
-    
-    #parser.add_argument('--param_path', default="parameters/batch_simulation_local_pc.yaml", type=str,
+    #parser.add_argument('--param_path', default="parameters/hyperparameter_opt.yaml", type=str,
     #                    help='yaml file for parameters', metavar='')
+    
+    parser.add_argument('--param_path', default="parameters/batch_simulation_local_pc.yaml", type=str,
+                        help='yaml file for parameters', metavar='')
 
     # the following are only needed for the hpc
     parser.add_argument('-i', "--iter_id", default=None, type=int, help='id of slurm job', metavar='')

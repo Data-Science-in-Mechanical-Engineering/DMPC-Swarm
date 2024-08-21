@@ -14,7 +14,7 @@ if __name__ == "__main__":
     num_cus = 2
     simulate_quantization = False
     num_drones = 16
-    folder_name = "hpc_runs/COMPARISON_DMPC_MLR_DMPC"
+    folder_name = "/data/hpc_runs/dmpc/COMPARISON_DMPC_MLR_DMPC"
     trigger = "HT"
 
     colors = ["b", "r", "g"]
@@ -27,7 +27,7 @@ if __name__ == "__main__":
         for message_loss_prob in message_loss_probs:
 
 
-            path = os.path.dirname(os.path.abspath(__file__)) + f"/../../../{folder_name}/" \
+            path = f"{folder_name}/" \
                    + f"dmpc_simulation_results_iml{ignore_message_loss}_{int(100 * message_loss_prob + 1e-7)}_{num_cus}cus_{'quant' if simulate_quantization else ''}_{trigger}"
 
             plot_states = False
@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
         df = pd.DataFrame(data=boxplot_data)
         df.to_csv(
-            f"/home/alex/Documents/009_Paper/robot_swarm_science_robotics/plot_data/Inter_UAV_dist_{num_drones}_{ignore_message_loss}.csv",
+            f"/home/alex/Documents/009_Paper/papers-dsme-nes/robot_swarm_science_robotics/plot_data/Inter_UAV_dist_{num_drones}_{ignore_message_loss}.csv",
             sep=" ", header=False, index=False)
 
     plt.show()

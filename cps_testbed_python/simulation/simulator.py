@@ -517,6 +517,7 @@ class Simulation:
                             (self.__agents[j].position - self.__agents[n].position) @ scaling_matrix) for n in
                             range(0, self.__ARGS.num_drones) if n != j])"""
                         self.__agents[j].crashed = True
+                        assert False, f"{min_dist}, {self.__agents[j].state[0:3]}, {self.__agents[n].state[0:3]}"
 
                 desample_time += 1
                 #### Sync the simulation ###################################
