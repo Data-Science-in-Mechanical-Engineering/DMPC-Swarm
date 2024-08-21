@@ -519,19 +519,26 @@ class SetpointCreator:
 	def generate_nice_formations3_setpoints(self, drone_id):
 		if drone_id > 16:
 			return np.array([0.0, 0.0, 0.0])
-		
+
 		formation = "SPHERE"
-		if self.__round > 400:
+		frequency = 5
+
+		current_time = self.__round / frequency
+
+		if current_time > 60 :
+			formation = "PYRAMID"
+
+		if current_time > 120:
 			formation = "CIRCLE"
 		
-		if self.__round > 550:
+		if current_time > 180:
 			formation = "TORNADO"
 
-		if self.__round > 900:
+		if current_time > 240:
 			formation = "RETURN"
 
 		if formation == "SPHERE":
-			angle_offset = 2 * math.pi * self.__round / 80.0
+			angle_offset = 2 * math.pi * current_time / 25
 			radius = 1.15
 			z_middle = 1.7
 			if drone_id == 1:
@@ -546,14 +553,19 @@ class SetpointCreator:
 				return get_circle_point(radius, drone_id, 6, z_middle, -angle_offset)
 			
 		if formation == "CIRCLE":
-			angle_offset = 2 * math.pi * self.__round / 100.0
+			angle_offset = -2 * math.pi * current_time / 25
 			radius = 1.5
 			z_middle = 1.0
 			
 			return get_circle_point(radius, drone_id, 16, z_middle, angle_offset)
-	
+
+		if formation == "PYRAMID":
+			angle_offset = 2 * math.pi * current_time / 25
+			pos = self.generate_circle_pyramid_setpoint(drone_id=drone_id, randomize=False, angle_offset=angle_offset)
+			return pos
+
 		if formation == "TORNADO":
-			angle_offset = 2 * math.pi * self.__round / 80.0
+			angle_offset = -2 * math.pi * current_time / 25
 			pos = self.generate_circle_pyramid_setpoint(drone_id=drone_id, randomize=False, angle_offset=angle_offset)
 			pos[2] = 2.1 - pos[2]
 			return pos
