@@ -10,6 +10,10 @@ testbeds:                               # this is only relevant for testbed runs
 
 num_drones: 16
 
+prob_temp_message_loss: 0.0
+temp_message_loss_starting_round: 251 # 600
+temp_message_loss_ending_round: 261 #
+
 # simulation setup
 run_dampc: False
 dampc_path: "/home/alex/hpc_data/DAMPC_Test/trainer"
