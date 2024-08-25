@@ -1373,15 +1373,13 @@ class ComputeUnit(net.Agent):
             if prios[i] >= state_feeback_triggered_prio:
                 prios[i] = int(2 ** quantization_bit_number - 1)
             elif prios[i] < 0:
-                prios[i] = int(1)
+                prios[i] = int(0)
             else:
                 prios[i] = int(round(
                     prios[i] / (self.__alpha_1 + self.__alpha_2 + self.__alpha_3 + self.__alpha_4 * 0) * (
-                                2 ** quantization_bit_number - 1)))
+                                2 ** quantization_bit_number - 1)) + 1)   # + 1 as 0 is reserved for the agent that is recalculated
                 if prios[i] > 2 ** quantization_bit_number - 2:
                     prios[i] = int(2 ** quantization_bit_number - 2)
-                if prios[i] <= 0:
-                    prios[i] = int(1)
             if self.__use_kkt_trigger and is_in_deadlock[i]:
                 print("öööööööööööööööööööö")
                 prios[i] = 1
