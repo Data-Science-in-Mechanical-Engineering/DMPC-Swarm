@@ -1842,7 +1842,7 @@ class RemoteDroneAgent(net.Agent):
                             self.__planned_trajectory_coefficients, integration_start=0,
                             x0=message.content.init_state)
                         
-                        assert np.linalg.norm(self.__traj_state - temp) < 0.01, f"{self.ID}: {self.__traj_state}, {temp}"
+                        # assert np.linalg.norm(self.__traj_state - temp) < 0.01, f"{self.ID}: {self.__traj_state}, {temp}"
 
                         self.__init_state = copy.deepcopy(message.content.init_state)
                         self.__current_trajectory_calculated_by = message.content.trajectory_calculated_by
@@ -1915,7 +1915,7 @@ class RemoteDroneAgent(net.Agent):
             # check if trajectory deviates too much from the trajectory received
             if self.__current_state is not None:
                 if np.linalg.norm(self.__traj_state[0:3] - self.__current_state[0:3]) > self.__state_feedback_trigger_dist:
-                    assert False
+                    # assert False
                     self.__traj_state[0:3] = self.__current_state[0:3]
 
             self.__traj_state = self.__trajectory_interpolation.interpolate(

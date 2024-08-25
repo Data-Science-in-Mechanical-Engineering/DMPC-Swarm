@@ -30,7 +30,7 @@ def sweep_parameters(params, params_sweep):
 
 if __name__ == "__main__":
     param_path = "batch_simulation.yaml"
-    param_sweep_path = "comparison_dmpc_mlr_dmpc.yaml"
+    param_sweep_path = "batch_simulation_sweep.yaml"  # "comparison_dmpc_mlr_dmpc.yaml"
 
     # param_path = "../src/parameters/electric_devices/electric_devices.yaml"
     # param_sweep_path = "../src/parameters/electric_devices/electric_devices_sweep.yaml"
