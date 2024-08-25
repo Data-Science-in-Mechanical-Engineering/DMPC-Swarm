@@ -13,9 +13,9 @@ if __name__ == "__main__":
     trigger = "HT"
 
     probs = [int(1*i) for i in range(11)]
-    csv_path = "/home/alex/Documents/009_Paper/robot_swarm_science_robotics/plot_data"
+    csv_path = "/home/alex/Documents/009_Paper/papers-dsme-nes/robot_swarm_science_robotics/plot_data"
 
-    folder_name = "/data/hpc_runs/dmpc/COMPARISON_DMPC_MLR_DMPC"
+    folder_name = "/data/hpc_runs/dmpc/COMPARISON_TRIGGERS"
 
     target_reached_times_per_cu = {}
 

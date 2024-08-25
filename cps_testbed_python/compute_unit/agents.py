@@ -924,7 +924,7 @@ class ComputeUnit(net.Agent):
                                         current_agent_real = key
                                 current_id_real = self.__drones_ids[current_agent_real]
 
-                        self.print(f"current_id_real: {current_id_real}, current_id {current_id}")
+                    print(f"{self.ID} current_id {current_id}")
                     self.ordered_indexes = ordered_indexes
 
                     # if the information about the agent is not unique do not calculate something, because we will calculate
@@ -1341,10 +1341,6 @@ class ComputeUnit(net.Agent):
             if own_id in self.__state_feedback_triggered:
                 prios[i] += state_feeback_triggered_prio
 
-            if i in np.argsort(-np.array(self.__prio_consensus))[
-                    0:len(self.__computing_agents_ids)] and self.__ignore_message_loss:
-                prios[i] += -100000000 * self.__alpha_4
-
             # KKT trigger.
             if self.__trajectory_tracker.get_information(own_id).content[0].current_state is not None:
                 own_pos = self.__trajectory_tracker.get_information(own_id).content[0].current_state[0:3]
@@ -1377,13 +1373,15 @@ class ComputeUnit(net.Agent):
             if prios[i] >= state_feeback_triggered_prio:
                 prios[i] = int(2 ** quantization_bit_number - 1)
             elif prios[i] < 0:
-                prios[i] = int(0)
+                prios[i] = int(1)
             else:
                 prios[i] = int(round(
                     prios[i] / (self.__alpha_1 + self.__alpha_2 + self.__alpha_3 + self.__alpha_4 * 0) * (
                                 2 ** quantization_bit_number - 1)))
                 if prios[i] > 2 ** quantization_bit_number - 2:
                     prios[i] = int(2 ** quantization_bit_number - 2)
+                if prios[i] <= 0:
+                    prios[i] = int(1)
             if self.__use_kkt_trigger and is_in_deadlock[i]:
                 print("öööööööööööööööööööö")
                 prios[i] = 1

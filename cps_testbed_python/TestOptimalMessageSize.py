@@ -3,7 +3,7 @@ import math
 import numpy as np
 
 def calculate_num_rounds(num_messages):
-	base_num_rounds = 150
+	base_num_rounds = 170
 	return max(3 * num_messages, base_num_rounds)
 
 
