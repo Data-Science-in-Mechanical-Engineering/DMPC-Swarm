@@ -1294,6 +1294,10 @@ class ComputeUnit(net.Agent):
         """ calculates the prio for each agent """
         if not self.__received_network_members_message:
             return []
+        
+        if not self.__system_state == NORMAL:
+            return np.ones((self.num_drones,))
+
         state_feeback_triggered_prio = 10000
         quantization_bit_number = 8
         max_time = self.__prediction_horizon * self.__communication_delta_t * self.num_computing_agents
