@@ -217,7 +217,7 @@ class SetpointCreator:
 
 		offset = np.array(self.__testbeds[name_testbed][2])
 		angle = 2 * math.pi * drone_id / len(self.__angles) + angle_offset
-		dpos = [1.5, 1.5, 1.5]
+		dpos = [1.45, 1.45, 1.45]
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0.8]) + offset
 
 	def generate_new_circle_compare_setpoint(self, drone_id):
@@ -553,7 +553,7 @@ class SetpointCreator:
 				return get_circle_point(radius, drone_id, 6, z_middle, -angle_offset)
 			
 		if formation == "CIRCLE":
-			angle_offset = -2 * math.pi * current_time / 25
+			angle_offset = -2 * math.pi * current_time / 35
 			radius = 1.5
 			z_middle = 1.0
 			

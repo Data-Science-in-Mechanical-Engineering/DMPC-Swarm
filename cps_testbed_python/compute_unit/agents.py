@@ -1381,7 +1381,7 @@ class ComputeUnit(net.Agent):
             else:
                 prios[i] = int(round(
                     prios[i] / (self.__alpha_1 + self.__alpha_2 + self.__alpha_3 + self.__alpha_4 * 0) * (
-                                2 ** quantization_bit_number - 1)) + 1)   # + 1 as 0 is reserved for the agent that is recalculated
+                                2 ** quantization_bit_number - 2)) + 1)   # + 1 as 0 is reserved for the agent that is recalculated
                 if prios[i] > 2 ** quantization_bit_number - 2:
                     prios[i] = int(2 ** quantization_bit_number - 2)
             if self.__use_kkt_trigger and is_in_deadlock[i]:
