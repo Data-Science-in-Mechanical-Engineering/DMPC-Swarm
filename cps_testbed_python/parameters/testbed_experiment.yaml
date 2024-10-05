@@ -12,7 +12,7 @@ num_drones: 15
 folder_name: "testbed_experiments"
 show_print: False
 
-message_loss_probability: 1.0
+message_loss_probability: 0.0
 message_loss_period_start: 251 # 600
 message_loss_period_end: 266 #
 
@@ -51,7 +51,7 @@ weight_acc: 0.005
 weight_jerk: 0.001
 weight_band: 0.5                # weight for band that introduces a rotation to the anti collisions constraints
 width_band: 0.3                 # width of the band
-ignore_message_loss: True # ignore the occurences of message loss
+ignore_message_loss: False # ignore the occurences of message loss
 use_optimized_constraints: True  # remove!!
 guarantee_anti_collision: True   # if false uses a deprecated approach
 
