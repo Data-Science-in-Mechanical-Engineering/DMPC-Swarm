@@ -254,7 +254,7 @@ class Network:
         for message in self.__messages:
             for agent in self.__agents:
                 if random.random() < self.__message_loss and (self.__round in self.__rounds_lost):
-                    print("Message Lost")
+                    # print("Message Lost")
                     agent.send_message(None)
                     for m in messages_ack:
                         # when the message was not received, acknowledgement is false anyway

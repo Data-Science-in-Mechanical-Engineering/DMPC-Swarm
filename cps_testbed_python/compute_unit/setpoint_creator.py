@@ -23,6 +23,10 @@ CIRCLE_PERIODIC_SMALL = 15
 DEMO_VISITORS = 16
 DEMO_SCIENCE_NIGHT = 17
 SPHERE = 18
+NICE_FORMATIONS = 19
+NICE_FORMATIONS2 = 20
+NICE_FORMATIONS3 = 21
+NICE_FORMATIONS_DEMO = 22
 
 DEMO_AI_WEEK_IDLE = 0
 DEMO_AI_WEEK_CIRCLE = 1
@@ -119,6 +123,10 @@ class SetpointCreator:
 		self.__new_round = True
 
 	@property
+	def demo_setpoints(self):
+		return self.__demo_setpoints
+
+	@property
 	def drones(self):
 		return self.__drones
 
@@ -181,6 +189,15 @@ class SetpointCreator:
 				self.__current_setpoints[drone_id] = self.generate_demo_visitors_setpoint(drone_id)
 			elif self.__demo_setpoints == SPHERE:
 				self.__current_setpoints[drone_id] = self.generate_sphere_setpoint(drone_id)
+			elif self.__demo_setpoints == NICE_FORMATIONS:
+				self.__current_setpoints[drone_id] = self.generate_nice_formations_setpoints(drone_id)
+			elif self.__demo_setpoints == NICE_FORMATIONS2:
+				self.__current_setpoints[drone_id] = self.generate_nice_formations2_setpoints(drone_id)
+			elif self.__demo_setpoints == NICE_FORMATIONS3:
+				self.__current_setpoints[drone_id] = self.generate_nice_formations3_setpoints(drone_id)
+			elif self.__demo_setpoints == NICE_FORMATIONS_DEMO:
+				self.__current_setpoints[drone_id] = self.generate_nice_formations_demo_setpoints(drone_id)
+
 
 		self.__new_round = False
 
@@ -195,16 +212,16 @@ class SetpointCreator:
 		return self.__current_setpoints[drone_id]
 
 	def generate_new_circle_setpoint(self, drone_id):
-		if drone_id == 10:
-			drone_id = 2
+		# if drone_id == 10:
+		# 	drone_id = 2
 		name_testbed = self.__drones[drone_id]
 		angle_offset = 0
-		if self.__round%200 >= 100:
+		if (self.__round)%500 >= 250:
 			angle_offset = math.pi
 
 		offset = np.array(self.__testbeds[name_testbed][2])
-		angle = 2 * math.pi * drone_id / 6 + angle_offset
-		dpos = [1.5, 1.5, 1.5]
+		angle = 2 * math.pi * drone_id / len(self.__angles) + angle_offset
+		dpos = [1.45, 1.45, 1.45]
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0.8]) + offset
 
 	def generate_new_circle_compare_setpoint(self, drone_id):
@@ -446,6 +463,210 @@ class SetpointCreator:
 			back_pos = np.array([[-1.0, 1.0, 0.7], [0.0, 1.0, 0.7], [1.0, 1.0, 0.7],
 								[-1.5, 0.0, 0.7], [-0.5, 0.0, 0.7], [0.5, 0.0, 0.7], [1.5, 0.0, 0.7]])
 			return back_pos[drone_id - 1]
+		
+
+	def generate_nice_formations_setpoints(self, drone_id):
+		if drone_id > 16:
+			return np.array([0.0, 0.0, 0.0])
+		self.__state_demo_ai_week = "RETURN"
+		if self.__round > 170:
+			self.__state_demo_ai_week = "CIRCLE1"
+		if self.__round > 320:
+			self.__state_demo_ai_week = "CIRCLE2"
+		if self.__round > 470:
+			self.__state_demo_ai_week = "SPHERE_ROTATING"
+		if self.__round > 620:
+			self.__state_demo_ai_week = "RETURN"
+
+		if self.__state_demo_ai_week == "CIRCLE1":
+			return get_circle_point(1.5, drone_id, 16, 1.0)
+		if self.__state_demo_ai_week == "CIRCLE2":
+			return get_circle_point(1.5, drone_id, 16, 1.0, math.pi)
+		if self.__state_demo_ai_week == "SPHERE_ROTATING":
+			angle_offset = 2 * math.pi * self.__round / 70.0
+			radius = 1.15
+			z_middle = 1.7
+			if drone_id == 1:
+				return np.array([0.0, 0.0, z_middle + radius])
+			if drone_id == 2:
+				return np.array([0.0, 0.0, z_middle - radius])
+			if drone_id <= 6:
+				return get_circle_point(radius*math.cos(math.pi/4), drone_id, 4, z_middle + radius*math.sin(math.pi/4), angle_offset)
+			if drone_id <= 10:
+				return get_circle_point(radius*math.cos(math.pi/4), drone_id, 4, z_middle - radius*math.sin(math.pi/4), -angle_offset)
+			else:
+				return get_circle_point(radius, drone_id, 6, z_middle, 0*angle_offset)
+
+		if self.__state_demo_ai_week == "RETURN":
+			temp = np.array([[-1.5, 1.5, 0.5], [-0.5, 1.5, 0.5], [0.5, 1.5, 0.5], [1.5, 1.5, 0.5],
+							 [-1.5, 0.5, 0.5], [-0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [1.5, 0.5, 0.5],
+							 [-1.5, -0.5, 0.5], [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [1.5, -0.5, 0.5],
+							 [-1.5, -1.5, 0.5], [-0.5, -1.5, 0.5], [0.5, -1.5, 0.5], [1.5, -1.5, 0.5],])
+			return temp[drone_id-1]
+		
+	def generate_nice_formations2_setpoints(self, drone_id):
+		if drone_id > 16:
+			return np.array([0.0, 0.0, 0.0])
+
+		h = 1.0
+		a = 1.0
+		period = 200
+		if self.__round % (period * 2) > period and self.__round > period:
+			a = -1.0
+		dist = 0.3
+		temp = np.array([[0, -dist * 2.5, h], [0, -dist * 1.5, h], [0, -dist * 0.5, h], [0, dist * 0.5, h], [0, dist * 1.5, h], [0, dist * 2.5, h],
+							[a, -dist * 2, h], [a, -dist * 1, h], [a, 0, h], [a, dist * 1, h], [a, dist * 2, h],
+							[-a, -dist * 2, h], [-a, -dist * 1, h], [-a, 0, h], [-a, dist * 1, h], [-a, dist * 2, h],])
+
+		return temp[drone_id-1]
+	
+	def generate_nice_formations3_setpoints(self, drone_id):
+		if drone_id > 16:
+			return np.array([0.0, 0.0, 0.0])
+
+		formation = "SPHERE"
+		frequency = 5
+
+		current_time = self.__round / frequency
+
+		if current_time > 60 :
+			formation = "PYRAMID"
+
+		if current_time > 120:
+			formation = "CIRCLE"
+		
+		if current_time > 180:
+			formation = "TORNADO"
+
+		if current_time > 240:
+			formation = "RETURN"
+
+		if formation == "SPHERE":
+			angle_offset = 2 * math.pi * current_time / 25
+			radius = 1.15
+			z_middle = 1.7
+			if drone_id == 1:
+				return np.array([0.0, 0.0, z_middle + radius])
+			if drone_id == 2:
+				return np.array([0.0, 0.0, z_middle - radius])
+			if drone_id <= 6:
+				return get_circle_point(radius*math.cos(math.pi/4), drone_id, 4, z_middle + radius*math.sin(math.pi/4), angle_offset + math.pi/4)
+			if drone_id <= 10:
+				return get_circle_point(radius*math.cos(math.pi/4), drone_id, 4, z_middle - radius*math.sin(math.pi/4), +angle_offset)
+			else:
+				return get_circle_point(radius, drone_id, 6, z_middle, -angle_offset)
+			
+		if formation == "CIRCLE":
+			angle_offset = -2 * math.pi * current_time / 35
+			radius = 1.5
+			z_middle = 1.0
+			
+			return get_circle_point(radius, drone_id, 16, z_middle, angle_offset)
+
+		if formation == "PYRAMID":
+			angle_offset = 2 * math.pi * current_time / 25
+			pos = self.generate_circle_pyramid_setpoint(drone_id=drone_id, randomize=False, angle_offset=angle_offset)
+			return pos
+
+		if formation == "TORNADO":
+			angle_offset = -2 * math.pi * current_time / 25
+			pos = self.generate_circle_pyramid_setpoint(drone_id=drone_id, randomize=False, angle_offset=angle_offset)
+			pos[2] = 2.1 - pos[2]
+			return pos
+
+		if formation == "RETURN":
+			h = 1.0
+			temp = np.array([[-1.5, 1.5, h], [-0.5, 1.5, h], [0.5, 1.5, h], [1.5, 1.5, h],
+							 [-1.5, 0.5, h], [-0.5, 0.5, h], [0.5, 0.5, h], [1.5, 0.5, h],
+							 [-1.5, -0.5, h], [-0.5, -0.5, h], [0.5, -0.5, h], [1.5, -0.5, h],
+							 [-1.5, -1.5, h], [-0.5, -1.5, h], [0.5, -1.5, h], [1.5, -1.5, h],])
+			return temp[drone_id-1]
+
+	def generate_nice_formations_demo_setpoints(self, drone_id):
+		if drone_id > 9:
+			return np.array([0.0, 0.0, 0.0])
+
+		formation = "SPHERE"
+		frequency = 5
+
+		current_time = self.__round / frequency
+
+		if current_time > 35:
+			formation = "PYRAMID"
+
+		if current_time > 65:
+			formation = "CIRCLE"
+
+		if current_time > 95:
+			formation = "COOPERATIVE1"
+
+		if current_time > 110:
+			formation = "COOPERATIVE2"
+
+		if current_time > 145:
+			formation = "TORNADO"
+
+		if current_time > 175:
+			formation = "RETURN"
+
+		if formation == "SPHERE":
+			angle_offset = 2 * math.pi * current_time / 15
+			radius = 1.15
+			z_middle = 1.7
+			if drone_id == 1:
+				return np.array([0.0, 0.0, z_middle + radius])
+			if drone_id == 2:
+				return np.array([0.0, 0.0, z_middle - radius])
+			if drone_id <= 6:
+				return get_circle_point(radius * math.cos(math.pi / 4), drone_id, 4,
+										z_middle + radius * math.sin(math.pi / 4), angle_offset + math.pi / 4)
+			if drone_id <= 10:
+				return get_circle_point(radius * math.cos(math.pi / 4), drone_id, 4,
+										z_middle - radius * math.sin(math.pi / 4), +angle_offset)
+			else:
+				return get_circle_point(radius, drone_id, 6, z_middle, -angle_offset)
+
+		if formation == "CIRCLE":
+			angle_offset = -2 * math.pi * current_time / 15
+			radius = 1.5
+			z_middle = 1.0
+
+			return get_circle_point(radius, drone_id, 9, z_middle, angle_offset)
+
+		if formation == "PYRAMID":
+			angle_offset = 2 * math.pi * current_time / 15
+			pos = self.generate_circle_pyramid_setpoint(drone_id=drone_id + 7, randomize=False, angle_offset=angle_offset)
+			return pos
+
+		if formation == "TORNADO":
+			angle_offset = -2 * math.pi * current_time / 15
+			pos = self.generate_circle_pyramid_setpoint(drone_id=drone_id + 7, randomize=False, angle_offset=angle_offset)
+			pos[2] = 2.1 - pos[2]
+			return pos
+
+		if "COOPERATIVE" in formation:
+			h = 1.0
+			a = 1.0
+			if formation == "COOPERATIVE2":
+				a = -1.0
+			dist = 0.3
+			temp = np.array(
+				[[0, -dist * 2.5, h], [0, -dist * 1.5, h], [0, -dist * 0.5, h], [0, dist * 0.5, h], [0, dist * 1.5, h],
+				 [0, dist * 2.5, h],
+				 [a, -dist * 1, h], [-a, 0, h], [a, dist * 1, h]])
+
+			return temp[drone_id - 1]
+
+		if formation == "RETURN":
+			h = 0.5
+			temp = np.array([[-1.5, 1.5, h], [0.0, 1.5, h], [1.5, 1.5, h],
+							 [-1.5, 0.0, h], [0.0, 0.0, h], [1.5, 0.0, h],
+							 [-1.5, -1.5, h], [0.0, -1.5, h], [1.5, -1.5, h],
+							 [-1.5, -0.5, h], [-0.5, -0.5, h], [0.5, -0.5, h], [1.5, -0.5, h],
+							 [-1.5, -1.5, h], [-0.5, -1.5, h], [0.5, -1.5, h], [1.5, -1.5, h], ])
+			return temp[drone_id - 1]
+
+
 
 	def generate_new_demo_science_night_setpoint(self, drone_id):
 		if drone_id not in self.__active_drones:
@@ -453,7 +674,7 @@ class SetpointCreator:
 
 		for other_drone_id in self.__active_drones:
 			# this drone lands
-			if self.__round - self.__starting_rounds[other_drone_id] > 940:
+			if self.__round - self.__starting_rounds[other_drone_id] > 9400000:
 				if other_drone_id == drone_id:
 					return np.array([1.0, -1.0, 0.6])
 				else:
@@ -497,7 +718,9 @@ class SetpointCreator:
 			angle += math.pi #* 0.9
 		return np.array([dpos[0] * math.cos(angle), dpos[1] * math.sin(angle), 0]) + mean + offset
 
-	def generate_circle_pyramid_setpoint(self, drone_id, randomize=True):
+	def generate_circle_pyramid_setpoint(self, drone_id, randomize=True, angle_offset=0):
+		if drone_id > 16:
+			return np.array([0.0, 0.0, 0.0])
 		if self.__circle_pyramid_idx is None or self.__round % 500 == 499:
 			idx = np.arange(len(self.__drones))
 			if randomize:
@@ -509,16 +732,16 @@ class SetpointCreator:
 		num_middle2_drones = 3
 		if self.__circle_pyramid_idx[drone_id] < num_lower_drones:
 			return get_circle_point(radius=1.6, num_drones=num_lower_drones, idx=self.__circle_pyramid_idx[drone_id],
-									z=0.5)
+									z=0.5, angle_offset=angle_offset)
 		if self.__circle_pyramid_idx[drone_id] < num_lower_drones + num_middle1_drones:
 			return get_circle_point(radius=1.0, num_drones=num_middle1_drones, idx=self.__circle_pyramid_idx[drone_id] - num_lower_drones,
-									z=1.0, angle_offset=2*math.pi/num_lower_drones/2)
+									z=1.0, angle_offset=2*math.pi/num_lower_drones/2 + angle_offset)
 		if self.__circle_pyramid_idx[drone_id] < num_lower_drones + num_middle1_drones + num_middle2_drones:
 			return get_circle_point(radius=0.4, num_drones=num_middle2_drones,
 									idx=self.__circle_pyramid_idx[drone_id] - num_middle1_drones - num_lower_drones,
-									z=1.5, angle_offset=2*math.pi/num_middle1_drones/2)
+									z=1.5, angle_offset=2*math.pi/num_middle1_drones/2 + angle_offset)
 		return np.array([0, 0, 2.0])
-
+	
 	def generate_photo_setpoint(self, drone_id):
 		if drone_id > 16:
 			return np.array([0.0, 0.0, 0.0])
@@ -594,13 +817,13 @@ class SetpointCreator:
 		if drone_id > 16:
 			return np.array([0.0, 0.0, 0.0])
 		self.__state_demo_ai_week = "RETURN"
-		if self.__round > 160:
+		if self.__round > 170:
 			self.__state_demo_ai_week = "PYRAMID"
-		if self.__round > 260:
+		if self.__round > 280:
 			self.__state_demo_ai_week = "SQUARE"
-		if self.__round > 360:
+		if self.__round > 390:
 			self.__state_demo_ai_week = "SPHERE"
-		if self.__round > 460:
+		if self.__round > 500:
 			self.__state_demo_ai_week = "RETURN"
 
 		if self.__state_demo_ai_week == "IDLE":

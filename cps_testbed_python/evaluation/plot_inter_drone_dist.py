@@ -13,8 +13,9 @@ if __name__ == "__main__":
     message_loss_prob = 0.01
     num_cus = 2
     simulate_quantization = False
-    num_drones = 16
-    folder_name = "hpc_runs/COMPARISON_DMPC_MLR_DMPC"
+    num_drones = 10
+    folder_name = "/data/hpc_runs/dmpc/COMPARISON_DMPC_MLR_DMPC"
+    trigger = "HT"
 
     colors = ["b", "r", "g"]
 
@@ -26,8 +27,8 @@ if __name__ == "__main__":
         for message_loss_prob in message_loss_probs:
 
 
-            path = os.path.dirname(os.path.abspath(__file__)) + f"/../../../{folder_name}/" \
-                   + f"dmpc_simulation_results_iml{ignore_message_loss}_{int(100 * message_loss_prob + 1e-7)}_{num_cus}cus_{'quant' if simulate_quantization else ''}"
+            path = f"{folder_name}/" \
+                   + f"dmpc_simulation_results_iml{ignore_message_loss}_{int(100 * message_loss_prob + 1e-7)}_{num_cus}cus_{'quant' if simulate_quantization else ''}_{trigger}"
 
             plot_states = False
             files = [os.path.join(path, f) for f in os.listdir(path) if
@@ -35,7 +36,11 @@ if __name__ == "__main__":
             min_dists_temp = []
             success_rates_temp = 0
             for f in files:
-                result = p.load(open(f, "rb"))
+                try:
+                    result = p.load(open(f, "rb"))
+                except EOFError:
+                    print(f"File {f} is empty")
+                    continue
 
                 min_dists_temp.append(result["min_inter_drone_dist"][0])
                 success_rates_temp += result["num_targets_reached"][0]
@@ -59,7 +64,7 @@ if __name__ == "__main__":
 
         df = pd.DataFrame(data=boxplot_data)
         df.to_csv(
-            f"/home/alex/Documents/009_Paper/robot_swarm_science_robotics/plot_data/Inter_UAV_dist_{num_drones}_{ignore_message_loss}.csv",
+            f"/home/alex/Documents/009_Paper/papers-dsme-nes/robot_swarm_science_robotics/plot_data/Inter_UAV_dist_{num_drones}_{ignore_message_loss}.csv",
             sep=" ", header=False, index=False)
 
     plt.show()

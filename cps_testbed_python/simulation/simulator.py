@@ -249,7 +249,6 @@ class Simulation:
                                                  communication_delta_t=delta_t,
                                                  trajectory_generator_options=trajectory_generator_options,
                                                  prediction_horizon=self.__ARGS.prediction_horizon,
-                                                 num_computing_agents=self.__ARGS.num_computing_agents,
                                                  alpha_1=self.__ARGS.alpha_1,
                                                  alpha_2=self.__ARGS.alpha_2, alpha_3=self.__ARGS.alpha_3, alpha_4=self.__ARGS.alpha_4,
                                                  use_kkt_trigger=self.__ARGS.use_kkt_trigger,
@@ -272,7 +271,10 @@ class Simulation:
                                                  use_dampc=ARGS.run_dampc,
                                                  dampc_model_path=ARGS.dampc_path,
                                                  dampc_num_layers=ARGS.dampc_num_layers,
-                                                 dampc_num_neurons=ARGS.dampc_num_neurons
+                                                 dampc_num_neurons=ARGS.dampc_num_neurons,
+                                                 prob_temp_message_loss=ARGS.prob_temp_message_loss,
+                                                 temp_message_loss_starting_round=ARGS.temp_message_loss_starting_round,
+                                                 temp_message_loss_ending_round=ARGS.temp_message_loss_ending_round,
                                                  )
 
                 for drone_id in self.__ARGS.drone_ids:
@@ -423,7 +425,7 @@ class Simulation:
                 if self.__ARGS.save_video and i % 32 == 0:
                     angle = 2*math.pi / 40000 * i
                     viewMatrix4 = p.computeViewMatrix(
-                        cameraEyePosition=[3*np.sin(angle), 3*np.cos(angle), 1.5],
+                        cameraEyePosition=[4*np.sin(angle), 4*np.cos(angle), 4],
                         cameraTargetPosition=[0, 0, 1.5],
                         cameraUpVector=[0, 0, 1])
                     intrinsic_matrix = np.array([[-focal_length_video, 0, resolution_video[0] / 2, 0],
@@ -515,6 +517,7 @@ class Simulation:
                             (self.__agents[j].position - self.__agents[n].position) @ scaling_matrix) for n in
                             range(0, self.__ARGS.num_drones) if n != j])"""
                         self.__agents[j].crashed = True
+                        # assert False, f"{min_dist}, {self.__agents[j].state[0:3]}, {self.__agents[n].state[0:3]}"
 
                 desample_time += 1
                 #### Sync the simulation ###################################

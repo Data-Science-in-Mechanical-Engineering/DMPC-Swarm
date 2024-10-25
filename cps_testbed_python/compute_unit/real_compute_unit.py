@@ -130,6 +130,7 @@ STATUS_LANDED = 7
 MAX_NUM_DRONES = 16
 MAX_NUM_AGENTS = 25
 
+
 def get_high_level_setpoints(self):
     tp = {}
     for i in range(MAX_NUM_DRONES):
@@ -403,7 +404,8 @@ class TrajectoryReqMessage(message.MessageType):
     def __init__(self):
         super().__init__(
             ["type", "id", "drone_id", "cu_id", "prios", "ids", "high_level_setpoints"],
-            [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint8_t", MAX_NUM_DRONES), ("uint8_t", MAX_NUM_DRONES), ("uint16_t", 3*MAX_NUM_DRONES)])
+            [("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint8_t", 1), ("uint8_t", MAX_NUM_DRONES),
+             ("uint8_t", MAX_NUM_DRONES), ("uint16_t", 3*MAX_NUM_DRONES)])
         self.set_content({"type": np.array([TYPE_REQ_TRAJECTORY], dtype=self.get_data_type("type"))})
 
     def set_content(self, content):
@@ -451,37 +453,11 @@ class TrajectoryReqMessage(message.MessageType):
 
     @property
     def high_level_setpoints(self):
-        tp = {}
-        for i in range(MAX_NUM_DRONES):
-            agent_id = self.get_content("ids")[i]
-            # then this is a valid target position
-            if agent_id != 255:
-                tp[agent_id] = np.array([0.0, 0.0, 0.0])
-                for j in range(3):
-                    tp[agent_id][j] = float(dequantize_pos(int(self.get_content("high_level_setpoints")[i*3 + j])))
-        return tp
+        return get_high_level_setpoints(self)
 
     @high_level_setpoints.setter
     def high_level_setpoints(self, tp):
-        if tp is None:
-            ids = []
-        else:
-            ids = list(tp.keys())
-        while len(ids) < MAX_NUM_DRONES:
-            ids.append(255)
-        self.set_content({"ids": np.array(ids, dtype=self.get_data_type("ids"))})
-
-        target_pos = []
-        if tp is not None:
-            for k in tp:
-                if k != 255:
-                    target_pos.append(quantize_pos(tp[k][0]))
-                    target_pos.append(quantize_pos(tp[k][1]))
-                    target_pos.append(quantize_pos(tp[k][2]))
-        while len(target_pos) < 3*MAX_NUM_DRONES:
-            target_pos.append(0)
-
-        self.set_content({"high_level_setpoints": np.array(target_pos, dtype=self.get_data_type("high_level_setpoints"))})
+        set_high_level_setpoints(self, tp)
 
 
 class EmptyMessage(message.MessageType):
@@ -529,37 +505,11 @@ class EmptyMessage(message.MessageType):
 
     @property
     def high_level_setpoints(self):
-        tp = {}
-        for i in range(MAX_NUM_DRONES):
-            agent_id = self.get_content("ids")[i]
-            # then this is a valid target position
-            if agent_id != 255:
-                tp[agent_id] = np.array([0.0, 0.0, 0.0])
-                for j in range(3):
-                    tp[agent_id][j] = float(dequantize_pos(int(self.get_content("high_level_setpoints")[i*3 + j])))
-        return tp
+        return get_high_level_setpoints(self)
 
     @high_level_setpoints.setter
     def high_level_setpoints(self, tp):
-        if tp is None:
-            ids = []
-        else:
-            ids = list(tp.keys())
-        while len(ids) < MAX_NUM_DRONES:
-            ids.append(255)
-        self.set_content({"ids": np.array(ids, dtype=self.get_data_type("ids"))})
-
-        target_pos = []
-        if tp is not None:
-            for k in tp:
-                if k != 255:
-                    target_pos.append(quantize_pos(tp[k][0]))
-                    target_pos.append(quantize_pos(tp[k][1]))
-                    target_pos.append(quantize_pos(tp[k][2]))
-        while len(target_pos) < 3*MAX_NUM_DRONES:
-            target_pos.append(0)
-
-        self.set_content({"high_level_setpoints": np.array(target_pos, dtype=self.get_data_type("high_level_setpoints"))})
+        set_high_level_setpoints(self, tp)
 
 
 class MetadataMessage(message.MessageType):
@@ -1106,12 +1056,9 @@ class ComputingUnit:
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
             elif isinstance(m, NetworkAreaFreeMessage):
-                content_temp = da.EmtpyContent([])
+                content_temp = da.EmtpyContent([], {})
                 m_temp = net.Message(ID=m.m_id, slot_group_id=self.__message_type_trajectory_id,
                                      content=content_temp)
-            elif isinstance(m, TargetPositionsMessage):
-                content_temp = da.SetpointMessageContent(setpoints=m.target_positions)
-                m_temp = net.Message(ID=m.m_id, slot_group_id=self.__slot_group_setpoints_id, content=content_temp)
             elif isinstance(m, MetadataMessage):
                 if m.type == TYPE_METADATA:
                     round_mbr = m.round_mbr
@@ -1154,6 +1101,8 @@ class ComputingUnit:
             m_temp.calculated_by = traj_message.content.trajectory_calculated_by
             m_temp.drone_id = traj_message.content.id
             m_temp.prios = traj_message.content.prios
+            m_temp.high_level_setpoints = traj_message.content.high_level_setpoints
+            print(traj_message.content.high_level_setpoints)
             messages_tx.append(m_temp)
         elif isinstance(traj_message.content, da.EmtpyContent):
             m_temp = EmptyMessage()
@@ -1161,24 +1110,17 @@ class ComputingUnit:
             m_temp.cu_id = self.__cu_id
             m_temp.prios = traj_message.content.prios
             m_temp.high_level_setpoints = traj_message.content.high_level_setpoints
+            print(traj_message.content.high_level_setpoints)
             messages_tx.append(m_temp)
-        elif isinstance(traj_message.content, da.RecoverInformationNotifyContent):
+        elif isinstance(traj_message.content, da.TrajectoryReqMessageContent):
             m_temp = TrajectoryReqMessage()
             m_temp.m_id = traj_message.ID
             m_temp.drone_id = traj_message.content.drone_id
             m_temp.cu_id = traj_message.content.cu_id
             m_temp.prios = traj_message.content.prios
             m_temp.high_level_setpoints = traj_message.content.high_level_setpoints
-            self.print(f"Requesting new trajectory! {m_temp.drone_id}, {traj_message.content.drone_id}, {m_temp.cu_id}")
-            messages_tx.append(m_temp)
-
-        setpoint_message = self.__computation_agent.get_message(self.__slot_group_setpoints_id)
-        # only if we have received the network members message, we know that this cus is eligible to send
-        # its setpoint_message
-        if setpoint_message is not None and received_network_members_message:
-            m_temp = TargetPositionsMessage()
-            m_temp.m_id = 200
-            m_temp.target_positions = setpoint_message.content.setpoints
+            print(traj_message.content.high_level_setpoints)
+            print(f"Requesting new trajectory! {m_temp.drone_id}, {traj_message.content.drone_id}, {m_temp.cu_id}")
             messages_tx.append(m_temp)
 
         if self.__round_nmbr % 50 == 0 and self.__cu_id == 20:
@@ -1211,7 +1153,7 @@ class ComputingUnit:
             elif type == TYPE_SYNC_MOVEMENT_MESSAGE:
                 message_rec = SyncMovementMessage()
             elif type == TYPE_TARGET_POSITIONS_MESSAGE:
-                message_rec = TargetPositionsMessage()
+                assert False
             elif type == TYPE_NETWORK_MEMBERS_MESSAGE:
                 message_rec = NetworkMembersMessage()
             elif type == TYPE_NETWORK_MESSAGE_AREA_REQUEST:
@@ -1294,20 +1236,14 @@ class ComputingUnit:
                                                 trajectory_generator_options=trajectory_generator_options,
                                                 pos_offset=self.__ARGS.pos_offset,
                                                 prediction_horizon=self.__ARGS.prediction_horizon,
-                                                num_computing_agents=self.__ARGS.num_computing_agents,
-                                                offset=(self.__cu_id - self.__ARGS.num_drones) * int(
-                                                         self.__ARGS.num_drones / max(
-                                                             (self.__ARGS.num_computing_agents), 1)),
                                                 alpha_1=self.__ARGS.alpha_1, alpha_2=self.__ARGS.alpha_2,
                                                 alpha_3=self.__ARGS.alpha_3, alpha_4=self.__ARGS.alpha_4,
                                                 remove_redundant_constraints=self.__ARGS.remove_redundant_constraints,
                                                 computing_agents_ids=self.__ARGS.computing_agent_ids,
                                                 simulated=False,
                                                 ignore_message_loss=self.__ARGS.ignore_message_loss,
-                                                use_high_level_planner=self.__ARGS.use_high_level_planner,
                                                 use_own_targets=True,
                                                 setpoint_creator=self.__ARGS.setpoint_creator,
-                                                slot_group_setpoints_id=self.__slot_group_setpoints_id,
                                                 weight_band=self.__ARGS.weight_band,
                                                 send_setpoints=self.__is_initiator,  # self.__cu_id == 20,
                                                 save_snapshot_times=self.__ARGS.save_snapshot_times,
@@ -1317,7 +1253,8 @@ class ComputingUnit:
                                                 name_run=self.__ARGS.name,
                                                 prob_temp_message_loss=self.__ARGS.message_loss_probability,
                                                 temp_message_loss_starting_round=self.__ARGS.message_loss_period_start,
-                                                temp_message_loss_ending_round_temp=self.__ARGS.message_loss_period_end
+                                                temp_message_loss_ending_round=self.__ARGS.message_loss_period_end,
+                                                use_kkt_trigger=self.__ARGS.use_kkt_trigger
                                                 )
 
     def send_socket(self, message: message.MixerMessage):

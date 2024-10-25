@@ -30,7 +30,7 @@ def sweep_parameters(params, params_sweep):
 
 if __name__ == "__main__":
     param_path = "batch_simulation.yaml"
-    param_sweep_path = "batch_simulation_sweep.yaml"
+    param_sweep_path = "batch_simulation_sweep.yaml"  # "comparison_dmpc_mlr_dmpc.yaml"
 
     # param_path = "../src/parameters/electric_devices/electric_devices.yaml"
     # param_sweep_path = "../src/parameters/electric_devices/electric_devices_sweep.yaml"
@@ -42,13 +42,16 @@ if __name__ == "__main__":
 
     name = params_sweep["name"][0]
     print("Generating params for: " + name)
-    param_target_path = f"/work/mf724021/hpc_parameters/{name}/"
+    param_target_path = f"/work/mf724021/hpc_parameters/{name}/"  # f"{Path.home()}/hpc_parameters/{name}/"
     if not os.path.exists(param_target_path):
         os.makedirs(param_target_path)
 
     swept_params = sweep_parameters(params, params_sweep)
     for comb_idx in range(len(swept_params)):
         with open(param_target_path + f"params{comb_idx}.yaml", "w") as file:
+            if swept_params[comb_idx]["num_computing_agents"] == 2 and swept_params[comb_idx]["ignore_message_loss"] == True and swept_params[comb_idx]["message_loss_probability"] == 0.09 and swept_params[comb_idx]["num_drones"] == 16:
+                print(comb_idx)
+
             params = yaml.safe_dump(swept_params[comb_idx], file)
 
     print(f"{len(swept_params)} parameter settings")

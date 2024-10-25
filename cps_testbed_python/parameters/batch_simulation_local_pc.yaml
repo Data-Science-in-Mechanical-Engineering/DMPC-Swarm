@@ -3,12 +3,16 @@ name: "local_test"
 run_on_cluster: True
 
 # testbed setup
-computing_agent_ids: [40, 41, 42, 43]           # ids of compute units. Length of array defines number of CUs
-num_computing_agents: 3
+computing_agent_ids: [40, 41]           # ids of compute units. Length of array defines number of CUs
+num_computing_agents: 2
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
   Vicon: [[-2.0, -2.0, 0.3], [2.0, 2.0, 3.0], [0, 0, 0]]  #
 
 num_drones: 16
+
+prob_temp_message_loss: 0.0
+temp_message_loss_starting_round: 251 # 600
+temp_message_loss_ending_round: 261 #
 
 # simulation setup
 run_dampc: False
@@ -18,7 +22,7 @@ dampc_num_neurons: 500
 simulated: True     # set false for real testbed (when it runs on a testbed, it saves a bit more data for debugging)
 duration_sec: 200   # duration of simulation
 abort_simulation: True  # exit simulation earlier, if drones crash or all targets reached.
-num_simulations: 100  # number of simulations to conduct
+num_simulations: 1  # number of simulations to conduct
 save_video: False
 resolution_video: 512   # width of the video in pixels. Height is calculated as resolution_video*9/16
 simulate_quantization: False  # simulate quantization during communication
@@ -28,11 +32,11 @@ show_print: False
 log_optimizer: False
 log_optimizer_path: ""
 
-message_loss_probability: 0.01
+message_loss_probability: 0.0
 
 sweep_parameters: True   # to sweep number of CUs, message loss probabilities and so on
 
-hpc_saving_path: "/home/alex/Documents/003_Testbed/007_Code/hpc_runs/"
+hpc_saving_path: "/data/hpc_runs/dmpc_local"
 
 #options for target points
 use_own_targets: False         # if the cus should use their own targets. This is needed, if we want to use the setpoint_creator for e.g. demos.
@@ -71,7 +75,7 @@ guarantee_anti_collision: True   # if false uses a deprecated approach
 
 # event trigger options
 trigger: "HT"
-use_kkt_trigger: False
+use_kkt_trigger: True
 
 # high level planner options to resolve deadlocks
 use_high_level_planner: True
