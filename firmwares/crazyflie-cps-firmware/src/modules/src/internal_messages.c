@@ -15,7 +15,7 @@
 
 #include <string.h>
 
-static uint8_t buffer[2048];
+static uint8_t buffer[SIZE_CP_COM_BUFFER];
 
 uint16_t message_sizes(uint8_t type)
 {

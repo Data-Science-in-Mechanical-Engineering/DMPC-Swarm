@@ -272,6 +272,11 @@ static uint16_t process_VERTICAL_LAUNCH_STATE(cf_state_machine_handle *hstate_ma
 		hstate_machine->current_traj.trajectory_start_time = 0;
 		hstate_machine->current_traj.drone_id = hstate_machine->id;
 
+		for (uint16_t prio_idx = 0; prio_idx < MAX_NUM_DRONES; prio_idx++) {
+			hstate_machine->current_traj.prios[prio_idx] = 255;
+			hstate_machine->current_traj.ids[prio_idx] = 255;
+		}
+
 		hstate_machine->current_target_angle = 1.5f*3.1415926535f;
 	}
 	if (status == STATUS_LAUNCHED) {

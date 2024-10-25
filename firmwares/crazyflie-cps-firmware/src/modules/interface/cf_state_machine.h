@@ -42,7 +42,7 @@
 #define STATUS_LANDED 7
 
 #define START_FROM_HAND 0
-#define LAND_AFTER_SOME_TIME 1
+#define LAND_AFTER_SOME_TIME 0
 #define LAUNCH_HEIGHT (START_FROM_HAND*0.0f + 1.0f)
 
 #define CF_ABS(X) ((X)>0 ? (X):-(X))

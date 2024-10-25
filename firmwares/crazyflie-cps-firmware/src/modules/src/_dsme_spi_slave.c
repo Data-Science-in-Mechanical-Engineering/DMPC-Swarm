@@ -82,7 +82,7 @@
 
 /******************** Data Length Define ********************/
 // Predefined Data Length in _dsme_message.h
-#define BUF_IN_LEN 1024
+#define BUF_IN_LEN SIZE_CP_COM_BUFFER
 // TODO: ACK Daten Länge festzustellen.
 #define BUF_OUT_LEN BUF_IN_LEN
 

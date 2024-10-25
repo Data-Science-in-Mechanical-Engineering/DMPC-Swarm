@@ -13,6 +13,8 @@
 
 #include <stdint.h> 
 
+#define SIZE_CP_COM_BUFFER 3000
+
 #define TYPE_ERROR 0  // when something went wrong and the following data should not been used (e.g. CP did not receive any new data from AP)
                       // can be used to check if AP is online and ready
 #define TYPE_METADATA 1  // message contains metadata about itself (sent by CP, when CP is booting up)
