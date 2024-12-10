@@ -529,16 +529,16 @@ class SetpointCreator:
 
 		current_time = self.__round / frequency
 
-		if current_time > 60 :
+		if current_time > 50 :
 			formation = "PYRAMID"
 
-		if current_time > 120:
+		if current_time > 100:
 			formation = "CIRCLE"
 		
-		if current_time > 180:
+		if current_time > 150:
 			formation = "TORNADO"
 
-		if current_time > 240:
+		if current_time > 200:
 			formation = "RETURN"
 
 		if formation == "SPHERE":
