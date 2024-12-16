@@ -810,6 +810,9 @@ class ComputingUnit:
 
         state = STATE_NOTIFY_NETWORK_MANAGER
 
+        rx_filtered = 0
+        gamma = 0.9
+
         counter = 0
         start_time = time.time()
         while True:
@@ -878,13 +881,13 @@ class ComputingUnit:
                     for m in messages_rx:
                         if isinstance(m, NetworkMembersMessage):
                             received_network_members_message = 1
-                            self.print("---------------")
-                            self.print(m.message_layer_area_agent_id)
-                            self.print(m.ids)
-                            self.print(m.types)
-                            self.print(m.manager_wants_to_leave_network_in)
-                            self.print(m.id_new_network_manager)
-                            print(len(messages_rx)-2)
+                            # self.print("---------------")
+                            # self.print(m.message_layer_area_agent_id)
+                            # self.print(m.ids)
+                            # self.print(m.types)
+                            # self.print(m.manager_wants_to_leave_network_in)
+                            # self.print(m.id_new_network_manager)
+                            # print(len(messages_rx)-2)
                             num_connected_drones = 0
                             for t in m.types:
                                 if t == 1:
@@ -908,6 +911,8 @@ class ComputingUnit:
                             # do not sent anything (send dummy), because we are not sure of we are eligible to send
                             ack_message.type = TYPE_DUMMY
                             messages_tx = [ack_message]
+                    rx_filtered = gamma * rx_filtered + (1 - gamma) * (len(messages_rx) - 2)
+                    print(rx_filtered)
                 elif state == STATE_SYS_RUN:
                     # if we want to leave the swarm, then check if we are in it, if not, then finish.
                     if self.__wants_to_leave:
