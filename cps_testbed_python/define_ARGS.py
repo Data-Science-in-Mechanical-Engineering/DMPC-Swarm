@@ -37,7 +37,7 @@ def define_ARGS():
                         type=bool,
                         help="This is only needed when we want to live plot what is happening (during operation of the testbed)")
 
-    parser.add_argument("--num_static_drones", default=16, type=int, help="")
+    parser.add_argument("--num_static_drones", default=9, type=int, help="")
     parser.add_argument('--dynamic_swarm', default=True, type=bool)  # if drones should be added dynamically or not.
 
     ARGS = parser.parse_args()
@@ -76,7 +76,7 @@ def define_ARGS():
         ARGS.max_positions[key] = np.array(ARGS.testbeds[testbed][1]) + offset
         print(f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
 
-    ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=sc.DEMO_VISITORS)
+    ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=sc.DEMO_AI_CENTER)
 
     path = ""
     with open(path + "ARGS_for_testbed.pkl", 'wb') as out_file:
