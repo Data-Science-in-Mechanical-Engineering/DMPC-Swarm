@@ -76,7 +76,7 @@ def define_ARGS():
         ARGS.max_positions[key] = np.array(ARGS.testbeds[testbed][1]) + offset
         print(f"Drone {key} in {testbed} with offset {offset}, min_pos: {ARGS.min_positions[key]} and max_pos: {ARGS.max_positions[key]}")
 
-    ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=sc.NICE_FORMATIONS3)
+    ARGS.setpoint_creator = sc.SetpointCreator(ARGS.drones, ARGS.testbeds, demo_setpoints=sc.DEMO_VISITORS)
 
     path = ""
     with open(path + "ARGS_for_testbed.pkl", 'wb') as out_file:

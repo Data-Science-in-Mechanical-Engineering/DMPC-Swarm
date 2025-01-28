@@ -425,7 +425,7 @@ class Simulation:
                 if self.__ARGS.save_video and i % 32 == 0:
                     angle = 2*math.pi / 40000 * i
                     viewMatrix4 = p.computeViewMatrix(
-                        cameraEyePosition=[4*np.sin(angle), 4*np.cos(angle), 4],
+                        cameraEyePosition=[4*np.sin(angle), 4*np.cos(angle), 2],
                         cameraTargetPosition=[0, 0, 1.5],
                         cameraUpVector=[0, 0, 1])
                     intrinsic_matrix = np.array([[-focal_length_video, 0, resolution_video[0] / 2, 0],
@@ -444,9 +444,11 @@ class Simulation:
                     bgrImg[:, :, 0] = rgbImg[:, :, 2]
                     bgrImg[:, :, 2] = rgbImg[:, :, 0]
                     bgrImg = np.copy(bgrImg)
+                    bgrImg = bgrImg.astype(np.uint8).copy() 
 
                     # paint planned trajectories
                     for agent_idx in range(self.__ARGS.num_drones):
+                        continue
                         # draw target
                         if self.__agents[self.__ARGS.num_drones].get_targets()[self.__agents[agent_idx].ID] is not None:
                             draw_circle(bgrImg,

@@ -27,6 +27,7 @@ NICE_FORMATIONS = 19
 NICE_FORMATIONS2 = 20
 NICE_FORMATIONS3 = 21
 NICE_FORMATIONS_DEMO = 22
+DEMO_AI_CENTER = 23
 
 DEMO_AI_WEEK_IDLE = 0
 DEMO_AI_WEEK_CIRCLE = 1
@@ -197,6 +198,8 @@ class SetpointCreator:
 				self.__current_setpoints[drone_id] = self.generate_nice_formations3_setpoints(drone_id)
 			elif self.__demo_setpoints == NICE_FORMATIONS_DEMO:
 				self.__current_setpoints[drone_id] = self.generate_nice_formations_demo_setpoints(drone_id)
+			elif self.__demo_setpoints == DEMO_AI_CENTER:
+				self.__current_setpoints[drone_id] = self.generate_demo_ai_center_setpoints(drone_id)
 
 
 		self.__new_round = False
@@ -812,6 +815,113 @@ class SetpointCreator:
 			if drone_id >= 15:
 				p[1] = -p[1]
 		return p
+	
+
+	def generate_demo_ai_center_setpoints(self, drone_id):
+		if drone_id > 9:
+			return np.array([0.0, 0.0, 0.0])
+		total_drones = 9
+		frequency = 5
+		current_time = self.__round / frequency
+		formation = "ELLIPSE"
+
+		if current_time > 30:
+			formation = "VERTICAL_WAVE"
+		if current_time > 60:
+			formation = "HELIX"
+		if current_time > 90:
+			formation = "DYNAMIC_LINE"
+		if current_time > 120:
+			formation = "FIGURE_EIGHT"
+		if current_time > 150:
+			formation = "RETURN"
+
+		if formation == "ELLIPSE":
+			# Parameters for the ellipse formation
+			major_axis = 1.3  # Adjusted to fit within x-range [-1.4, 1.4]
+			minor_axis = 3.5  # Adjusted to fit within y-range [-3.7, 3.7]
+			center_z = 1.1  # Midpoint of vertical range [0.4, 1.8]
+			return self.generate_ellipse_setpoint(drone_id, total_drones, current_time, major_axis, minor_axis, center_z, rotation_speed=0.02)
+
+		elif formation == "VERTICAL_WAVE":
+			amplitude = 0.6  # Vertical movement amplitude
+			frequency_wave = 0.1
+			y_range = 6.5  # Within y-range [-3.7, 3.7], allowing safety margins
+			return self.generate_vertical_wave_setpoint(drone_id, total_drones, current_time, amplitude, frequency_wave, y_range)
+
+		elif formation == "HELIX":
+			radius = 1.0  # Radius of the helix, staying within x-range [-1.4, 1.4]
+			height = 1.4  # Vertical height covered
+			loops = 2  # Number of loops in the helix
+			center_x = 0.0
+			center_y = 0.0
+			z_min = 0.5
+			z_max = 1.7
+			return self.generate_helix_setpoint(drone_id, total_drones, current_time, radius, height, loops, center_x, center_y, z_min, z_max)
+
+		elif formation == "DYNAMIC_LINE":
+			y_start = -3.0  # Starting y position
+			y_end = 3.0     # Ending y position
+			center_z = 1.1
+			return self.generate_dynamic_line_setpoint(drone_id, total_drones, current_time, y_start, y_end, center_z)
+
+		elif formation == "FIGURE_EIGHT":
+			amplitude = 1.2  # Adjusted to fit within x and y ranges
+			center_z = 1.1
+			frequency_figure_eight = 0.3
+			return self.generate_figure_eight_setpoint(drone_id, total_drones, current_time, amplitude, center_z, frequency_figure_eight)
+
+		elif formation == "RETURN":
+			h = 0.5  # Landing height
+			positions = np.array([
+				[-1.0, -3.0, h], [0.0, -3.0, h], [1.0, -3.0, h],
+				[-1.0, -2.0, h], [0.0, -2.0, h], [1.0, -2.0, h],
+				[-1.0, -1.0, h], [0.0, -1.0, h], [1.0, -1.0, h],
+			])
+			return positions[drone_id - 1]
+		else:
+			# Default position if formation is not recognized
+			return np.array([0.0, 0.0, 1.1])
+
+	# Helper functions
+
+	def generate_ellipse_setpoint(self, drone_id, total_drones, current_time, major_axis, minor_axis, center_z, rotation_speed):
+		angle = 2 * math.pi * (drone_id - 1) / total_drones + (2 * math.pi * rotation_speed * current_time)
+		x = major_axis * math.cos(angle)
+		y = minor_axis * math.sin(angle)
+		return np.array([x, y, center_z])
+
+	def generate_vertical_wave_setpoint(self, drone_id, total_drones, current_time, amplitude, frequency, y_range):
+		x = 0.0
+		y_start = -y_range / 2
+		y_spacing = y_range / (total_drones - 1)
+		y = y_start + y_spacing * (drone_id - 1)
+		phase_shift = ((drone_id - 1) * math.pi / (total_drones - 1))
+		z = amplitude * math.sin(2 * math.pi * frequency * current_time + phase_shift) + 1.1
+		return np.array([x, y, z])
+
+	def generate_helix_setpoint(self, drone_id, total_drones, current_time, radius, height, loops, center_x, center_y, z_min, z_max):
+		t = (current_time % 20) / 20  # Normalized time between 0 and 1, cycles every 20 seconds
+		angle = 2 * math.pi * loops * t + (2 * math.pi * (drone_id - 1) / total_drones)
+		x = center_x + radius * math.cos(angle)
+		y = center_y + radius * math.sin(angle)
+		z = z_min + (z_max - z_min) * t
+		return np.array([x, y, z])
+
+	def generate_dynamic_line_setpoint(self, drone_id, total_drones, current_time, y_start, y_end, center_z):
+		y_mid = (y_start + y_end) / 2
+		y_amp = (y_end - y_start) / 2
+		phase_shift = 2 * ((drone_id - 1) * math.pi / (total_drones - 1))
+		y = y_mid + y_amp * math.sin(2 * math.pi * 0.05 * current_time + phase_shift)
+		x = 0.0
+		return np.array([x, y, center_z])
+
+	def generate_figure_eight_setpoint(self, drone_id, total_drones, current_time, amplitude, center_z, frequency):
+		t = frequency * current_time + (2 * math.pi * (drone_id - 1) / total_drones)
+		x = amplitude * math.sin(t)
+		y = amplitude * math.sin(t) * math.cos(t)
+		return np.array([x, y, center_z])
+
 
 	def generate_demo_visitors_setpoint(self, drone_id):
 		if drone_id > 16:
