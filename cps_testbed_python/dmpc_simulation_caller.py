@@ -87,7 +87,7 @@ def call_single_simulation(ARGS):
 
     if ARGS.save_video:
         print("Saving video")
-        video_name = 'Video.avi'
+        video_name = 'Video.mp4'
         image_folder = ARGS.path + "_simnr_1"
         images = [img for img in os.listdir(image_folder) if img.endswith(".jpg") and img.startswith("ImgPredict1")]
         frame = cv2.imread(os.path.join(image_folder, "ImgPredict1_0.jpg"))
@@ -209,7 +209,7 @@ if __name__ == "__main__":
 
     # only used if use_own_targets is set.
     ARGS.setpoint_creator = setpoint_creator.SetpointCreator(ARGS.drones, ARGS.testbeds,
-                                                             demo_setpoints=setpoint_creator.DEMO_VISITORS)
+                                                             demo_setpoints=setpoint_creator.DEMO_AI_CENTER)
 
     origin = np.array(ARGS.testbeds["Vicon"][0]) + np.array(ARGS.testbeds["Vicon"][2])
     testbed_size = np.array(ARGS.testbeds["Vicon"][1]) - np.array(ARGS.testbeds["Vicon"][0])

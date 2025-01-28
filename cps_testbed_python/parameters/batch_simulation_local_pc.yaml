@@ -1,14 +1,14 @@
 name: "local_test"
 
-run_on_cluster: True
+run_on_cluster: False
 
 # testbed setup
 computing_agent_ids: [40, 41]           # ids of compute units. Length of array defines number of CUs
 num_computing_agents: 2
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
-  Vicon: [[-2.0, -2.0, 0.3], [2.0, 2.0, 3.0], [0, 0, 0]]  #
+  "Vicon": [[-1.4, -3.7, 0.4], [1.4, 3.7, 1.8], [0, 0, 0]]
 
-num_drones: 16
+num_drones: 9
 
 prob_temp_message_loss: 0.0
 temp_message_loss_starting_round: 251 # 600
@@ -23,7 +23,7 @@ simulated: True     # set false for real testbed (when it runs on a testbed, it 
 duration_sec: 200   # duration of simulation
 abort_simulation: True  # exit simulation earlier, if drones crash or all targets reached.
 num_simulations: 1  # number of simulations to conduct
-save_video: False
+save_video: True
 resolution_video: 512   # width of the video in pixels. Height is calculated as resolution_video*9/16
 simulate_quantization: False  # simulate quantization during communication
 sim_steps_per_control: 4
@@ -39,7 +39,7 @@ sweep_parameters: True   # to sweep number of CUs, message loss probabilities an
 hpc_saving_path: "/data/hpc_runs/dmpc_local"
 
 #options for target points
-use_own_targets: False         # if the cus should use their own targets. This is needed, if we want to use the setpoint_creator for e.g. demos.
+use_own_targets: True         # if the cus should use their own targets. This is needed, if we want to use the setpoint_creator for e.g. demos.
 
 # Logging options
 log: True
