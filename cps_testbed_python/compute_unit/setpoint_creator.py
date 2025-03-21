@@ -843,10 +843,10 @@ class SetpointCreator:
 
 		if formation == "ELLIPSE":
 			# Parameters for the ellipse formation
-			major_axis = 1.3  # Adjusted to fit within x-range [-1.4, 1.4]
-			minor_axis = 3.5  # Adjusted to fit within y-range [-3.7, 3.7]
+			major_axis = 1.2  # Adjusted to fit within x-range [-1.4, 1.4]
+			minor_axis = 3.2  # Adjusted to fit within y-range [-3.7, 3.7]
 			center_z = 1.1  # Midpoint of vertical range [0.4, 1.8]
-			return self.generate_ellipse_setpoint(drone_id, total_drones, current_time, major_axis, minor_axis, center_z, rotation_speed=0.02)
+			return self.generate_ellipse_setpoint(drone_id, total_drones, current_time, major_axis, minor_axis, center_z, rotation_speed=0.04)
 
 		elif formation == "VERTICAL_WAVE":
 			amplitude = 0.6  # Vertical movement amplitude
@@ -855,7 +855,7 @@ class SetpointCreator:
 			return self.generate_vertical_wave_setpoint(drone_id, total_drones, current_time, amplitude, frequency_wave, y_range)
 
 		elif formation == "HELIX":
-			radius = 1.0  # Radius of the helix, staying within x-range [-1.4, 1.4]
+			radius = 1.2  # Radius of the helix, staying within x-range [-1.4, 1.4]
 			height = 1.4  # Vertical height covered
 			loops = 2  # Number of loops in the helix
 			center_x = 0.0
@@ -873,7 +873,7 @@ class SetpointCreator:
 		elif formation == "FIGURE_EIGHT":
 			amplitude = 1.2  # Adjusted to fit within x and y ranges
 			center_z = 1.1
-			frequency_figure_eight = 0.3
+			frequency_figure_eight = 0.15
 			return self.generate_figure_eight_setpoint(drone_id, total_drones, current_time, amplitude, center_z, frequency_figure_eight)
 
 		elif formation == "RETURN":
@@ -917,14 +917,14 @@ class SetpointCreator:
 		y_mid = (y_start + y_end) / 2
 		y_amp = (y_end - y_start) / 2
 		phase_shift = 2 * ((drone_id - 1) * math.pi / (total_drones - 1))
-		y = y_mid + y_amp * math.sin(2 * math.pi * 0.05 * current_time + phase_shift)
+		y = y_mid + y_amp * math.sin(2 * math.pi * 0.9 * current_time + phase_shift)
 		x = 0.0
 		return np.array([x, y, center_z])
 
 	def generate_figure_eight_setpoint(self, drone_id, total_drones, current_time, amplitude, center_z, frequency):
 		t = frequency * current_time + (2 * math.pi * (drone_id - 1) / total_drones)
-		x = amplitude * math.sin(t)
-		y = amplitude * math.sin(t) * math.cos(t)
+		y = amplitude * math.sin(t)
+		x = amplitude * math.sin(t) * math.cos(t)
 		return np.array([x, y, center_z])
 
 
