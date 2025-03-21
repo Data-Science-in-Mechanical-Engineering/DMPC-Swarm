@@ -1265,6 +1265,11 @@ class ComputeUnit(net.Agent):
 
         return target_pos
 
+    
+    def get_rgb(self):
+        return self.__setpoint_creator.RGB
+
+    
     def get_targets(self):
         """
         Returns the current target position of each agent, that an agent wishes to fly to (or if we want the CU to calculate

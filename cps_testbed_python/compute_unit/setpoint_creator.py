@@ -28,6 +28,7 @@ NICE_FORMATIONS2 = 20
 NICE_FORMATIONS3 = 21
 NICE_FORMATIONS_DEMO = 22
 DEMO_AI_CENTER = 23
+DEMO_LLM = 24
 
 DEMO_AI_WEEK_IDLE = 0
 DEMO_AI_WEEK_CIRCLE = 1
@@ -123,6 +124,8 @@ class SetpointCreator:
 
 		self.__new_round = True
 
+		self.RGB = {drone_id: [255, 0, 0] for drone_id in drones}
+
 	@property
 	def demo_setpoints(self):
 		return self.__demo_setpoints
@@ -200,6 +203,8 @@ class SetpointCreator:
 				self.__current_setpoints[drone_id] = self.generate_nice_formations_demo_setpoints(drone_id)
 			elif self.__demo_setpoints == DEMO_AI_CENTER:
 				self.__current_setpoints[drone_id] = self.generate_demo_ai_center_setpoints(drone_id)
+			elif self.__demo_setpoints == DEMO_LLM:
+				self.__current_setpoints[drone_id] = self.generate_demo_llm_setpoints(drone_id)
 
 
 		self.__new_round = False
@@ -1000,6 +1005,40 @@ class SetpointCreator:
 									z_middle - radius * math.sin(math.pi / 4))
 		else:
 			return get_circle_point(radius, drone_id, 6, z_middle)
+		
+	
+	def get_position__(self, current_time, drone_id):
+		num_drones = 8
+		radius = 1.7
+		rotation_period = 20.0
+		wave_period = 20.0
+
+		angle = 2 * math.pi * current_time / rotation_period
+		drone_angle = 2 * math.pi * (drone_id - 1) / num_drones
+		x = radius * math.cos(angle + drone_angle)
+		y = radius * math.sin(angle + drone_angle)
+		z = 1.0 + 0.5 * math.sin(2 * math.pi * current_time / 5)
+
+		wave_offset = 2 * math.pi * current_time / wave_period
+		wave_position = (drone_angle - wave_offset)
+		
+		blue_intensity = int(127.5 * (1 + math.cos(wave_position)))
+		r = 0
+		g = 0
+		b = blue_intensity
+
+		return [x, y, z], [r, g, b]
+
+
+	
+	def generate_demo_llm_setpoints(self, drone_id):
+		if drone_id > 16:
+			return np.array([0.0, 0.0, 0.0])
+		
+		pos, rgb = self.get_position__(self.__round * 0.2, drone_id)
+		self.RGB[drone_id] = rgb
+		return np.array(pos)
+		
 
 	def add_drone(self, drone_id, state, round):
 		"""

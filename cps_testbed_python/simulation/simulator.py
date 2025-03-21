@@ -428,6 +428,14 @@ class Simulation:
                         cameraEyePosition=[4*np.sin(angle), 4*np.cos(angle), 2],
                         cameraTargetPosition=[0, 0, 1.5],
                         cameraUpVector=[0, 0, 1])
+                    viewMatrix4 = p.computeViewMatrix(
+                        cameraEyePosition=[-4, 0, 2],
+                        cameraTargetPosition=[0, 0, 1],
+                        cameraUpVector=[0, 0, 1])
+                    viewMatrix4 = p.computeViewMatrix(
+                        cameraEyePosition=[0, 0, 6],
+                        cameraTargetPosition=[0, 0, 0],
+                        cameraUpVector=[0, 1, 0])
                     intrinsic_matrix = np.array([[-focal_length_video, 0, resolution_video[0] / 2, 0],
                                                  [0, focal_length_video, resolution_video[1] / 2, 0],
                                                  [0, 0, 1, 0],
@@ -445,6 +453,17 @@ class Simulation:
                     bgrImg[:, :, 2] = rgbImg[:, :, 0]
                     bgrImg = np.copy(bgrImg)
                     bgrImg = bgrImg.astype(np.uint8).copy() 
+
+
+                    for agent_idx in range(self.__ARGS.num_drones):
+                        led_color = self.__agents[self.__ARGS.num_drones].get_rgb()[self.__agents[agent_idx].ID]
+                        position = self.__agents[agent_idx].state[0:3]
+                        print(led_color)
+                        draw_circle(bgrImg,
+                                       position,
+                                       trans, intrinsic_matrix,
+                                       [led_color[2], led_color[1], led_color[0]],
+                                       )
 
                     # paint planned trajectories
                     for agent_idx in range(self.__ARGS.num_drones):

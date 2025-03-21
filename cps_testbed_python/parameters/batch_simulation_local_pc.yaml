@@ -8,7 +8,7 @@ num_computing_agents: 2
 testbeds:                               # this is only relevant for testbed runs with two testbeds. The simulations always uses Vicon
   "Vicon": [[-1.4, -3.7, 0.4], [1.4, 3.7, 1.8], [0, 0, 0]]
 
-num_drones: 9
+num_drones: 8
 
 prob_temp_message_loss: 0.0
 temp_message_loss_starting_round: 251 # 600
