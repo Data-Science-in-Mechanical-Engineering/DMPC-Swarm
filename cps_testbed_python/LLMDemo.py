@@ -42,4 +42,10 @@ if __name__ == "__main__":
             cf = allcfs.crazyflies[i]
             setpoint = demo[f"state_set{i}"][t]
             cf.cmdFullState(setpoint[0:3], setpoint[3:6], setpoint[6:9], 0, [0.0, 0.0, 0.0])
+        
+        if t % 12 == 0:
+            for i in range(num_drones):
+                cf = allcfs.crazyflies[i]
+                setpoint = demo[f"rgb"][t]
+                cf.setLEDColor(setpoint[0], setpoint[1], setpoint[2])
         timeHelper.sleepForRate(12 * 5)
