@@ -43,7 +43,7 @@ use_own_targets: True         # if the cus should use their own targets. This is
 
 # Logging options
 log: True
-log_state: False
+log_state: True
 
 # Controller options
 control_steps_per_round: 12
