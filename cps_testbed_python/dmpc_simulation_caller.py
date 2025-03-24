@@ -248,6 +248,13 @@ if __name__ == "__main__":
             id = ARGS_for_simulation.drone_ids[j % ARGS_for_simulation.num_drones]
             ARGS_for_simulation.INIT_TARGETS[id] = np.vstack((ARGS_for_simulation.INIT_TARGETS[id], INIT_TARGETS[j]))
 
+        
+        if True:
+            INIT_XYZS = np.array([[-1.0, 1.5, 1.0], [0, 1.0, 1.0], [1.0, 1.5, 1.0],
+                                [-1.0, 0, 1.0],   [0.0, 0, 1.0] ,[1.0, 0, 1.0],
+                                [-1.0, -1.5, 1.0], [0, -1.0, 1.0]])
+        
+        
         ARGS_for_simulation.INIT_XYZS_id = {}
         for j in range(ARGS_for_simulation.num_drones):
             id = ARGS_for_simulation.drone_ids[j]

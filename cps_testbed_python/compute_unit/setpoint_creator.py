@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 import copy
 import math
 
+import compute_unit.llm_setpoints as llm_setpoints
+
 BASIS_HEIGHT = 1.2
 
 CIRCLE = 0
@@ -1005,37 +1007,13 @@ class SetpointCreator:
 									z_middle - radius * math.sin(math.pi / 4))
 		else:
 			return get_circle_point(radius, drone_id, 6, z_middle)
-		
-	
-	def get_position__(self, current_time, drone_id):
-		num_drones = 8
-		radius = 1.7
-		rotation_period = 20.0
-		wave_period = 20.0
-
-		angle = 2 * math.pi * current_time / rotation_period
-		drone_angle = 2 * math.pi * (drone_id - 1) / num_drones
-		x = radius * math.cos(angle + drone_angle)
-		y = radius * math.sin(angle + drone_angle)
-		z = 1.0 + 0.5 * math.sin(2 * math.pi * current_time / 5)
-
-		wave_offset = 2 * math.pi * current_time / wave_period
-		wave_position = (drone_angle - wave_offset)
-		
-		blue_intensity = int(127.5 * (1 + math.cos(wave_position)))
-		r = 0
-		g = 0
-		b = blue_intensity
-
-		return [x, y, z], [r, g, b]
-
 
 	
 	def generate_demo_llm_setpoints(self, drone_id):
 		if drone_id > 16:
 			return np.array([0.0, 0.0, 0.0])
 		
-		pos, rgb = self.get_position__(self.__round * 0.2, drone_id)
+		pos, rgb = llm_setpoints.get_position(self.__round * 0.2, drone_id)
 		self.RGB[drone_id] = rgb
 		return np.array(pos)
 		

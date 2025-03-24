@@ -14,11 +14,12 @@ if __name__ == "__main__":
     ignore_message_loss = True
     num_drones = 16
     num_cus = 2
-    name = ("3CU")
-    targets = f"../../experiment_measurements/drone_trajectory_logger_{name}.p"
+    name = ("DT")
+    targets = f"../../experiment_measurements/drone_trajectory_logger_testbed_experiment_demo_{name}.p"
 
     with open(targets, 'rb') as handle:
         targets = pickle.load(handle)
+
 
     trajectories = f"../../experiment_measurements/Experiment{name}.pickle"
     pos = None
@@ -27,9 +28,9 @@ if __name__ == "__main__":
 
     pos = data["logger_pos"]
     time_stamps = data["time"]
-    print(time_stamps)
-    print(len(targets))
-    print(targets.keys())
+    # print(time_stamps)
+    # print(len(targets))
+    # print(targets.keys())
 
     dists = []
     dists2 = []
@@ -75,7 +76,7 @@ if __name__ == "__main__":
 
     df = pd.DataFrame({"t": times[0::10], "dmax": np.max(dists, axis=0)[0::10], "dmin": np.min(dists, axis=0)[0::10], "mean": np.mean(dists, axis=0)[0::10]})
     df.to_csv(
-        f"/home/alex/Documents/009_Paper/papers-dsme-nes/robot_swarm_science_robotics/plot_data/HardwareExperimentFigures_{name}.csv")
+        f"/home/alex/Documents/009_Paper/papers-dsme-nes/dmpc/plot_data/HardwareExperimentFigures_{name}.csv")
 
     plt.show()
 

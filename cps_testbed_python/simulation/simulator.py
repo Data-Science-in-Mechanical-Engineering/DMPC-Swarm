@@ -429,13 +429,9 @@ class Simulation:
                         cameraTargetPosition=[0, 0, 1.5],
                         cameraUpVector=[0, 0, 1])
                     viewMatrix4 = p.computeViewMatrix(
-                        cameraEyePosition=[-4, 0, 2],
+                        cameraEyePosition=[-4, 0, 3],
                         cameraTargetPosition=[0, 0, 1],
                         cameraUpVector=[0, 0, 1])
-                    viewMatrix4 = p.computeViewMatrix(
-                        cameraEyePosition=[0, 0, 6],
-                        cameraTargetPosition=[0, 0, 0],
-                        cameraUpVector=[0, 1, 0])
                     intrinsic_matrix = np.array([[-focal_length_video, 0, resolution_video[0] / 2, 0],
                                                  [0, focal_length_video, resolution_video[1] / 2, 0],
                                                  [0, 0, 1, 0],
@@ -517,6 +513,7 @@ class Simulation:
                     if self.__ARGS.log_state:
                         self.__easy_logger.add_data_point(f"state_{j}", self.__agents[j].state)
                         self.__easy_logger.add_data_point(f"state_set{j}", copy.deepcopy(next_state[j, :]))
+                        self.__easy_logger.add_data_point(f"rgb{j}", copy.deepcopy(self.__agents[self.__ARGS.num_drones].get_rgb()[self.__agents[j].ID]))
 
                 if self.__ARGS.log_state:
                     self.__easy_logger.add_data_point(f"target_pos", copy.deepcopy(self.__computing_agents[0].get_targets()))

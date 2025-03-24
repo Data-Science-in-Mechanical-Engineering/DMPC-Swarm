@@ -6,9 +6,9 @@ import pandas as pd
 if __name__ == "__main__":
     fps = 30
     duration = 100
-    name_movie = "triggers"  #"num_cus"
-    names = ["RR", "DT", "HT"] # ["1CU", "HT", "3CU"]   #["RR", "DT", "HT"]
-    labels = ["RR", "DT", "HT"] # ["1 CU", "2 CUs", "3 CUs"]  #["RR", "DT", "HT"]
+    name_movie = "triggers" # "triggers"  #"num_cus"
+    names = ["RR", "DT", "2CUs"]   #["1CUs", "2CUs", "3CUs"]  # ["RR", "DT", "HT"] # ["1CU", "HT", "3CU"]   #["RR", "DT", "HT"]
+    labels = ["RR", "DT", "HT"]   #["1 CU", "2 CUs", "3 CUs"] # ["RR", "DT", "HT"]  ["RR", "DT", "HT"] # ["1 CU", "2 CUs", "3 CUs"]  #["RR", "DT", "HT"]
     fillopacity = 0.4
     colors = ('r', 'b', 'g')
 
@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     data = []
     for name in  names:
-        data.append(pd.read_csv(f"/home/alex/Documents/009_Paper/papers-dsme-nes/robot_swarm_science_robotics/plot_data/HardwareExperimentFigures_{name}.csv"))
+        data.append(pd.read_csv(f"/home/alex/Documents/009_Paper/papers-dsme-nes/dmpc/plot_data/HardwareExperimentFigures_{name}.csv"))
     
     fig, ax = plt.subplots()
     fig.set_size_inches(resolution[0] / dpi, resolution[1] / dpi, True) 
