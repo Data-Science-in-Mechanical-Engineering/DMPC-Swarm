@@ -386,7 +386,7 @@ class Simulation:
                 obs, reward, done, info = self.__env.step(action)
 
                 if i % (COM_EVERY_N_STEPS) == 0:
-
+                    print("Round: " + str(i // COM_EVERY_N_STEPS))
                     self.__network.step()
 
                     # the current position should be set after the network transmits its data (because the drones

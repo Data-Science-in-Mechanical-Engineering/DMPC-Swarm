@@ -13,6 +13,7 @@
         "_dsme_spi_slave.h": "c",
         "internal_messages.h": "c",
         "stm32f4xx.h": "c",
-        "cf_state_machine.h": "c"
+        "cf_state_machine.h": "c",
+        "_dsme_cps_swarm.h": "c"
     }
 }

@@ -924,7 +924,7 @@ class ComputeUnit(net.Agent):
                                         current_agent_real = key
                                 current_id_real = self.__drones_ids[current_agent_real]
 
-                    print(f"{self.ID} current_id {current_id}")
+                    # print(f"{self.ID} current_id {current_id}")
                     self.ordered_indexes = ordered_indexes
 
                     # if the information about the agent is not unique do not calculate something, because we will calculate
